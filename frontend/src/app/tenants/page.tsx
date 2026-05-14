@@ -231,22 +231,24 @@ export default function TenantManagement() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-3">
-                        <button 
-                          onClick={() => handleOpenEditModal(tenant)}
-                          className="text-slate-500 hover:text-indigo-400 transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 className="h-5 w-5" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteTenant(tenant.id)}
-                          className="text-slate-500 hover:text-red-400 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </button>
-                      </div>
+                      {tenant.tenantCode !== "MASTER" && (
+                        <div className="flex justify-end gap-3">
+                          <button 
+                            onClick={() => handleOpenEditModal(tenant)}
+                            className="text-slate-500 hover:text-indigo-400 transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 className="h-5 w-5" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteTenant(tenant.id)}
+                            className="text-slate-500 hover:text-red-400 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
