@@ -27,7 +27,7 @@ export default function LoginPage() {
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.message || "Invalid credentials or tenant not found.");
+        throw new Error(err.message || "Invalid account. Please check your credentials.");
       }
 
       const data = await res.json();
@@ -60,10 +60,17 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white dark:bg-slate-900/50 backdrop-blur-2xl border border-slate-200 dark:border-white/10 rounded-3xl p-8 shadow-2xl">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Sign In (Mock Mode)</h2>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Sign In</h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">Login with your work email to access the admin portal.</p>
           </div>
+
+          {error && (
+            <div className="mb-4 flex items-start gap-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl px-4 py-3 text-sm">
+              <span className="mt-0.5 shrink-0">⚠</span>
+              <span>{error}</span>
+            </div>
+          )}
 
           <form className="space-y-6" onSubmit={handleLogin}>
             <div className="space-y-2">
@@ -84,7 +91,6 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex justify-between items-center ml-1">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
-                <span className="text-xs text-slate-500">Any password works for mock testing</span>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 dark:text-slate-500" />
@@ -97,7 +103,7 @@ export default function LoginPage() {
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl pl-10 pr-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 transition-all outline-none"
                 />
               </div>
-              {error && <p className="text-xs text-red-500 dark:text-red-400 ml-1">{error}</p>}
+
             </div>
 
             <button
