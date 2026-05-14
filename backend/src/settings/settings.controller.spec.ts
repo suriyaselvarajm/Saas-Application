@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SettingsController } from './settings.controller';
 import { SettingsService } from './settings.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 
 describe('SettingsController', () => {
   let controller: SettingsController;
@@ -16,6 +17,10 @@ describe('SettingsController', () => {
         },
         {
           provide: PrismaService,
+          useValue: {},
+        },
+        {
+          provide: AuditService,
           useValue: {},
         },
       ],
