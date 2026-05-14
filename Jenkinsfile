@@ -20,11 +20,8 @@ pipeline {
             steps {
                 echo 'Installing Dependencies...'
                 sh '''
-                cd backend && npm install --legacy-peer-deps
-                cd ../frontend && npm install --legacy-peer-deps
-                # Ensure binaries have execute permissions on Linux
-                chmod -R +x backend/node_modules/.bin || true
-                chmod -R +x frontend/node_modules/.bin || true
+                cd backend && npm install --legacy-peer-deps && chmod -R +x node_modules/.bin || true
+                cd ../frontend && npm install --legacy-peer-deps && chmod -R +x node_modules/.bin || true
                 '''
             }
         }
