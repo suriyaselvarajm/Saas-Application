@@ -109,7 +109,7 @@ export class AuthService {
 
   async login(email: string, password?: string) {
     // For mock testing, password is not explicitly validated
-    
+
     // 1. Mock Super Admin Login
     if (email === 'admin@petrus.io') {
       const config = await this.getTenantConfigByDomain('petrus.io');
@@ -123,11 +123,10 @@ export class AuthService {
             email,
             name: 'Platform Super Admin',
             tenantId: config.tenantId,
-            systemRole: 'SUPER_ADMIN', 
+            systemRole: 'SUPER_ADMIN',
           }
         });
       } else if (user.systemRole !== 'SUPER_ADMIN') {
-        // Fix for existing mock users that got 'EMPLOYEE' default during migration
         user = await this.prisma.user.update({
           where: { id: user.id },
           data: { systemRole: 'SUPER_ADMIN' }
@@ -147,11 +146,25 @@ export class AuthService {
       };
     }
 
-    // 2. Standard Tenant User Login (Mock)
+    // 2. Standard Tenant User Login — tenant must exist and be ACTIVE
     const domain = email.split('@')[1];
     if (!domain) throw new HttpException('Invalid email format', HttpStatus.BAD_REQUEST);
 
-    const config = await this.getTenantConfigByDomain(domain);
+    // Look up the tenant by domain — must be explicitly added by an admin
+    const tenant = await this.prisma.tenant.findFirst({
+      where: { domainName: domain, status: 'ACTIVE' },
+    });
+
+    if (!tenant) {
+      throw new HttpException('Invalid account. Your organisation is not registered on this platform.', HttpStatus.UNAUTHORIZED);
+    }
+
+    const config = {
+      tenantId: tenant.id,
+      tenantCode: tenant.tenantCode,
+      name: tenant.name,
+    };
+
     let user = await this.prisma.user.findFirst({
       where: { email, tenantId: config.tenantId }
     });
@@ -162,15 +175,14 @@ export class AuthService {
           email,
           name: 'Tenant Administrator',
           tenantId: config.tenantId,
-          systemRole: 'TENANT_ADMIN', 
+          systemRole: 'TENANT_ADMIN',
         }
       });
     } else if (email.startsWith('admin@') && user.systemRole !== 'TENANT_ADMIN') {
-       // Fix for existing mock users
-       user = await this.prisma.user.update({
-         where: { id: user.id },
-         data: { systemRole: 'TENANT_ADMIN' }
-       });
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { systemRole: 'TENANT_ADMIN' }
+      });
     }
 
     return {

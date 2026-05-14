@@ -134,7 +134,17 @@ let AuthService = class AuthService {
         const domain = email.split('@')[1];
         if (!domain)
             throw new common_1.HttpException('Invalid email format', common_1.HttpStatus.BAD_REQUEST);
-        const config = await this.getTenantConfigByDomain(domain);
+        const tenant = await this.prisma.tenant.findFirst({
+            where: { domainName: domain, status: 'ACTIVE' },
+        });
+        if (!tenant) {
+            throw new common_1.HttpException('Invalid account. Your organisation is not registered on this platform.', common_1.HttpStatus.UNAUTHORIZED);
+        }
+        const config = {
+            tenantId: tenant.id,
+            tenantCode: tenant.tenantCode,
+            name: tenant.name,
+        };
         let user = await this.prisma.user.findFirst({
             where: { email, tenantId: config.tenantId }
         });
