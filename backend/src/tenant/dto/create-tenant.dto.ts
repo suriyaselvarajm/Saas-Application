@@ -35,8 +35,12 @@ export class CreateTenantDto {
   currency?: string;
 
   @IsEmail()
-  @IsOptional()
-  contactEmail?: string;
+  @IsNotEmpty()
+  adminEmail: string;
+
+  @IsString()
+  @IsNotEmpty()
+  initialPassword: string;
 
   @IsString()
   @IsOptional()

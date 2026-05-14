@@ -108,8 +108,6 @@ export class AuthService {
   }
 
   async login(email: string, password?: string) {
-    // For mock testing, password is not explicitly validated
-
     // 1. Mock Super Admin Login
     if (email === 'admin@petrus.io') {
       const config = await this.getTenantConfigByDomain('petrus.io');
@@ -121,15 +119,12 @@ export class AuthService {
         user = await this.prisma.user.create({
           data: {
             email,
+            password: 'admin',
             name: 'Platform Super Admin',
             tenantId: config.tenantId,
             systemRole: 'SUPER_ADMIN',
+            mustChangePassword: false,
           }
-        });
-      } else if (user.systemRole !== 'SUPER_ADMIN') {
-        user = await this.prisma.user.update({
-          where: { id: user.id },
-          data: { systemRole: 'SUPER_ADMIN' }
         });
       }
 
@@ -142,6 +137,7 @@ export class AuthService {
           tenantCode: config.tenantCode,
           tenantName: config.name,
           systemRole: user.systemRole,
+          mustChangePassword: user.mustChangePassword,
         }
       };
     }
@@ -150,7 +146,7 @@ export class AuthService {
     const domain = email.split('@')[1];
     if (!domain) throw new HttpException('Invalid email format', HttpStatus.BAD_REQUEST);
 
-    // Look up the tenant by domain — must be explicitly added by an admin
+    // Look up the tenant by domain
     const tenant = await this.prisma.tenant.findFirst({
       where: { domainName: domain, status: 'ACTIVE' },
     });
@@ -159,30 +155,18 @@ export class AuthService {
       throw new HttpException('Invalid account. Your organisation is not registered on this platform.', HttpStatus.UNAUTHORIZED);
     }
 
-    const config = {
-      tenantId: tenant.id,
-      tenantCode: tenant.tenantCode,
-      name: tenant.name,
-    };
-
-    let user = await this.prisma.user.findFirst({
-      where: { email, tenantId: config.tenantId }
+    // Find the specific user in the tenant
+    const user = await this.prisma.user.findUnique({
+      where: { email },
     });
 
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          email,
-          name: 'Tenant Administrator',
-          tenantId: config.tenantId,
-          systemRole: 'TENANT_ADMIN',
-        }
-      });
-    } else if (email.startsWith('admin@') && user.systemRole !== 'TENANT_ADMIN') {
-      user = await this.prisma.user.update({
-        where: { id: user.id },
-        data: { systemRole: 'TENANT_ADMIN' }
-      });
+    if (!user || user.tenantId !== tenant.id) {
+      throw new HttpException('Unauthorized. Only registered users for this organisation can login.', HttpStatus.UNAUTHORIZED);
+    }
+
+    // Validate Password
+    if (user.password && user.password !== password) {
+      throw new HttpException('Invalid password.', HttpStatus.UNAUTHORIZED);
     }
 
     return {
@@ -191,10 +175,37 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        tenantCode: config.tenantCode,
-        tenantName: config.name,
+        tenantCode: tenant.tenantCode,
+        tenantName: tenant.name,
         systemRole: user.systemRole,
+        mustChangePassword: user.mustChangePassword,
       }
     };
+  }
+
+  async changePassword(email: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+
+    return this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: newPassword,
+        mustChangePassword: false
+      }
+    });
+  }
+
+  async adminResetPassword(userId: string, newPassword: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: newPassword,
+        mustChangePassword: true, // Force them to change it again
+      }
+    });
   }
 }

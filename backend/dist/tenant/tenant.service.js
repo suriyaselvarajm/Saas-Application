@@ -19,29 +19,41 @@ let TenantService = class TenantService {
         this.prisma = prisma;
     }
     async create(createTenantDto) {
+        const { adminEmail, initialPassword, ...tenantData } = createTenantDto;
         const existing = await this.prisma.tenant.findUnique({
-            where: { tenantCode: createTenantDto.tenantCode },
+            where: { tenantCode: tenantData.tenantCode },
         });
         if (existing) {
             throw new common_1.ConflictException('Tenant code already exists');
         }
         return this.prisma.tenant.create({
             data: {
-                ...createTenantDto,
+                ...tenantData,
                 status: client_1.TenantStatus.ACTIVE,
                 m365Settings: {
                     create: {
-                        azureTenantId: `mock-azure-id-${createTenantDto.tenantCode}`,
-                        clientId: `mock-client-id-${createTenantDto.tenantCode}`,
+                        azureTenantId: `mock-azure-id-${tenantData.tenantCode}`,
+                        clientId: `mock-client-id-${tenantData.tenantCode}`,
                         redirectUrl: 'http://localhost:3000/auth/callback',
+                    }
+                },
+                users: {
+                    create: {
+                        email: adminEmail,
+                        password: initialPassword,
+                        mustChangePassword: true,
+                        name: 'Tenant Administrator',
+                        systemRole: 'TENANT_ADMIN',
                     }
                 }
             },
+            include: { users: true }
         });
     }
     async findAll() {
         return this.prisma.tenant.findMany({
             where: { deletedAt: null },
+            include: { users: true },
         });
     }
     async findOne(id) {
@@ -54,10 +66,22 @@ let TenantService = class TenantService {
         return tenant;
     }
     async update(id, updateTenantDto) {
+        const { adminEmail, initialPassword, ...tenantData } = updateTenantDto;
         await this.findOne(id);
+        if (adminEmail) {
+            const adminUser = await this.prisma.user.findFirst({
+                where: { tenantId: id, systemRole: 'TENANT_ADMIN' }
+            });
+            if (adminUser) {
+                await this.prisma.user.update({
+                    where: { id: adminUser.id },
+                    data: { email: adminEmail }
+                });
+            }
+        }
         return this.prisma.tenant.update({
             where: { id },
-            data: updateTenantDto,
+            data: tenantData,
         });
     }
     async remove(id) {

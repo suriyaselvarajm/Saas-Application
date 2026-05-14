@@ -28,4 +28,20 @@ export class AuthController {
     }
     return this.authService.login(body.email, body.password);
   }
+ 
+  @Post('change-password')
+  async changePassword(@Body() body: { email: string; newPassword: string }) {
+    if (!body.email || !body.newPassword) {
+      throw new HttpException('Email and new password are required', HttpStatus.BAD_REQUEST);
+    }
+    return this.authService.changePassword(body.email, body.newPassword);
+  }
+
+  @Post('reset-password')
+  async adminResetPassword(@Body() body: { userId: string; newPassword: string }) {
+    if (!body.userId || !body.newPassword) {
+      throw new HttpException('User ID and new password are required', HttpStatus.BAD_REQUEST);
+    }
+    return this.authService.adminResetPassword(body.userId, body.newPassword);
+  }
 }

@@ -5,18 +5,31 @@ export declare class TenantController {
     private readonly tenantService;
     constructor(tenantService: TenantService);
     create(createTenantDto: CreateTenantDto): Promise<{
+        users: {
+            id: string;
+            name: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+            email: string;
+            password: string | null;
+            mustChangePassword: boolean;
+            systemRole: import("@prisma/client").$Enums.SystemRole;
+            roleId: string | null;
+            tenantId: string;
+        }[];
+    } & {
+        id: string;
         tenantCode: string;
         name: string;
         companyName: string;
         domainName: string;
+        status: import("@prisma/client").$Enums.TenantStatus;
         subscriptionType: import("@prisma/client").$Enums.SubscriptionType;
         timeZone: string | null;
         country: string | null;
         currency: string | null;
         contactEmail: string | null;
         contactMobile: string | null;
-        id: string;
-        status: import("@prisma/client").$Enums.TenantStatus;
         logoUrl: string | null;
         faviconUrl: string | null;
         createdAt: Date;
@@ -25,19 +38,32 @@ export declare class TenantController {
         updatedBy: string | null;
         deletedAt: Date | null;
     }>;
-    findAll(): Promise<{
+    findAll(): Promise<({
+        users: {
+            id: string;
+            name: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+            email: string;
+            password: string | null;
+            mustChangePassword: boolean;
+            systemRole: import("@prisma/client").$Enums.SystemRole;
+            roleId: string | null;
+            tenantId: string;
+        }[];
+    } & {
+        id: string;
         tenantCode: string;
         name: string;
         companyName: string;
         domainName: string;
+        status: import("@prisma/client").$Enums.TenantStatus;
         subscriptionType: import("@prisma/client").$Enums.SubscriptionType;
         timeZone: string | null;
         country: string | null;
         currency: string | null;
         contactEmail: string | null;
         contactMobile: string | null;
-        id: string;
-        status: import("@prisma/client").$Enums.TenantStatus;
         logoUrl: string | null;
         faviconUrl: string | null;
         createdAt: Date;
@@ -45,20 +71,20 @@ export declare class TenantController {
         createdBy: string | null;
         updatedBy: string | null;
         deletedAt: Date | null;
-    }[]>;
+    })[]>;
     findOne(id: string): Promise<{
+        id: string;
         tenantCode: string;
         name: string;
         companyName: string;
         domainName: string;
+        status: import("@prisma/client").$Enums.TenantStatus;
         subscriptionType: import("@prisma/client").$Enums.SubscriptionType;
         timeZone: string | null;
         country: string | null;
         currency: string | null;
         contactEmail: string | null;
         contactMobile: string | null;
-        id: string;
-        status: import("@prisma/client").$Enums.TenantStatus;
         logoUrl: string | null;
         faviconUrl: string | null;
         createdAt: Date;
@@ -68,18 +94,18 @@ export declare class TenantController {
         deletedAt: Date | null;
     }>;
     update(id: string, updateTenantDto: UpdateTenantDto): Promise<{
+        id: string;
         tenantCode: string;
         name: string;
         companyName: string;
         domainName: string;
+        status: import("@prisma/client").$Enums.TenantStatus;
         subscriptionType: import("@prisma/client").$Enums.SubscriptionType;
         timeZone: string | null;
         country: string | null;
         currency: string | null;
         contactEmail: string | null;
         contactMobile: string | null;
-        id: string;
-        status: import("@prisma/client").$Enums.TenantStatus;
         logoUrl: string | null;
         faviconUrl: string | null;
         createdAt: Date;
@@ -89,18 +115,18 @@ export declare class TenantController {
         deletedAt: Date | null;
     }>;
     remove(id: string): Promise<{
+        id: string;
         tenantCode: string;
         name: string;
         companyName: string;
         domainName: string;
+        status: import("@prisma/client").$Enums.TenantStatus;
         subscriptionType: import("@prisma/client").$Enums.SubscriptionType;
         timeZone: string | null;
         country: string | null;
         currency: string | null;
         contactEmail: string | null;
         contactMobile: string | null;
-        id: string;
-        status: import("@prisma/client").$Enums.TenantStatus;
         logoUrl: string | null;
         faviconUrl: string | null;
         createdAt: Date;

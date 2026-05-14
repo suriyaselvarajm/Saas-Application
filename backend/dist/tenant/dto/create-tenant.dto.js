@@ -21,7 +21,8 @@ class CreateTenantDto {
     timeZone;
     country;
     currency;
-    contactEmail;
+    adminEmail;
+    initialPassword;
     contactMobile;
 }
 exports.CreateTenantDto = CreateTenantDto;
@@ -67,9 +68,14 @@ __decorate([
 ], CreateTenantDto.prototype, "currency", void 0);
 __decorate([
     (0, class_validator_1.IsEmail)(),
-    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
-], CreateTenantDto.prototype, "contactEmail", void 0);
+], CreateTenantDto.prototype, "adminEmail", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateTenantDto.prototype, "initialPassword", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),

@@ -2,16 +2,19 @@
 
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Plus, Search, MoreVertical, Building2, Globe, Users, X, Loader2, Edit2, Trash2 } from "lucide-react";
+import { Plus, Search, MoreVertical, Building2, Globe, Users, X, Loader2, Edit2, Trash2, Key } from "lucide-react";
 
 export default function TenantManagement() {
   const [tenants, setTenants] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   
-  // Edit State
+  // Edit/Reset State
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [resetUserId, setResetUserId] = useState<string | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
 
   // Form State
   const [formData, setFormData] = useState({
@@ -19,8 +22,10 @@ export default function TenantManagement() {
     tenantCode: "",
     companyName: "",
     domainName: "",
+    adminEmail: "",
+    initialPassword: "",
   });
-
+ 
   const fetchTenants = async () => {
     try {
       setLoading(true);
@@ -40,24 +45,27 @@ export default function TenantManagement() {
       setLoading(false);
     }
   };
-
+ 
   useEffect(() => {
     fetchTenants();
   }, []);
-
+ 
   const handleOpenAddModal = () => {
     setEditingId(null);
-    setFormData({ name: "", tenantCode: "", companyName: "", domainName: "" });
+    setFormData({ name: "", tenantCode: "", companyName: "", domainName: "", adminEmail: "", initialPassword: "" });
     setIsModalOpen(true);
   };
-
+ 
   const handleOpenEditModal = (tenant: any) => {
+    const adminUser = tenant.users?.find((u: any) => u.systemRole === 'TENANT_ADMIN');
     setEditingId(tenant.id);
     setFormData({
       name: tenant.name,
       tenantCode: tenant.tenantCode,
       companyName: tenant.companyName,
       domainName: tenant.domainName,
+      adminEmail: adminUser?.email || "",
+      initialPassword: "",
     });
     setIsModalOpen(true);
   };
@@ -80,6 +88,33 @@ export default function TenantManagement() {
       }
     } catch (error) {
       console.error("Error deleting tenant", error);
+    }
+  };
+
+  const handleResetPasswordAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem("petrus_token");
+      const res = await fetch("http://localhost:3001/auth/reset-password", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId: resetUserId, newPassword: resetPassword }),
+      });
+      if (res.ok) {
+        setIsResetModalOpen(false);
+        setResetPassword("");
+        alert("Password reset successfully. The user will be forced to change it on their next login.");
+      } else {
+        alert("Failed to reset password");
+      }
+    } catch (error) {
+      console.error("Error resetting password", error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -234,6 +269,21 @@ export default function TenantManagement() {
                       {tenant.tenantCode !== "MASTER" && (
                         <div className="flex justify-end gap-3">
                           <button 
+                            onClick={() => {
+                              const adminUser = tenant.users?.find((u: any) => u.systemRole === 'TENANT_ADMIN');
+                              if (adminUser) {
+                                setResetUserId(adminUser.id);
+                                setIsResetModalOpen(true);
+                              } else {
+                                alert("No tenant admin found for this organization.");
+                              }
+                            }}
+                            className="text-slate-500 hover:text-amber-400 transition-colors"
+                            title="Reset Admin Password"
+                          >
+                            <Key className="h-5 w-5" />
+                          </button>
+                          <button 
                             onClick={() => handleOpenEditModal(tenant)}
                             className="text-slate-500 hover:text-indigo-400 transition-colors"
                             title="Edit"
@@ -303,6 +353,26 @@ export default function TenantManagement() {
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 outline-none"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Admin Email</label>
+                  <input 
+                    type="email" required
+                    value={formData.adminEmail} onChange={e => setFormData({...formData, adminEmail: e.target.value})}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 outline-none"
+                    placeholder="e.g. admin@customer.com"
+                  />
+                </div>
+                {!editingId && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Initial Password</label>
+                    <input 
+                      type="text" required
+                      value={formData.initialPassword} onChange={e => setFormData({...formData, initialPassword: e.target.value})}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 outline-none"
+                      placeholder="Enter temporary password"
+                    />
+                  </div>
+                )}
                 <div className="pt-4 flex gap-3">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors">
                     Cancel
@@ -310,6 +380,40 @@ export default function TenantManagement() {
                   <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors disabled:opacity-50 flex justify-center items-center gap-2">
                     {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                     {submitting ? "Saving..." : (editingId ? "Save Changes" : "Create Tenant")}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Reset Password Modal */}
+        {isResetModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-slate-950/80 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-6 border-b border-slate-200 dark:border-white/5 flex justify-between items-center">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white font-outfit">Reset Admin Password</h2>
+                <button onClick={() => setIsResetModalOpen(false)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <form onSubmit={handleResetPasswordAdmin} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
+                  <input 
+                    type="text" required
+                    value={resetPassword} onChange={e => setResetPassword(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 outline-none"
+                    placeholder="Enter new temporary password"
+                  />
+                </div>
+                <div className="pt-4 flex gap-3">
+                  <button type="button" onClick={() => setIsResetModalOpen(false)} className="flex-1 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-500 transition-colors disabled:opacity-50 flex justify-center items-center gap-2">
+                    {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {submitting ? "Resetting..." : "Reset Password"}
                   </button>
                 </div>
               </form>

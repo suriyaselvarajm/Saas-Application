@@ -8,6 +8,7 @@ export declare class CreateTenantDto {
     timeZone?: string;
     country?: string;
     currency?: string;
-    contactEmail?: string;
+    adminEmail: string;
+    initialPassword: string;
     contactMobile?: string;
 }

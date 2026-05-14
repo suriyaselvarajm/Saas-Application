@@ -35,6 +35,7 @@ export declare class SettingsController {
         smtpSettings: {
             id: string;
             updatedAt: Date;
+            password: string | null;
             tenantId: string;
             sslEnabled: boolean;
             port: number;
@@ -42,7 +43,6 @@ export declare class SettingsController {
             senderEmail: string | null;
             senderName: string | null;
             username: string | null;
-            password: string | null;
         } | null;
         authSettings: {
             id: string;
@@ -140,9 +140,9 @@ export declare class SettingsController {
         city: string | null;
         state: string | null;
         zipCode: string | null;
-        isDefault: boolean;
         latitude: number | null;
         longitude: number | null;
+        isDefault: boolean;
     }[]>;
     createOffice(tenantId: string, data: CreateOfficeDto): Promise<{
         name: string;
@@ -155,9 +155,9 @@ export declare class SettingsController {
         city: string | null;
         state: string | null;
         zipCode: string | null;
-        isDefault: boolean;
         latitude: number | null;
         longitude: number | null;
+        isDefault: boolean;
     }>;
     updateOffice(tenantId: string, id: string, data: UpdateOfficeDto): Promise<{
         name: string;
@@ -170,9 +170,9 @@ export declare class SettingsController {
         city: string | null;
         state: string | null;
         zipCode: string | null;
-        isDefault: boolean;
         latitude: number | null;
         longitude: number | null;
+        isDefault: boolean;
     }>;
     deleteOffice(tenantId: string, id: string): Promise<{
         name: string;
@@ -185,9 +185,9 @@ export declare class SettingsController {
         city: string | null;
         state: string | null;
         zipCode: string | null;
-        isDefault: boolean;
         latitude: number | null;
         longitude: number | null;
+        isDefault: boolean;
     }>;
     getDepartments(tenantId: string): Promise<{
         name: string;

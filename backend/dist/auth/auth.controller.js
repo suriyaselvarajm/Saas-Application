@@ -38,6 +38,18 @@ let AuthController = class AuthController {
         }
         return this.authService.login(body.email, body.password);
     }
+    async changePassword(body) {
+        if (!body.email || !body.newPassword) {
+            throw new common_1.HttpException('Email and new password are required', common_1.HttpStatus.BAD_REQUEST);
+        }
+        return this.authService.changePassword(body.email, body.newPassword);
+    }
+    async adminResetPassword(body) {
+        if (!body.userId || !body.newPassword) {
+            throw new common_1.HttpException('User ID and new password are required', common_1.HttpStatus.BAD_REQUEST);
+        }
+        return this.authService.adminResetPassword(body.userId, body.newPassword);
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
@@ -61,6 +73,20 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Post)('change-password'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "changePassword", null);
+__decorate([
+    (0, common_1.Post)('reset-password'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "adminResetPassword", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])

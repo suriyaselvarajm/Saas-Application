@@ -6,6 +6,7 @@ export declare class SmtpService {
     upsert(tenantId: string, data: SmtpSettingsDto): Promise<{
         id: string;
         updatedAt: Date;
+        password: string | null;
         tenantId: string;
         sslEnabled: boolean;
         port: number;
@@ -13,11 +14,11 @@ export declare class SmtpService {
         senderEmail: string | null;
         senderName: string | null;
         username: string | null;
-        password: string | null;
     }>;
     get(tenantId: string): Promise<{
         id: string;
         updatedAt: Date;
+        password: string | null;
         tenantId: string;
         sslEnabled: boolean;
         port: number;
@@ -25,7 +26,6 @@ export declare class SmtpService {
         senderEmail: string | null;
         senderName: string | null;
         username: string | null;
-        password: string | null;
     }>;
     testConnection(tenantId: string, dto: TestSmtpDto): Promise<{
         success: boolean;

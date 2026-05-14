@@ -30,6 +30,31 @@ export declare class AuthService {
             tenantCode: string;
             tenantName: string;
             systemRole: import("@prisma/client").$Enums.SystemRole;
+            mustChangePassword: boolean;
         };
+    }>;
+    changePassword(email: string, newPassword: string): Promise<{
+        id: string;
+        name: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
+        email: string;
+        password: string | null;
+        mustChangePassword: boolean;
+        roleId: string | null;
+        systemRole: import("@prisma/client").$Enums.SystemRole;
+    }>;
+    adminResetPassword(userId: string, newPassword: string): Promise<{
+        id: string;
+        name: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
+        email: string;
+        password: string | null;
+        mustChangePassword: boolean;
+        roleId: string | null;
+        systemRole: import("@prisma/client").$Enums.SystemRole;
     }>;
 }

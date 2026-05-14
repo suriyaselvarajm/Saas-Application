@@ -75,6 +75,7 @@ export declare class SettingsService {
         smtpSettings: {
             id: string;
             updatedAt: Date;
+            password: string | null;
             tenantId: string;
             sslEnabled: boolean;
             port: number;
@@ -82,7 +83,6 @@ export declare class SettingsService {
             senderEmail: string | null;
             senderName: string | null;
             username: string | null;
-            password: string | null;
         } | null;
         authSettings: {
             id: string;
@@ -140,9 +140,9 @@ export declare class SettingsService {
         city: string | null;
         state: string | null;
         zipCode: string | null;
-        isDefault: boolean;
         latitude: number | null;
         longitude: number | null;
+        isDefault: boolean;
     }[]>;
     createOffice(tenantId: string, data: CreateOfficeDto): Promise<{
         name: string;
@@ -155,9 +155,9 @@ export declare class SettingsService {
         city: string | null;
         state: string | null;
         zipCode: string | null;
-        isDefault: boolean;
         latitude: number | null;
         longitude: number | null;
+        isDefault: boolean;
     }>;
     updateOffice(id: string, tenantId: string, data: UpdateOfficeDto): Promise<{
         name: string;
@@ -170,9 +170,9 @@ export declare class SettingsService {
         city: string | null;
         state: string | null;
         zipCode: string | null;
-        isDefault: boolean;
         latitude: number | null;
         longitude: number | null;
+        isDefault: boolean;
     }>;
     deleteOffice(id: string, tenantId: string): Promise<{
         name: string;
@@ -185,9 +185,9 @@ export declare class SettingsService {
         city: string | null;
         state: string | null;
         zipCode: string | null;
-        isDefault: boolean;
         latitude: number | null;
         longitude: number | null;
+        isDefault: boolean;
     }>;
     getDepartments(tenantId: string): Promise<{
         name: string;
