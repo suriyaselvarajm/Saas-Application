@@ -20,8 +20,8 @@ pipeline {
             steps {
                 echo 'Installing Dependencies...'
                 sh '''
-                cd backend && npm install --legacy-peer-deps && chmod -R +x node_modules/.bin || true
-                cd ../frontend && npm install --legacy-peer-deps && chmod -R +x node_modules/.bin || true
+                cd backend && rm -rf node_modules package-lock.json && npm install --legacy-peer-deps && chmod -R +x node_modules/.bin || true
+                cd ../frontend && rm -rf node_modules package-lock.json && npm install --legacy-peer-deps && chmod -R +x node_modules/.bin || true
                 '''
             }
         }
