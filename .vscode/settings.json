@@ -1,0 +1,6 @@
+{
+    "sonarlint.connectedMode.project": {
+        "connectionId": "http-10-20-34-173-9000",
+        "projectKey": "saas-application"
+    }
+}

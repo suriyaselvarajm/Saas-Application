@@ -25,12 +25,14 @@ let SmtpService = class SmtpService {
         });
     }
     async get(tenantId) {
-        const settings = await this.prisma.smtpSettings.findUnique({ where: { tenantId } });
+        const settings = await this.prisma.smtpSettings.findUnique({
+            where: { tenantId },
+        });
         if (!settings)
             throw new common_1.NotFoundException('SMTP settings not configured for this tenant');
         return settings;
     }
-    async testConnection(tenantId, dto) {
+    testConnection(dto) {
         return {
             success: true,
             message: `Test email would be sent to ${dto.testEmail}. Configure nodemailer to enable this.`,

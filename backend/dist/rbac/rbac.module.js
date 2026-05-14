@@ -16,7 +16,7 @@ exports.RbacModule = RbacModule;
 exports.RbacModule = RbacModule = __decorate([
     (0, common_1.Module)({
         providers: [rbac_service_1.RbacService],
-        controllers: [rbac_controller_1.RbacController]
+        controllers: [rbac_controller_1.RbacController],
     })
 ], RbacModule);
 //# sourceMappingURL=rbac.module.js.map

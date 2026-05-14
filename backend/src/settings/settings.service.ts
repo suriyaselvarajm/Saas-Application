@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import * as ldap from 'ldapjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { M365SettingsDto } from './dto/m365-settings.dto';
 import { AdSettingsDto } from './dto/ad-settings.dto';
@@ -50,14 +51,92 @@ export class SettingsService {
   }
 
   // Placeholder for external integration tests
-  async testM365Connection(tenantId: string) {
+  testM365Connection() {
     // Logic to call Microsoft Graph API with tenant credentials
-    return { success: true, message: 'Successfully connected to Microsoft Graph' };
+    return {
+      success: true,
+      message: 'Successfully connected to Microsoft Graph',
+    };
   }
 
-  async testAdConnection(tenantId: string) {
-    // Logic to bind to LDAP server
-    return { success: true, message: 'Successfully connected to AD Server' };
+  async testAdConnection(data: AdSettingsDto) {
+    const url = `${data.sslEnabled ? 'ldaps' : 'ldap'}://${data.adServerIp}:${data.port || 389}`;
+    console.log(`Testing full LDAP bind to ${url} with user ${data.bindUsername}`);
+
+    return new Promise((resolve) => {
+      const client = ldap.createClient({
+        url: url,
+        timeout: 10000,
+        connectTimeout: 10000,
+        tlsOptions: data.sslEnabled ? { rejectUnauthorized: false } : undefined,
+      });
+
+      client.on('error', (err) => {
+        console.error('LDAP Client Error:', err.message);
+        resolve({
+          success: false,
+          message: `Connection failed: ${err.message}`,
+        });
+      });
+
+      client.bind(data.bindUsername, data.bindPassword, (err) => {
+        if (err) {
+          console.error('LDAP Bind Failed:', err.message);
+          client.unbind();
+          resolve({
+            success: false,
+            message: `Authentication failed: ${err.message}`,
+          });
+        } else {
+          console.log('LDAP Bind Successful, now validating Base DN...');
+          
+          // Perform a search on the Base DN to see if it exists
+          const searchOptions: ldap.SearchOptions = {
+            scope: 'base',
+            attributes: ['dn'],
+          };
+
+          client.search(data.baseDn, searchOptions, (err, res) => {
+            if (err) {
+              client.unbind();
+              resolve({
+                success: false,
+                message: `Base DN validation failed: ${err.message}`,
+              });
+              return;
+            }
+
+            let found = false;
+            res.on('searchEntry', () => {
+              found = true;
+            });
+
+            res.on('error', (err) => {
+              client.unbind();
+              resolve({
+                success: false,
+                message: `Search error on Base DN: ${err.message}`,
+              });
+            });
+
+            res.on('end', () => {
+              client.unbind();
+              if (found) {
+                resolve({
+                  success: true,
+                  message: `Successfully authenticated and validated Base DN: ${data.baseDn}`,
+                });
+              } else {
+                resolve({
+                  success: false,
+                  message: `Base DN "${data.baseDn}" was not found on the server.`,
+                });
+              }
+            });
+          });
+        }
+      });
+    });
   }
 
   // Office Management
@@ -86,7 +165,11 @@ export class SettingsService {
     return this.prisma.department.create({ data: { ...data, tenantId } });
   }
 
-  async updateDepartment(id: string, tenantId: string, data: UpdateDepartmentDto) {
+  async updateDepartment(
+    id: string,
+    tenantId: string,
+    data: UpdateDepartmentDto,
+  ) {
     return this.prisma.department.update({ where: { id, tenantId }, data });
   }
 

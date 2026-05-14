@@ -27,8 +27,8 @@ export declare class SmtpController {
         senderName: string | null;
         username: string | null;
     }>;
-    test(tenantId: string, dto: TestSmtpDto): Promise<{
+    test(dto: TestSmtpDto): {
         success: boolean;
         message: string;
-    }>;
+    };
 }

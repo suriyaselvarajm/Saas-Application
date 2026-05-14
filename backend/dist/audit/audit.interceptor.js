@@ -20,12 +20,16 @@ let AuditInterceptor = class AuditInterceptor {
     }
     intercept(context, next) {
         const request = context.switchToHttp().getRequest();
-        const { method, url, body, user, ip } = request;
+        const method = request.method;
+        const url = request.url;
+        const body = request.body;
+        const user = request.user;
+        const ip = request.ip;
         if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(method)) {
             return next.handle().pipe((0, operators_1.tap)((data) => {
                 const tenantId = user?.tenantId || body?.tenantId;
                 if (tenantId) {
-                    this.auditService.log({
+                    void this.auditService.log({
                         tenantId,
                         userId: user?.id,
                         module: url.split('/')[2] || 'system',

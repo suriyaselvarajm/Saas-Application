@@ -43,26 +43,37 @@ const navigation = [
   { name: "Audit Logs", href: "/audit", icon: History, allowedRoles: ['SUPER_ADMIN', 'TENANT_ADMIN'] as Role[] },
 ];
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  systemRole: Role;
+  tenantName?: string;
+  isSuperAdmin?: boolean;
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [role, setRole] = useState<Role | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     try {
       const userStr = localStorage.getItem("petrus_user");
-      if (!userStr || userStr === 'undefined') {
-        router.push('/login');
+      if (!userStr || userStr === "undefined") {
+        router.push("/login");
         return;
       }
-      
-      const parsedUser = JSON.parse(userStr);
+
+      const parsedUser = JSON.parse(userStr) as User;
       setUser(parsedUser);
-      setRole(parsedUser.systemRole || (parsedUser.isSuperAdmin ? 'SUPER_ADMIN' : 'TENANT_ADMIN'));
+      setRole(
+        parsedUser.systemRole ||
+          (parsedUser.isSuperAdmin ? "SUPER_ADMIN" : "TENANT_ADMIN"),
+      );
       setMounted(true);
-      
     } catch (e) {
       console.error("Error reading user session", e);
       // Clear potentially corrupted data

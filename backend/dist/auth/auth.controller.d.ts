@@ -43,30 +43,30 @@ export declare class AuthController {
         email: string;
         newPassword: string;
     }): Promise<{
-        id: string;
         name: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
-        tenantId: string;
         email: string;
         password: string | null;
         mustChangePassword: boolean;
-        roleId: string | null;
         systemRole: import("@prisma/client").$Enums.SystemRole;
+        roleId: string | null;
+        tenantId: string;
     }>;
     adminResetPassword(body: {
         userId: string;
         newPassword: string;
     }): Promise<{
-        id: string;
         name: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
-        tenantId: string;
         email: string;
         password: string | null;
         mustChangePassword: boolean;
-        roleId: string | null;
         systemRole: import("@prisma/client").$Enums.SystemRole;
+        roleId: string | null;
+        tenantId: string;
     }>;
 }

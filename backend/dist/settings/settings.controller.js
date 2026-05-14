@@ -37,17 +37,23 @@ let SettingsController = class SettingsController {
     updateM365(tenantId, data) {
         return this.settingsService.updateM365(tenantId, data);
     }
-    updateAD(tenantId, data) {
-        return this.settingsService.updateAD(tenantId, data);
+    async updateAD(tenantId, data) {
+        try {
+            return await this.settingsService.updateAD(tenantId, data);
+        }
+        catch (error) {
+            console.error('Error updating AD settings:', error);
+            throw error;
+        }
     }
     updateAuth(tenantId, data) {
         return this.settingsService.updateAuth(tenantId, data);
     }
-    testM365(tenantId) {
-        return this.settingsService.testM365Connection(tenantId);
+    testM365() {
+        return this.settingsService.testM365Connection();
     }
-    testAD(tenantId) {
-        return this.settingsService.testAdConnection(tenantId);
+    testAD(data) {
+        return this.settingsService.testAdConnection(data);
     }
     getOffices(tenantId) {
         return this.settingsService.getOffices(tenantId);
@@ -96,7 +102,7 @@ __decorate([
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, ad_settings_dto_1.AdSettingsDto]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], SettingsController.prototype, "updateAD", null);
 __decorate([
     (0, common_1.Post)('auth'),
@@ -108,16 +114,15 @@ __decorate([
 ], SettingsController.prototype, "updateAuth", null);
 __decorate([
     (0, common_1.Post)('m365/test'),
-    __param(0, (0, tenant_id_decorator_1.TenantId)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], SettingsController.prototype, "testM365", null);
 __decorate([
     (0, common_1.Post)('ad/test'),
-    __param(0, (0, tenant_id_decorator_1.TenantId)()),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [ad_settings_dto_1.AdSettingsDto]),
     __metadata("design:returntype", void 0)
 ], SettingsController.prototype, "testAD", null);
 __decorate([

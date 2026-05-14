@@ -1,16 +1,50 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SettingsService = void 0;
 const common_1 = require("@nestjs/common");
+const ldap = __importStar(require("ldapjs"));
 const prisma_service_1 = require("../prisma/prisma.service");
 let SettingsService = class SettingsService {
     prisma;
@@ -52,11 +86,83 @@ let SettingsService = class SettingsService {
             throw new common_1.NotFoundException('Tenant not found');
         return tenant;
     }
-    async testM365Connection(tenantId) {
-        return { success: true, message: 'Successfully connected to Microsoft Graph' };
+    testM365Connection() {
+        return {
+            success: true,
+            message: 'Successfully connected to Microsoft Graph',
+        };
     }
-    async testAdConnection(tenantId) {
-        return { success: true, message: 'Successfully connected to AD Server' };
+    async testAdConnection(data) {
+        const url = `${data.sslEnabled ? 'ldaps' : 'ldap'}://${data.adServerIp}:${data.port || 389}`;
+        console.log(`Testing full LDAP bind to ${url} with user ${data.bindUsername}`);
+        return new Promise((resolve) => {
+            const client = ldap.createClient({
+                url: url,
+                timeout: 10000,
+                connectTimeout: 10000,
+                tlsOptions: data.sslEnabled ? { rejectUnauthorized: false } : undefined,
+            });
+            client.on('error', (err) => {
+                console.error('LDAP Client Error:', err.message);
+                resolve({
+                    success: false,
+                    message: `Connection failed: ${err.message}`,
+                });
+            });
+            client.bind(data.bindUsername, data.bindPassword, (err) => {
+                if (err) {
+                    console.error('LDAP Bind Failed:', err.message);
+                    client.unbind();
+                    resolve({
+                        success: false,
+                        message: `Authentication failed: ${err.message}`,
+                    });
+                }
+                else {
+                    console.log('LDAP Bind Successful, now validating Base DN...');
+                    const searchOptions = {
+                        scope: 'base',
+                        attributes: ['dn'],
+                    };
+                    client.search(data.baseDn, searchOptions, (err, res) => {
+                        if (err) {
+                            client.unbind();
+                            resolve({
+                                success: false,
+                                message: `Base DN validation failed: ${err.message}`,
+                            });
+                            return;
+                        }
+                        let found = false;
+                        res.on('searchEntry', () => {
+                            found = true;
+                        });
+                        res.on('error', (err) => {
+                            client.unbind();
+                            resolve({
+                                success: false,
+                                message: `Search error on Base DN: ${err.message}`,
+                            });
+                        });
+                        res.on('end', () => {
+                            client.unbind();
+                            if (found) {
+                                resolve({
+                                    success: true,
+                                    message: `Successfully authenticated and validated Base DN: ${data.baseDn}`,
+                                });
+                            }
+                            else {
+                                resolve({
+                                    success: false,
+                                    message: `Base DN "${data.baseDn}" was not found on the server.`,
+                                });
+                            }
+                        });
+                    });
+                }
+            });
+        });
     }
     async getOffices(tenantId) {
         return this.prisma.office.findMany({ where: { tenantId } });

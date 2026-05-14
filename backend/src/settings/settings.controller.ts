@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseInterceptors,
+} from '@nestjs/common';
 import { SettingsService } from './settings.service';
 import { M365SettingsDto } from './dto/m365-settings.dto';
 import { AdSettingsDto } from './dto/ad-settings.dto';
@@ -30,8 +39,13 @@ export class SettingsController {
   }
 
   @Post('ad')
-  updateAD(@TenantId() tenantId: string, @Body() data: AdSettingsDto) {
-    return this.settingsService.updateAD(tenantId, data);
+  async updateAD(@TenantId() tenantId: string, @Body() data: AdSettingsDto) {
+    try {
+      return await this.settingsService.updateAD(tenantId, data);
+    } catch (error) {
+      console.error('Error updating AD settings:', error);
+      throw error;
+    }
   }
 
   @Post('auth')
@@ -40,13 +54,13 @@ export class SettingsController {
   }
 
   @Post('m365/test')
-  testM365(@TenantId() tenantId: string) {
-    return this.settingsService.testM365Connection(tenantId);
+  testM365() {
+    return this.settingsService.testM365Connection();
   }
 
   @Post('ad/test')
-  testAD(@TenantId() tenantId: string) {
-    return this.settingsService.testAdConnection(tenantId);
+  testAD(@Body() data: AdSettingsDto) {
+    return this.settingsService.testAdConnection(data);
   }
 
   // Office Endpoints
@@ -61,7 +75,11 @@ export class SettingsController {
   }
 
   @Patch('offices/:id')
-  updateOffice(@TenantId() tenantId: string, @Param('id') id: string, @Body() data: UpdateOfficeDto) {
+  updateOffice(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Body() data: UpdateOfficeDto,
+  ) {
     return this.settingsService.updateOffice(id, tenantId, data);
   }
 
@@ -77,12 +95,19 @@ export class SettingsController {
   }
 
   @Post('departments')
-  createDepartment(@TenantId() tenantId: string, @Body() data: CreateDepartmentDto) {
+  createDepartment(
+    @TenantId() tenantId: string,
+    @Body() data: CreateDepartmentDto,
+  ) {
     return this.settingsService.createDepartment(tenantId, data);
   }
 
   @Patch('departments/:id')
-  updateDepartment(@TenantId() tenantId: string, @Param('id') id: string, @Body() data: UpdateDepartmentDto) {
+  updateDepartment(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Body() data: UpdateDepartmentDto,
+  ) {
     return this.settingsService.updateDepartment(id, tenantId, data);
   }
 

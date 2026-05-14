@@ -26,7 +26,9 @@ let EmailTemplateService = class EmailTemplateService {
         return this.prisma.emailTemplate.findMany({ where: { tenantId } });
     }
     async findOne(tenantId, id) {
-        const template = await this.prisma.emailTemplate.findFirst({ where: { id, tenantId } });
+        const template = await this.prisma.emailTemplate.findFirst({
+            where: { id, tenantId },
+        });
         if (!template)
             throw new common_1.NotFoundException('Template not found');
         return template;

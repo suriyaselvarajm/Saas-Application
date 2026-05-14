@@ -18,7 +18,7 @@ export class SmtpController {
   }
 
   @Post('test')
-  test(@TenantId() tenantId: string, @Body() dto: TestSmtpDto) {
-    return this.smtpService.testConnection(tenantId, dto);
+  test(@Body() dto: TestSmtpDto) {
+    return this.smtpService.testConnection(dto);
   }
 }

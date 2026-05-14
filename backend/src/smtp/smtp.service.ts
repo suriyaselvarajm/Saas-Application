@@ -15,12 +15,17 @@ export class SmtpService {
   }
 
   async get(tenantId: string) {
-    const settings = await this.prisma.smtpSettings.findUnique({ where: { tenantId } });
-    if (!settings) throw new NotFoundException('SMTP settings not configured for this tenant');
+    const settings = await this.prisma.smtpSettings.findUnique({
+      where: { tenantId },
+    });
+    if (!settings)
+      throw new NotFoundException(
+        'SMTP settings not configured for this tenant',
+      );
     return settings;
   }
 
-  async testConnection(tenantId: string, dto: TestSmtpDto) {
+  testConnection(dto: TestSmtpDto) {
     // In production: use nodemailer to test SMTP connection and send test email
     // const settings = await this.get(tenantId);
     // const transporter = nodemailer.createTransport({ host: settings.host, port: settings.port, ... })

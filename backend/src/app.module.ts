@@ -11,7 +11,16 @@ import { EmailTemplateModule } from './email-template/email-template.module';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
-  imports: [PrismaModule, TenantModule, SettingsModule, AuditModule, RbacModule, SmtpModule, EmailTemplateModule, AuthModule],
+  imports: [
+    PrismaModule,
+    TenantModule,
+    SettingsModule,
+    AuditModule,
+    RbacModule,
+    SmtpModule,
+    EmailTemplateModule,
+    AuthModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

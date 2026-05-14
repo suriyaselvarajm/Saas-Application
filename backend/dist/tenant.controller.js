@@ -15,15 +15,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TenantController = void 0;
 const common_1 = require("@nestjs/common");
 const tenant_service_1 = require("./tenant.service");
-const create_tenant_dto_1 = require("./dto/create-tenant.dto");
-const update_tenant_dto_1 = require("./dto/update-tenant.dto");
 let TenantController = class TenantController {
     tenantService;
     constructor(tenantService) {
         this.tenantService = tenantService;
     }
-    create(createTenantDto) {
-        return this.tenantService.create(createTenantDto);
+    create() {
+        return this.tenantService.create();
     }
     findAll() {
         return this.tenantService.findAll();
@@ -31,8 +29,8 @@ let TenantController = class TenantController {
     findOne(id) {
         return this.tenantService.findOne(+id);
     }
-    update(id, updateTenantDto) {
-        return this.tenantService.update(+id, updateTenantDto);
+    update(id) {
+        return this.tenantService.update(+id);
     }
     remove(id) {
         return this.tenantService.remove(+id);
@@ -41,9 +39,8 @@ let TenantController = class TenantController {
 exports.TenantController = TenantController;
 __decorate([
     (0, common_1.Post)(),
-    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [create_tenant_dto_1.CreateTenantDto]),
+    __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], TenantController.prototype, "create", null);
 __decorate([
@@ -62,9 +59,8 @@ __decorate([
 __decorate([
     (0, common_1.Patch)(':id'),
     __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, update_tenant_dto_1.UpdateTenantDto]),
+    __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], TenantController.prototype, "update", null);
 __decorate([

@@ -29,13 +29,22 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
+        stage('Security Audit') {
             steps {
-                echo 'Running Tests...'
+                echo 'Running Security Audit...'
                 sh '''
-                # Running jest via node directly to bypass permission issues
-                cd backend && node node_modules/jest/bin/jest.js --passWithNoTests
-                cd ../frontend && npm test
+                cd backend && npm audit --audit-level=high || true
+                cd ../frontend && npm audit --audit-level=high || true
+                '''
+            }
+        }
+
+        stage('Run Tests & Coverage') {
+            steps {
+                echo 'Running Tests and generating Coverage reports...'
+                sh '''
+                cd backend && npm run test:cov
+                cd ../frontend && npm run test:cov
                 '''
             }
         }

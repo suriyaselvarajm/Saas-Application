@@ -1,4 +1,8 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
@@ -28,7 +32,7 @@ export class TenantService {
             azureTenantId: `mock-azure-id-${tenantData.tenantCode}`,
             clientId: `mock-client-id-${tenantData.tenantCode}`,
             redirectUrl: 'http://localhost:3000/auth/callback',
-          }
+          },
         },
         users: {
           create: {
@@ -37,10 +41,10 @@ export class TenantService {
             mustChangePassword: true,
             name: 'Tenant Administrator',
             systemRole: 'TENANT_ADMIN',
-          }
-        }
+          },
+        },
       },
-      include: { users: true }
+      include: { users: true },
     });
   }
 
@@ -64,19 +68,19 @@ export class TenantService {
   }
 
   async update(id: string, updateTenantDto: UpdateTenantDto) {
-    const { adminEmail, initialPassword, ...tenantData } = updateTenantDto;
+    const { adminEmail, ...tenantData } = updateTenantDto;
     await this.findOne(id);
 
     // If adminEmail is provided, update the TENANT_ADMIN user
     if (adminEmail) {
       const adminUser = await this.prisma.user.findFirst({
-        where: { tenantId: id, systemRole: 'TENANT_ADMIN' }
+        where: { tenantId: id, systemRole: 'TENANT_ADMIN' },
       });
 
       if (adminUser) {
         await this.prisma.user.update({
           where: { id: adminUser.id },
-          data: { email: adminEmail }
+          data: { email: adminEmail },
         });
       }
     }

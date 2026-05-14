@@ -9,8 +9,8 @@ export declare class EmailTemplateService {
         createdAt: Date;
         updatedAt: Date;
         tenantId: string;
-        body: string | null;
         subject: string | null;
+        body: string | null;
         variables: string[];
     }>;
     findAll(tenantId: string): Promise<{
@@ -19,8 +19,8 @@ export declare class EmailTemplateService {
         createdAt: Date;
         updatedAt: Date;
         tenantId: string;
-        body: string | null;
         subject: string | null;
+        body: string | null;
         variables: string[];
     }[]>;
     findOne(tenantId: string, id: string): Promise<{
@@ -29,8 +29,8 @@ export declare class EmailTemplateService {
         createdAt: Date;
         updatedAt: Date;
         tenantId: string;
-        body: string | null;
         subject: string | null;
+        body: string | null;
         variables: string[];
     }>;
     update(tenantId: string, id: string, data: UpdateEmailTemplateDto): Promise<{
@@ -39,8 +39,8 @@ export declare class EmailTemplateService {
         createdAt: Date;
         updatedAt: Date;
         tenantId: string;
-        body: string | null;
         subject: string | null;
+        body: string | null;
         variables: string[];
     }>;
     remove(tenantId: string, id: string): Promise<{
@@ -49,8 +49,8 @@ export declare class EmailTemplateService {
         createdAt: Date;
         updatedAt: Date;
         tenantId: string;
-        body: string | null;
         subject: string | null;
+        body: string | null;
         variables: string[];
     }>;
 }

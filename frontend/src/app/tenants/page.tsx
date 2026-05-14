@@ -4,8 +4,19 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Plus, Search, MoreVertical, Building2, Globe, Users, X, Loader2, Edit2, Trash2, Key } from "lucide-react";
 
+interface Tenant {
+  id: string;
+  name: string;
+  tenantCode: string;
+  companyName: string;
+  domainName: string;
+  status: string;
+  subscriptionType?: string;
+  users?: { id: string; systemRole: string; email: string }[];
+}
+
 export default function TenantManagement() {
-  const [tenants, setTenants] = useState<any[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -47,7 +58,7 @@ export default function TenantManagement() {
   };
  
   useEffect(() => {
-    fetchTenants();
+    void fetchTenants();
   }, []);
  
   const handleOpenAddModal = () => {
@@ -56,8 +67,10 @@ export default function TenantManagement() {
     setIsModalOpen(true);
   };
  
-  const handleOpenEditModal = (tenant: any) => {
-    const adminUser = tenant.users?.find((u: any) => u.systemRole === 'TENANT_ADMIN');
+  const handleOpenEditModal = (tenant: Tenant) => {
+    const adminUser = tenant.users?.find(
+      (u) => u.systemRole === "TENANT_ADMIN",
+    );
     setEditingId(tenant.id);
     setFormData({
       name: tenant.name,
@@ -270,7 +283,9 @@ export default function TenantManagement() {
                         <div className="flex justify-end gap-3">
                           <button 
                             onClick={() => {
-                              const adminUser = tenant.users?.find((u: any) => u.systemRole === 'TENANT_ADMIN');
+                              const adminUser = tenant.users?.find(
+                                (u) => u.systemRole === "TENANT_ADMIN",
+                              );
                               if (adminUser) {
                                 setResetUserId(adminUser.id);
                                 setIsResetModalOpen(true);

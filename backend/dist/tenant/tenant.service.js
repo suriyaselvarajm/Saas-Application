@@ -35,7 +35,7 @@ let TenantService = class TenantService {
                         azureTenantId: `mock-azure-id-${tenantData.tenantCode}`,
                         clientId: `mock-client-id-${tenantData.tenantCode}`,
                         redirectUrl: 'http://localhost:3000/auth/callback',
-                    }
+                    },
                 },
                 users: {
                     create: {
@@ -44,10 +44,10 @@ let TenantService = class TenantService {
                         mustChangePassword: true,
                         name: 'Tenant Administrator',
                         systemRole: 'TENANT_ADMIN',
-                    }
-                }
+                    },
+                },
             },
-            include: { users: true }
+            include: { users: true },
         });
     }
     async findAll() {
@@ -66,16 +66,16 @@ let TenantService = class TenantService {
         return tenant;
     }
     async update(id, updateTenantDto) {
-        const { adminEmail, initialPassword, ...tenantData } = updateTenantDto;
+        const { adminEmail, ...tenantData } = updateTenantDto;
         await this.findOne(id);
         if (adminEmail) {
             const adminUser = await this.prisma.user.findFirst({
-                where: { tenantId: id, systemRole: 'TENANT_ADMIN' }
+                where: { tenantId: id, systemRole: 'TENANT_ADMIN' },
             });
             if (adminUser) {
                 await this.prisma.user.update({
                     where: { id: adminUser.id },
-                    data: { email: adminEmail }
+                    data: { email: adminEmail },
                 });
             }
         }

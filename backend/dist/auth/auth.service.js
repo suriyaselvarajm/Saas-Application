@@ -35,8 +35,8 @@ let AuthService = class AuthService {
                                 azureTenantId: 'petrus-master-azure-id',
                                 clientId: 'petrus-master-client-id',
                                 redirectUrl: 'http://localhost:3000/auth/callback',
-                            }
-                        }
+                            },
+                        },
                     },
                     include: { m365Settings: true },
                 });
@@ -57,7 +57,9 @@ let AuthService = class AuthService {
         if (!tenant) {
             throw new common_1.HttpException('Tenant not found or inactive', common_1.HttpStatus.NOT_FOUND);
         }
-        if (!tenant.m365Settings || !tenant.m365Settings.clientId || !tenant.m365Settings.azureTenantId) {
+        if (!tenant.m365Settings ||
+            !tenant.m365Settings.clientId ||
+            !tenant.m365Settings.azureTenantId) {
             throw new common_1.HttpException('SSO is not configured for this tenant', common_1.HttpStatus.BAD_REQUEST);
         }
         return {
@@ -66,22 +68,25 @@ let AuthService = class AuthService {
             name: tenant.name,
             azureTenantId: tenant.m365Settings.azureTenantId,
             clientId: tenant.m365Settings.clientId,
-            redirectUrl: tenant.m365Settings.redirectUrl || 'http://localhost:3000/auth/callback',
+            redirectUrl: tenant.m365Settings.redirectUrl ||
+                'http://localhost:3000/auth/callback',
         };
     }
     async exchangeM365Token(code, domain) {
         const config = await this.getTenantConfigByDomain(domain);
         const mockEmail = `admin@${domain}`;
         let user = await this.prisma.user.findFirst({
-            where: { email: mockEmail, tenantId: config.tenantId }
+            where: { email: mockEmail, tenantId: config.tenantId },
         });
         if (!user) {
             user = await this.prisma.user.create({
                 data: {
                     email: mockEmail,
-                    name: config.tenantCode === 'MASTER' ? 'Platform Super Admin' : 'Tenant Administrator',
+                    name: config.tenantCode === 'MASTER'
+                        ? 'Platform Super Admin'
+                        : 'Tenant Administrator',
                     tenantId: config.tenantId,
-                }
+                },
             });
         }
         const platformToken = `mock-jwt-token-for-${user.id}`;
@@ -94,14 +99,14 @@ let AuthService = class AuthService {
                 tenantCode: config.tenantCode,
                 tenantName: config.name,
                 isSuperAdmin: config.tenantCode === 'MASTER',
-            }
+            },
         };
     }
     async login(email, password) {
         if (email === 'admin@petrus.io') {
             const config = await this.getTenantConfigByDomain('petrus.io');
             let user = await this.prisma.user.findFirst({
-                where: { email, tenantId: config.tenantId }
+                where: { email, tenantId: config.tenantId },
             });
             if (!user) {
                 user = await this.prisma.user.create({
@@ -112,7 +117,7 @@ let AuthService = class AuthService {
                         tenantId: config.tenantId,
                         systemRole: 'SUPER_ADMIN',
                         mustChangePassword: false,
-                    }
+                    },
                 });
             }
             return {
@@ -125,7 +130,7 @@ let AuthService = class AuthService {
                     tenantName: config.name,
                     systemRole: user.systemRole,
                     mustChangePassword: user.mustChangePassword,
-                }
+                },
             };
         }
         const domain = email.split('@')[1];
@@ -156,12 +161,12 @@ let AuthService = class AuthService {
                 tenantName: tenant.name,
                 systemRole: user.systemRole,
                 mustChangePassword: user.mustChangePassword,
-            }
+            },
         };
     }
     async changePassword(email, newPassword) {
         const user = await this.prisma.user.findUnique({
-            where: { email }
+            where: { email },
         });
         if (!user)
             throw new common_1.HttpException('User not found', common_1.HttpStatus.NOT_FOUND);
@@ -169,8 +174,8 @@ let AuthService = class AuthService {
             where: { id: user.id },
             data: {
                 password: newPassword,
-                mustChangePassword: false
-            }
+                mustChangePassword: false,
+            },
         });
     }
     async adminResetPassword(userId, newPassword) {
@@ -179,7 +184,7 @@ let AuthService = class AuthService {
             data: {
                 password: newPassword,
                 mustChangePassword: true,
-            }
+            },
         });
     }
 };

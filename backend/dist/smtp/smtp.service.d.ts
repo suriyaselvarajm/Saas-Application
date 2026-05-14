@@ -27,8 +27,8 @@ export declare class SmtpService {
         senderName: string | null;
         username: string | null;
     }>;
-    testConnection(tenantId: string, dto: TestSmtpDto): Promise<{
+    testConnection(dto: TestSmtpDto): {
         success: boolean;
         message: string;
-    }>;
+    };
 }

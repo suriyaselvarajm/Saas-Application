@@ -30,10 +30,7 @@ let RolesGuard = class RolesGuard {
         client_1.SystemRole.EMPLOYEE,
     ];
     async canActivate(context) {
-        const requiredRoles = this.reflector.getAllAndOverride(roles_decorator_1.ROLES_KEY, [
-            context.getHandler(),
-            context.getClass(),
-        ]);
+        const requiredRoles = this.reflector.getAllAndOverride(roles_decorator_1.ROLES_KEY, [context.getHandler(), context.getClass()]);
         if (!requiredRoles || requiredRoles.length === 0) {
             return true;
         }
@@ -44,8 +41,17 @@ let RolesGuard = class RolesGuard {
             if (authHeader && authHeader.startsWith('Bearer mock-jwt-token-for-')) {
                 const userId = authHeader.replace('Bearer mock-jwt-token-for-', '');
                 try {
-                    user = await this.prisma.user.findUnique({ where: { id: userId } });
-                    request.user = user;
+                    const dbUser = await this.prisma.user.findUnique({
+                        where: { id: userId },
+                    });
+                    if (dbUser) {
+                        user = {
+                            id: dbUser.id,
+                            systemRole: dbUser.systemRole,
+                            tenantId: dbUser.tenantId,
+                        };
+                        request.user = user;
+                    }
                 }
                 catch (e) {
                     console.error("Failed to fetch user in RolesGuard", e);

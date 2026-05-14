@@ -28,8 +28,8 @@ let SmtpController = class SmtpController {
     upsert(tenantId, dto) {
         return this.smtpService.upsert(tenantId, dto);
     }
-    test(tenantId, dto) {
-        return this.smtpService.testConnection(tenantId, dto);
+    test(dto) {
+        return this.smtpService.testConnection(dto);
     }
 };
 exports.SmtpController = SmtpController;
@@ -50,10 +50,9 @@ __decorate([
 ], SmtpController.prototype, "upsert", null);
 __decorate([
     (0, common_1.Post)('test'),
-    __param(0, (0, tenant_id_decorator_1.TenantId)()),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, smtp_settings_dto_1.TestSmtpDto]),
+    __metadata("design:paramtypes", [smtp_settings_dto_1.TestSmtpDto]),
     __metadata("design:returntype", void 0)
 ], SmtpController.prototype, "test", null);
 exports.SmtpController = SmtpController = __decorate([

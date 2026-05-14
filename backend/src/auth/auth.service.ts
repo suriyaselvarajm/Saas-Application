@@ -25,8 +25,8 @@ export class AuthService {
                 azureTenantId: 'petrus-master-azure-id',
                 clientId: 'petrus-master-client-id',
                 redirectUrl: 'http://localhost:3000/auth/callback',
-              }
-            }
+              },
+            },
           },
           include: { m365Settings: true },
         });
@@ -49,11 +49,21 @@ export class AuthService {
     });
 
     if (!tenant) {
-      throw new HttpException('Tenant not found or inactive', HttpStatus.NOT_FOUND);
+      throw new HttpException(
+        'Tenant not found or inactive',
+        HttpStatus.NOT_FOUND,
+      );
     }
 
-    if (!tenant.m365Settings || !tenant.m365Settings.clientId || !tenant.m365Settings.azureTenantId) {
-      throw new HttpException('SSO is not configured for this tenant', HttpStatus.BAD_REQUEST);
+    if (
+      !tenant.m365Settings ||
+      !tenant.m365Settings.clientId ||
+      !tenant.m365Settings.azureTenantId
+    ) {
+      throw new HttpException(
+        'SSO is not configured for this tenant',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     return {
@@ -62,22 +72,24 @@ export class AuthService {
       name: tenant.name,
       azureTenantId: tenant.m365Settings.azureTenantId,
       clientId: tenant.m365Settings.clientId,
-      redirectUrl: tenant.m365Settings.redirectUrl || 'http://localhost:3000/auth/callback',
+      redirectUrl:
+        tenant.m365Settings.redirectUrl ||
+        'http://localhost:3000/auth/callback',
     };
   }
 
   async exchangeM365Token(code: string, domain: string) {
     // 1. Get the tenant settings to verify domain
     const config = await this.getTenantConfigByDomain(domain);
-    
+
     // In a real implementation with valid Azure AD credentials, we would call MSAL or standard OAuth token endpoint here.
-    
+
     // 2. Mock payload since we are bypassing actual Microsoft graph call
     const mockEmail = `admin@${domain}`;
-    
+
     // 3. Find user in the tenant
     let user = await this.prisma.user.findFirst({
-      where: { email: mockEmail, tenantId: config.tenantId }
+      where: { email: mockEmail, tenantId: config.tenantId },
     });
 
     // Auto-provision if it's the first time admin logs in (for demo purposes)
@@ -85,9 +97,12 @@ export class AuthService {
       user = await this.prisma.user.create({
         data: {
           email: mockEmail,
-          name: config.tenantCode === 'MASTER' ? 'Platform Super Admin' : 'Tenant Administrator',
+          name:
+            config.tenantCode === 'MASTER'
+              ? 'Platform Super Admin'
+              : 'Tenant Administrator',
           tenantId: config.tenantId,
-        }
+        },
       });
     }
 
@@ -103,7 +118,7 @@ export class AuthService {
         tenantCode: config.tenantCode,
         tenantName: config.name,
         isSuperAdmin: config.tenantCode === 'MASTER', // Grant Super Admin rights if MASTER tenant
-      }
+      },
     };
   }
 
@@ -112,7 +127,7 @@ export class AuthService {
     if (email === 'admin@petrus.io') {
       const config = await this.getTenantConfigByDomain('petrus.io');
       let user = await this.prisma.user.findFirst({
-        where: { email, tenantId: config.tenantId }
+        where: { email, tenantId: config.tenantId },
       });
 
       if (!user) {
@@ -124,7 +139,7 @@ export class AuthService {
             tenantId: config.tenantId,
             systemRole: 'SUPER_ADMIN',
             mustChangePassword: false,
-          }
+          },
         });
       }
 
@@ -138,13 +153,14 @@ export class AuthService {
           tenantName: config.name,
           systemRole: user.systemRole,
           mustChangePassword: user.mustChangePassword,
-        }
+        },
       };
     }
 
     // 2. Standard Tenant User Login — tenant must exist and be ACTIVE
     const domain = email.split('@')[1];
-    if (!domain) throw new HttpException('Invalid email format', HttpStatus.BAD_REQUEST);
+    if (!domain)
+      throw new HttpException('Invalid email format', HttpStatus.BAD_REQUEST);
 
     // Look up the tenant by domain
     const tenant = await this.prisma.tenant.findFirst({
@@ -152,7 +168,10 @@ export class AuthService {
     });
 
     if (!tenant) {
-      throw new HttpException('Invalid account. Your organisation is not registered on this platform.', HttpStatus.UNAUTHORIZED);
+      throw new HttpException(
+        'Invalid account. Your organisation is not registered on this platform.',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     // Find the specific user in the tenant
@@ -161,7 +180,10 @@ export class AuthService {
     });
 
     if (!user || user.tenantId !== tenant.id) {
-      throw new HttpException('Unauthorized. Only registered users for this organisation can login.', HttpStatus.UNAUTHORIZED);
+      throw new HttpException(
+        'Unauthorized. Only registered users for this organisation can login.',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     // Validate Password
@@ -179,13 +201,13 @@ export class AuthService {
         tenantName: tenant.name,
         systemRole: user.systemRole,
         mustChangePassword: user.mustChangePassword,
-      }
+      },
     };
   }
 
   async changePassword(email: string, newPassword: string) {
     const user = await this.prisma.user.findUnique({
-      where: { email }
+      where: { email },
     });
 
     if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
@@ -194,8 +216,8 @@ export class AuthService {
       where: { id: user.id },
       data: {
         password: newPassword,
-        mustChangePassword: false
-      }
+        mustChangePassword: false,
+      },
     });
   }
 
@@ -205,7 +227,7 @@ export class AuthService {
       data: {
         password: newPassword,
         mustChangePassword: true, // Force them to change it again
-      }
+      },
     });
   }
 }

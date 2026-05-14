@@ -9,21 +9,21 @@ export declare class SettingsService {
     constructor(prisma: PrismaService);
     updateM365(tenantId: string, data: M365SettingsDto): Promise<{
         id: string;
-        updatedAt: Date;
+        tenantId: string;
         azureTenantId: string | null;
         clientId: string | null;
         clientSecret: string | null;
         redirectUrl: string | null;
         microsoftDomain: string | null;
         graphApiStatus: string | null;
-        tenantId: string;
+        updatedAt: Date;
     }>;
     updateAD(tenantId: string, data: AdSettingsDto): Promise<{
-        domainName: string | null;
         id: string;
-        updatedAt: Date;
         tenantId: string;
+        updatedAt: Date;
         adServerIp: string | null;
+        domainName: string | null;
         ldapPath: string | null;
         baseDn: string | null;
         bindUsername: string | null;
@@ -33,8 +33,8 @@ export declare class SettingsService {
     }>;
     updateAuth(tenantId: string, data: AuthSettingsDto): Promise<{
         id: string;
-        updatedAt: Date;
         tenantId: string;
+        updatedAt: Date;
         ssoEnabled: boolean;
         enforceM365Login: boolean;
         sessionTimeout: number;
@@ -50,21 +50,21 @@ export declare class SettingsService {
     getSettings(tenantId: string): Promise<{
         m365Settings: {
             id: string;
-            updatedAt: Date;
+            tenantId: string;
             azureTenantId: string | null;
             clientId: string | null;
             clientSecret: string | null;
             redirectUrl: string | null;
             microsoftDomain: string | null;
             graphApiStatus: string | null;
-            tenantId: string;
+            updatedAt: Date;
         } | null;
         adSettings: {
-            domainName: string | null;
             id: string;
-            updatedAt: Date;
             tenantId: string;
+            updatedAt: Date;
             adServerIp: string | null;
+            domainName: string | null;
             ldapPath: string | null;
             baseDn: string | null;
             bindUsername: string | null;
@@ -72,22 +72,10 @@ export declare class SettingsService {
             sslEnabled: boolean;
             port: number;
         } | null;
-        smtpSettings: {
-            id: string;
-            updatedAt: Date;
-            password: string | null;
-            tenantId: string;
-            sslEnabled: boolean;
-            port: number;
-            host: string | null;
-            senderEmail: string | null;
-            senderName: string | null;
-            username: string | null;
-        } | null;
         authSettings: {
             id: string;
-            updatedAt: Date;
             tenantId: string;
+            updatedAt: Date;
             ssoEnabled: boolean;
             enforceM365Login: boolean;
             sessionTimeout: number;
@@ -100,42 +88,51 @@ export declare class SettingsService {
             requireSymbols: boolean;
             expiryDays: number;
         } | null;
+        smtpSettings: {
+            id: string;
+            tenantId: string;
+            updatedAt: Date;
+            sslEnabled: boolean;
+            port: number;
+            host: string | null;
+            senderEmail: string | null;
+            senderName: string | null;
+            username: string | null;
+            password: string | null;
+        } | null;
     } & {
-        tenantCode: string;
+        id: string;
+        updatedAt: Date;
         name: string;
-        companyName: string;
         domainName: string;
+        tenantCode: string;
+        companyName: string;
+        status: import("@prisma/client").$Enums.TenantStatus;
         subscriptionType: import("@prisma/client").$Enums.SubscriptionType;
         timeZone: string | null;
         country: string | null;
         currency: string | null;
         contactEmail: string | null;
         contactMobile: string | null;
-        id: string;
-        status: import("@prisma/client").$Enums.TenantStatus;
         logoUrl: string | null;
         faviconUrl: string | null;
         createdAt: Date;
-        updatedAt: Date;
         createdBy: string | null;
         updatedBy: string | null;
         deletedAt: Date | null;
     }>;
-    testM365Connection(tenantId: string): Promise<{
+    testM365Connection(): {
         success: boolean;
         message: string;
-    }>;
-    testAdConnection(tenantId: string): Promise<{
-        success: boolean;
-        message: string;
-    }>;
+    };
+    testAdConnection(data: AdSettingsDto): Promise<unknown>;
     getOffices(tenantId: string): Promise<{
+        id: string;
+        tenantId: string;
+        updatedAt: Date;
         name: string;
         country: string | null;
-        id: string;
         createdAt: Date;
-        updatedAt: Date;
-        tenantId: string;
         address: string | null;
         city: string | null;
         state: string | null;
@@ -145,12 +142,12 @@ export declare class SettingsService {
         isDefault: boolean;
     }[]>;
     createOffice(tenantId: string, data: CreateOfficeDto): Promise<{
+        id: string;
+        tenantId: string;
+        updatedAt: Date;
         name: string;
         country: string | null;
-        id: string;
         createdAt: Date;
-        updatedAt: Date;
-        tenantId: string;
         address: string | null;
         city: string | null;
         state: string | null;
@@ -160,12 +157,12 @@ export declare class SettingsService {
         isDefault: boolean;
     }>;
     updateOffice(id: string, tenantId: string, data: UpdateOfficeDto): Promise<{
+        id: string;
+        tenantId: string;
+        updatedAt: Date;
         name: string;
         country: string | null;
-        id: string;
         createdAt: Date;
-        updatedAt: Date;
-        tenantId: string;
         address: string | null;
         city: string | null;
         state: string | null;
@@ -175,12 +172,12 @@ export declare class SettingsService {
         isDefault: boolean;
     }>;
     deleteOffice(id: string, tenantId: string): Promise<{
+        id: string;
+        tenantId: string;
+        updatedAt: Date;
         name: string;
         country: string | null;
-        id: string;
         createdAt: Date;
-        updatedAt: Date;
-        tenantId: string;
         address: string | null;
         city: string | null;
         state: string | null;
@@ -190,35 +187,35 @@ export declare class SettingsService {
         isDefault: boolean;
     }>;
     getDepartments(tenantId: string): Promise<{
-        name: string;
         id: string;
+        tenantId: string;
+        updatedAt: Date;
+        name: string;
         status: string;
         createdAt: Date;
-        updatedAt: Date;
-        tenantId: string;
     }[]>;
     createDepartment(tenantId: string, data: CreateDepartmentDto): Promise<{
-        name: string;
         id: string;
+        tenantId: string;
+        updatedAt: Date;
+        name: string;
         status: string;
         createdAt: Date;
-        updatedAt: Date;
-        tenantId: string;
     }>;
     updateDepartment(id: string, tenantId: string, data: UpdateDepartmentDto): Promise<{
-        name: string;
         id: string;
+        tenantId: string;
+        updatedAt: Date;
+        name: string;
         status: string;
         createdAt: Date;
-        updatedAt: Date;
-        tenantId: string;
     }>;
     deleteDepartment(id: string, tenantId: string): Promise<{
-        name: string;
         id: string;
+        tenantId: string;
+        updatedAt: Date;
+        name: string;
         status: string;
         createdAt: Date;
-        updatedAt: Date;
-        tenantId: string;
     }>;
 }

@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateEmailTemplateDto, UpdateEmailTemplateDto } from './dto/email-template.dto';
+import {
+  CreateEmailTemplateDto,
+  UpdateEmailTemplateDto,
+} from './dto/email-template.dto';
 
 @Injectable()
 export class EmailTemplateService {
@@ -17,7 +20,9 @@ export class EmailTemplateService {
   }
 
   async findOne(tenantId: string, id: string) {
-    const template = await this.prisma.emailTemplate.findFirst({ where: { id, tenantId } });
+    const template = await this.prisma.emailTemplate.findFirst({
+      where: { id, tenantId },
+    });
     if (!template) throw new NotFoundException('Template not found');
     return template;
   }

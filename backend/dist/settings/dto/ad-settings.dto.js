@@ -34,7 +34,7 @@ __decorate([
 ], AdSettingsDto.prototype, "domainName", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], AdSettingsDto.prototype, "ldapPath", void 0);
 __decorate([
