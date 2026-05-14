@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RbacController } from './rbac.controller';
+import { RbacService } from './rbac.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('RbacController', () => {
   let controller: RbacController;
@@ -7,6 +9,16 @@ describe('RbacController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RbacController],
+      providers: [
+        {
+          provide: RbacService,
+          useValue: {},
+        },
+        {
+          provide: PrismaService,
+          useValue: {},
+        },
+      ],
     }).compile();
 
     controller = module.get<RbacController>(RbacController);
