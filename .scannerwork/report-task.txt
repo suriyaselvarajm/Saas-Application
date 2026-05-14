@@ -1,0 +1,6 @@
+projectKey=saas-application
+serverUrl=http://10.20.34.173:9000
+serverVersion=26.1.0.118079
+dashboardUrl=http://10.20.34.173:9000/dashboard?id=saas-application
+ceTaskId=ca2c47f1-d537-40f3-8326-6ca43d90026c
+ceTaskUrl=http://10.20.34.173:9000/api/ce/task?id=ca2c47f1-d537-40f3-8326-6ca43d90026c

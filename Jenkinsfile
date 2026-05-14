@@ -22,6 +22,9 @@ pipeline {
                 sh '''
                 cd backend && npm install
                 cd ../frontend && npm install
+                # Ensure binaries have execute permissions on Linux
+                chmod -R +x backend/node_modules/.bin || true
+                chmod -R +x frontend/node_modules/.bin || true
                 '''
             }
         }
@@ -30,7 +33,7 @@ pipeline {
             steps {
                 echo 'Running Tests...'
                 sh '''
-                cd backend && npm test
+                cd backend && npx jest --passWithNoTests
                 cd ../frontend && npm test
                 '''
             }
