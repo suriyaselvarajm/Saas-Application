@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id               String           @id @default(uuid())
+  tenantCode       String           @unique
+  name             String
+  companyName      String
+  domainName       String
+  status           TenantStatus     @default(ACTIVE)
+  subscriptionType SubscriptionType @default(BASIC)
+  timeZone         String?
+  country          String?
+  currency         String?
+  contactEmail     String?
+  contactMobile    String?
+  logoUrl          String?
+  faviconUrl       String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  createdBy        String?
+  updatedBy        String?
+  deletedAt        DateTime?
+  adSettings       AdSettings?
+  auditLogs        AuditLog[]
+  authSettings     AuthSettings?
+  departments      Department[]
+  emailTemplates   EmailTemplate[]
+  m365Settings     M365Settings?
+  offices          Office[]
+  roles            Role[]
+  smtpSettings     SmtpSettings?
+  users            User[]
+
+  @@map("tenants")
+}
+
+model User {
+  id         String     @id @default(uuid())
+  email      String     @unique
+  name       String?
+  tenantId   String
+  roleId     String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  systemRole SystemRole @default(EMPLOYEE)
+  role       Role?      @relation(fields: [roleId], references: [id])
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+
+  @@map("users")
+}
+
+model M365Settings {
+  id              String   @id @default(uuid())
+  tenantId        String   @unique
+  azureTenantId   String?
+  clientId        String?
+  clientSecret    String?
+  redirectUrl     String?
+  microsoftDomain String?
+  graphApiStatus  String?
+  updatedAt       DateTime @updatedAt
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("m365_settings")
+}
+
+model AdSettings {
+  id           String   @id @default(uuid())
+  tenantId     String   @unique
+  adServerIp   String?
+  domainName   String?
+  ldapPath     String?
+  baseDn       String?
+  bindUsername String?
+  bindPassword String?
+  sslEnabled   Boolean  @default(false)
+  port         Int      @default(389)
+  updatedAt    DateTime @updatedAt
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("ad_settings")
+}
+
+model SmtpSettings {
+  id          String   @id @default(uuid())
+  tenantId    String   @unique
+  host        String?
+  port        Int      @default(587)
+  senderEmail String?
+  senderName  String?
+  username    String?
+  password    String?
+  sslEnabled  Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("smtp_settings")
+}
+
+model AuthSettings {
+  id               String   @id @default(uuid())
+  tenantId         String   @unique
+  ssoEnabled       Boolean  @default(false)
+  enforceM365Login Boolean  @default(false)
+  sessionTimeout   Int      @default(3600)
+  mfaEnforced      Boolean  @default(false)
+  allowedDomains   String[]
+  minCharacters    Int      @default(12)
+  requireUppercase Boolean  @default(true)
+  requireLowercase Boolean  @default(true)
+  requireNumbers   Boolean  @default(true)
+  requireSymbols   Boolean  @default(true)
+  expiryDays       Int      @default(90)
+  updatedAt        DateTime @updatedAt
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("auth_settings")
+}
+
+model Office {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  address   String?
+  city      String?
+  state     String?
+  zipCode   String?
+  country   String?
+  latitude  Float?
+  longitude Float?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("offices")
+}
+
+model Department {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("departments")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  permissions String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  users       User[]
+
+  @@map("roles")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String?
+  module    String
+  action    String
+  details   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model EmailTemplate {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  subject   String?
+  body      String?
+  variables String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("email_templates")
+}
+
+enum TenantStatus {
+  ACTIVE
+  DISABLED
+  SUSPENDED
+}
+
+enum SubscriptionType {
+  FREE
+  BASIC
+  PREMIUM
+  ENTERPRISE
+}
+
+enum SystemRole {
+  SUPER_ADMIN
+  TENANT_ADMIN
+  HR_ADMIN
+  IT_ADMIN
+  EMPLOYEE
+}

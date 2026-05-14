@@ -1,0 +1,1 @@
+{"version":3,"file":"create-role.dto.js","sourceRoot":"","sources":["../../../src/rbac/dto/create-role.dto.ts"],"names":[],"mappings":";;;;;;;;;;;;AAAA,qDAAgE;AAEhE,MAAa,aAAa;IAGxB,IAAI,CAAS;IAIb,WAAW,CAAW;CACvB;AARD,sCAQC;AALC;IAFC,IAAA,0BAAQ,GAAE;IACV,IAAA,4BAAU,GAAE;;2CACA;AAIb;IAFC,IAAA,yBAAO,GAAE;IACT,IAAA,0BAAQ,EAAC,EAAE,IAAI,EAAE,IAAI,EAAE,CAAC;;kDACH"}
