@@ -33,7 +33,8 @@ pipeline {
             steps {
                 echo 'Running Tests...'
                 sh '''
-                cd backend && npx jest --passWithNoTests
+                # Running jest via node directly to bypass permission issues
+                cd backend && node node_modules/jest/bin/jest.js --passWithNoTests
                 cd ../frontend && npm test
                 '''
             }
