@@ -4,53 +4,53 @@ export declare class EmailTemplateController {
     private readonly emailTemplateService;
     constructor(emailTemplateService: EmailTemplateService);
     create(tenantId: string, dto: CreateEmailTemplateDto): Promise<{
-        name: string;
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        tenantId: string;
+        name: string;
         subject: string | null;
         body: string | null;
         variables: string[];
+        createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
     }>;
     findAll(tenantId: string): Promise<{
-        name: string;
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        tenantId: string;
+        name: string;
         subject: string | null;
         body: string | null;
         variables: string[];
+        createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
     }[]>;
     findOne(tenantId: string, id: string): Promise<{
-        name: string;
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        tenantId: string;
+        name: string;
         subject: string | null;
         body: string | null;
         variables: string[];
+        createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
     }>;
     update(tenantId: string, id: string, dto: UpdateEmailTemplateDto): Promise<{
-        name: string;
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        tenantId: string;
+        name: string;
         subject: string | null;
         body: string | null;
         variables: string[];
+        createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
     }>;
     remove(tenantId: string, id: string): Promise<{
-        name: string;
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        tenantId: string;
+        name: string;
         subject: string | null;
         body: string | null;
         variables: string[];
+        createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
     }>;
 }

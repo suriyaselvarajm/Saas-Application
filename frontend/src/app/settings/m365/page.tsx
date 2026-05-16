@@ -32,16 +32,18 @@ export default function M365Settings() {
               <form className="space-y-6">
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Azure Tenant ID</label>
+                    <label htmlFor="m365-tenant-id" className="text-sm font-medium text-slate-700 dark:text-slate-300">Azure Tenant ID</label>
                     <input 
+                      id="m365-tenant-id"
                       type="text" 
                       placeholder="e.g. 8f45..."
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 transition-all outline-none"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Microsoft Domain</label>
+                    <label htmlFor="m365-domain" className="text-sm font-medium text-slate-700 dark:text-slate-300">Microsoft Domain</label>
                     <input 
+                      id="m365-domain"
                       type="text" 
                       placeholder="e.g. company.onmicrosoft.com"
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 transition-all outline-none"
@@ -50,24 +52,27 @@ export default function M365Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Client ID (App ID)</label>
+                  <label htmlFor="m365-client-id" className="text-sm font-medium text-slate-700 dark:text-slate-300">Client ID (App ID)</label>
                   <input 
+                    id="m365-client-id"
                     type="text" 
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 transition-all outline-none"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Client Secret</label>
+                  <label htmlFor="m365-secret" className="text-sm font-medium text-slate-700 dark:text-slate-300">Client Secret</label>
                   <input 
+                    id="m365-secret"
                     type="password" 
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 transition-all outline-none"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Redirect URL</label>
+                  <label htmlFor="m365-redirect" className="text-sm font-medium text-slate-700 dark:text-slate-300">Redirect URL</label>
                   <input 
+                    id="m365-redirect"
                     type="text" 
                     defaultValue="https://petrus.yourdomain.com/auth/callback"
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 transition-all outline-none"

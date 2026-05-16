@@ -38,7 +38,7 @@ let RolesGuard = class RolesGuard {
         let user = request.user;
         if (!user) {
             const authHeader = request.headers.authorization;
-            if (authHeader && authHeader.startsWith('Bearer mock-jwt-token-for-')) {
+            if (authHeader?.startsWith('Bearer mock-jwt-token-for-')) {
                 const userId = authHeader.replace('Bearer mock-jwt-token-for-', '');
                 try {
                     const dbUser = await this.prisma.user.findUnique({
@@ -58,7 +58,7 @@ let RolesGuard = class RolesGuard {
                 }
             }
         }
-        if (!user || !user.systemRole) {
+        if (!user?.systemRole) {
             throw new common_1.ForbiddenException('User role not found in request. Please login again.');
         }
         const userRoleIndex = this.roleHierarchy.indexOf(user.systemRole);

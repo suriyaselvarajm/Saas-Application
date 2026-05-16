@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import { SettingsService } from './settings.service';
 import { M365SettingsDto } from './dto/m365-settings.dto';
@@ -19,7 +20,6 @@ import { AuditInterceptor } from '../audit/audit.interceptor';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { SystemRole } from '@prisma/client';
-import { UseGuards } from '@nestjs/common';
 
 @Controller('settings')
 @UseGuards(RolesGuard)

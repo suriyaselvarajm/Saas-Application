@@ -2,9 +2,14 @@
 
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Monitor, Plus, Edit, FileText, FileUp, Settings, ChevronDown, Search, ArrowRight, Shield, Trash2, RefreshCcw, Move } from "lucide-react";
+import { 
+  Search, 
+  ChevronDown, 
+  Plus, 
+  Settings
+} from "lucide-react";
 
-export default function ComputerManagementPage() {
+export default function ContactManagementPage() {
   const [domain, setDomain] = useState("admanagerplus.com");
 
   useEffect(() => {
@@ -26,45 +31,44 @@ export default function ComputerManagementPage() {
 
   const sections = [
     {
-      title: "Computer Management",
+      title: "Contact Management",
       groups: [
         {
-          name: "Computer Creation",
+          name: "Contact Creation",
           color: "text-emerald-600 dark:text-emerald-400",
-          items: ["Create Single Computer", "Create Bulk Computers"]
+          items: ["Create Single Contact", "Create Bulk Contacts"]
         },
         {
-          name: "Computer Modification",
+          name: "Contact Modification",
           color: "text-emerald-600 dark:text-emerald-400",
-          items: ["Modify Single Computer", "Modify Bulk Computers"]
+          items: ["Modify Single Contact", "Modify Bulk Contacts"]
         },
         {
-          name: "Computer Templates",
+          name: "Contact Templates",
           color: "text-emerald-600 dark:text-emerald-400",
-          items: ["Computer Creation Templates", "Computer Modification Templates"]
+          items: ["Contact Creation Templates", "Contact Modification Templates"]
         },
         {
           name: "CSV Import",
           color: "text-emerald-600 dark:text-emerald-400",
-          items: ["Create Computers", "Modify Computers"]
+          items: ["Create Contacts", "Modify Contacts"]
         }
       ]
     },
     {
-      title: "Bulk Computer Modification",
+      title: "Bulk Contact Modification",
       groups: [
         {
-          name: "General Attributes",
+          name: "Bulk Contact Modification",
           color: "text-emerald-600 dark:text-emerald-400",
           items: [
-            "Modify group attributes of computers", 
-            "Modify general attributes", 
-            "Custom Attributes", 
-            "Reset Computers",
-            "Move Computers",
-            "Enable/Disable Computers",
-            "Delete Computers",
-            "Restore Deleted Computers"
+            "Address/Organization Attributes", 
+            "Contact Attributes", 
+            "Naming Attributes", 
+            "Delete Contacts", 
+            "Move Contacts",
+            "Modify group attributes of contacts",
+            "Restore Deleted Contacts"
           ]
         }
       ]
@@ -82,7 +86,7 @@ export default function ComputerManagementPage() {
                 <Search className="h-4 w-4 text-slate-400 group-focus-within/search:text-indigo-500 transition-colors" />
                 <input 
                   type="text" 
-                  placeholder="Search Computer Tasks..." 
+                  placeholder="Search Contact Tasks..." 
                   className="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-300 placeholder:text-slate-500 w-full"
                 />
               </div>
@@ -93,13 +97,13 @@ export default function ComputerManagementPage() {
               </button>
               <div className="h-6 w-px bg-slate-200 dark:bg-white/10"></div>
               <nav className="flex space-x-4">
-                <button className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 pb-0.5">Computer Management</button>
-                <button className="text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">Bulk Computer Modification</button>
+                <button className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 pb-0.5">Contact Management</button>
+                <button className="text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">Bulk Contact Modification</button>
               </nav>
             </div>
             <div className="flex items-center space-x-3">
               <button className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-all shadow-lg shadow-indigo-600/20">
-                <Plus className="h-3.5 w-3.5" /> New Computer
+                <Plus className="h-3.5 w-3.5" /> New Contact
               </button>
               <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
                 <Settings className="h-4 w-4" />

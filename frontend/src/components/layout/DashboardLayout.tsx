@@ -10,11 +10,10 @@ import {
   LogOut, 
   ChevronDown, 
   Bell, 
-  Search,
-  Globe,
-  Settings as SettingsIcon
+  Search
 } from "lucide-react";
 import { ThemeToggle } from "../ui/ThemeToggle";
+import SearchOverlay from "./SearchOverlay";
 
 interface UserData {
   name: string;
@@ -26,6 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   
   const isManagement = pathname?.startsWith('/management');
   const isDashboard = pathname === '/dashboard';
@@ -49,6 +49,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen bg-slate-100 dark:bg-[#020617] font-inter">
+      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      
       {/* Sidebar - Only show on Management pages */}
       {isManagement && (
         <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
@@ -95,7 +97,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-4 border-r border-slate-200 dark:border-white/10 pr-4">
-                <button className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                <button 
+                  onClick={() => setIsSearchOpen(true)}
+                  className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                >
                   <Search className="h-4 w-4" />
                 </button>
                 <button className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors relative">

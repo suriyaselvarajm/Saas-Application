@@ -10,7 +10,7 @@ import { TenantStatus } from '@prisma/client';
 
 @Injectable()
 export class TenantService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createTenantDto: CreateTenantDto) {
     const { adminEmail, initialPassword, ...tenantData } = createTenantDto;

@@ -1,5 +1,5 @@
 try {
-  const ldap = require('ldapjs');
+  require('ldapjs');
   console.log('ldapjs loaded successfully');
   process.exit(0);
 } catch (e) {

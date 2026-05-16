@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { MapPin, Plus, MoreVertical, Globe, X, Loader2, Edit2, Trash2 } from "lucide-react";
+import { MapPin, Plus, Globe, X, Loader2, Edit2, Trash2 } from "lucide-react";
 
 export default function OfficeSettings() {
   const [offices, setOffices] = useState<any[]>([]);
@@ -75,7 +75,7 @@ export default function OfficeSettings() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setSubmitting(true);
     const url = editingId ? `http://localhost:3001/settings/offices/${editingId}` : "http://localhost:3001/settings/offices";
@@ -175,16 +175,18 @@ export default function OfficeSettings() {
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Office Name</label>
+                  <label htmlFor="office-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Office Name</label>
                   <input 
+                    id="office-name"
                     type="text" required
                     value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Address</label>
+                  <label htmlFor="office-address" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Address</label>
                   <input 
+                    id="office-address"
                     type="text"
                     value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
@@ -192,16 +194,18 @@ export default function OfficeSettings() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">City</label>
+                    <label htmlFor="office-city" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">City</label>
                     <input 
+                      id="office-city"
                       type="text"
                       value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})}
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">State</label>
+                    <label htmlFor="office-state" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">State</label>
                     <input 
+                      id="office-state"
                       type="text"
                       value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})}
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
@@ -214,7 +218,7 @@ export default function OfficeSettings() {
                     checked={formData.isDefault} onChange={e => setFormData({...formData, isDefault: e.target.checked})}
                     className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
-                  <label className="text-sm text-slate-700 dark:text-slate-300">Set as Default Office</label>
+                  <label htmlFor="office-default" className="text-sm text-slate-700 dark:text-slate-300">Set as Default Office</label>
                 </div>
                 <div className="pt-4 flex gap-3">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">

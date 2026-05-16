@@ -136,9 +136,14 @@ export default function UserManagementPage() {
         {/* Top Header / Action Bar */}
         <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-3">
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer transition-colors">
-                <Search className="h-4 w-4" />
+            <div className="flex items-center space-x-6 flex-1">
+              <div className="flex items-center space-x-3 bg-slate-100 dark:bg-slate-900/50 px-3 py-1.5 rounded-lg border border-transparent focus-within:border-indigo-500/50 transition-all w-64 group/search">
+                <Search className="h-4 w-4 text-slate-400 group-focus-within/search:text-indigo-500 transition-colors" />
+                <input 
+                  type="text" 
+                  placeholder="Search User Tasks..." 
+                  className="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-300 placeholder:text-slate-500 w-full"
+                />
               </div>
               <div className="h-6 w-px bg-slate-200 dark:bg-white/10"></div>
               <button className="flex items-center space-x-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-lg transition-all group">
@@ -149,8 +154,6 @@ export default function UserManagementPage() {
               <nav className="flex space-x-4">
                 <button className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 pb-0.5">User Management</button>
                 <button className="text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">Bulk User Modification</button>
-                <button className="text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">Computer Management</button>
-                <button className="text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">Group Management</button>
               </nav>
             </div>
             <div className="flex items-center space-x-3">

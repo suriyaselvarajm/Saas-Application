@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Plus, Search, MoreVertical, Building2, Globe, Users, X, Loader2, Edit2, Trash2, Key } from "lucide-react";
+import { Plus, Search, Building2, Globe, Users, X, Loader2, Edit2, Trash2, Key } from "lucide-react";
 
 interface Tenant {
   id: string;
@@ -104,7 +104,7 @@ export default function TenantManagement() {
     }
   };
 
-  const handleResetPasswordAdmin = async (e: React.FormEvent) => {
+  const handleResetPasswordAdmin = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
@@ -131,7 +131,7 @@ export default function TenantManagement() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setSubmitting(true);
     
@@ -153,7 +153,7 @@ export default function TenantManagement() {
       });
       if (res.ok) {
         setIsModalOpen(false);
-        setFormData({ name: "", tenantCode: "", companyName: "", domainName: "" });
+        setFormData({ name: "", tenantCode: "", companyName: "", domainName: "", adminEmail: "", initialPassword: "" });
         setEditingId(null);
         fetchTenants();
       } else {
@@ -242,20 +242,26 @@ export default function TenantManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-white/5">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" /> Loading tenants...
-                  </td>
-                </tr>
-              ) : tenants.length === 0 ? (
-                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
-                    No tenants found. Click &quot;Add Tenant&quot; to create one.
-                  </td>
-                </tr>
-              ) : (
-                tenants.map((tenant) => (
+              {(() => {
+                if (loading) {
+                  return (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" /> Loading tenants...
+                      </td>
+                    </tr>
+                  );
+                }
+                if (tenants.length === 0) {
+                  return (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                        No tenants found. Click &quot;Add Tenant&quot; to create one.
+                      </td>
+                    </tr>
+                  );
+                }
+                return tenants.map((tenant) => (
                   <tr key={tenant.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
@@ -271,8 +277,8 @@ export default function TenantManagement() {
                     <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{tenant.subscriptionType}</td>
                     <td className="px-6 py-4">
                       <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        tenant.status === "ACTIVE" 
-                          ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-400" 
+                        tenant.status === "ACTIVE"
+                          ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-400"
                           : "bg-slate-100 text-slate-600 dark:bg-slate-400/10 dark:text-slate-400"
                       }`}>
                         {tenant.status}
@@ -281,7 +287,7 @@ export default function TenantManagement() {
                     <td className="px-6 py-4 text-right">
                       {tenant.tenantCode !== "MASTER" && (
                         <div className="flex justify-end gap-3">
-                          <button 
+                          <button
                             onClick={() => {
                               const adminUser = tenant.users?.find(
                                 (u) => u.systemRole === "TENANT_ADMIN",
@@ -298,14 +304,14 @@ export default function TenantManagement() {
                           >
                             <Key className="h-5 w-5" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleOpenEditModal(tenant)}
                             className="text-slate-500 hover:text-indigo-400 transition-colors"
                             title="Edit"
                           >
                             <Edit2 className="h-5 w-5" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleDeleteTenant(tenant.id)}
                             className="text-slate-500 hover:text-red-400 transition-colors"
                             title="Delete"
@@ -316,8 +322,8 @@ export default function TenantManagement() {
                       )}
                     </td>
                   </tr>
-                ))
-              )}
+                ));
+              })()}
             </tbody>
           </table>
         </div>
@@ -336,24 +342,27 @@ export default function TenantManagement() {
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tenant Name</label>
+                  <label htmlFor="tenant-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tenant Name</label>
                   <input 
+                    id="tenant-name"
                     type="text" required
                     value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Company Name</label>
+                  <label htmlFor="tenant-company" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Company Name</label>
                   <input 
+                    id="tenant-company"
                     type="text" required
                     value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tenant Code (Unique)</label>
+                  <label htmlFor="tenant-code" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tenant Code (Unique)</label>
                   <input 
+                    id="tenant-code"
                     type="text" required
                     disabled={!!editingId} // Usually can't change code after creation
                     value={formData.tenantCode} onChange={e => setFormData({...formData, tenantCode: e.target.value})}
@@ -361,16 +370,18 @@ export default function TenantManagement() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Domain Name</label>
+                  <label htmlFor="tenant-domain" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Domain Name</label>
                   <input 
+                    id="tenant-domain"
                     type="text" required
                     value={formData.domainName} onChange={e => setFormData({...formData, domainName: e.target.value})}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Admin Email</label>
+                  <label htmlFor="tenant-admin-email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Admin Email</label>
                   <input 
+                    id="tenant-admin-email"
                     type="email" required
                     value={formData.adminEmail} onChange={e => setFormData({...formData, adminEmail: e.target.value})}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 outline-none"
@@ -379,8 +390,9 @@ export default function TenantManagement() {
                 </div>
                 {!editingId && (
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Initial Password</label>
+                    <label htmlFor="tenant-init-password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Initial Password</label>
                     <input 
+                      id="tenant-init-password"
                       type="text" required
                       value={formData.initialPassword} onChange={e => setFormData({...formData, initialPassword: e.target.value})}
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 outline-none"
@@ -394,7 +406,7 @@ export default function TenantManagement() {
                   </button>
                   <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors disabled:opacity-50 flex justify-center items-center gap-2">
                     {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {submitting ? "Saving..." : (editingId ? "Save Changes" : "Create Tenant")}
+                    {submitting ? "Saving..." : editingId ? "Save Changes" : "Create Tenant"}
                   </button>
                 </div>
               </form>
@@ -414,8 +426,9 @@ export default function TenantManagement() {
               </div>
               <form onSubmit={handleResetPasswordAdmin} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
+                  <label htmlFor="reset-password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
                   <input 
+                    id="reset-password"
                     type="text" required
                     value={resetPassword} onChange={e => setResetPassword(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 outline-none"

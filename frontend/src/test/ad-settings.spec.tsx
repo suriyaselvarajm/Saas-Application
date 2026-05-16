@@ -8,7 +8,7 @@ vi.mock('@/components/layout/DashboardLayout', () => ({
 }));
 
 // Mock global fetch
-global.fetch = vi.fn(() =>
+globalThis.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({ adSettings: {} }),

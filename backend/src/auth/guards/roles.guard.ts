@@ -22,12 +22,12 @@ interface RequestWithUser extends Request {
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(
-    private reflector: Reflector,
-    private prisma: PrismaService,
+    private readonly reflector: Reflector,
+    private readonly prisma: PrismaService,
   ) {}
 
   // Hierarchical mapping: Lower index means higher privilege
-  private roleHierarchy = [
+  private readonly roleHierarchy = [
     SystemRole.SUPER_ADMIN,
     SystemRole.TENANT_ADMIN,
     SystemRole.HR_ADMIN,
@@ -51,7 +51,7 @@ export class RolesGuard implements CanActivate {
     // MOCK AUTH: If no user is populated by a global JWT middleware, we extract the mock token here
     if (!user) {
       const authHeader = request.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer mock-jwt-token-for-')) {
+      if (authHeader?.startsWith('Bearer mock-jwt-token-for-')) {
         const userId = authHeader.replace('Bearer mock-jwt-token-for-', '');
         try {
           const dbUser = await this.prisma.user.findUnique({
@@ -71,7 +71,7 @@ export class RolesGuard implements CanActivate {
       }
     }
 
-    if (!user || !user.systemRole) {
+    if (!user?.systemRole) {
       throw new ForbiddenException(
         'User role not found in request. Please login again.',
       );

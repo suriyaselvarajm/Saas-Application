@@ -25,7 +25,6 @@ const audit_interceptor_1 = require("../audit/audit.interceptor");
 const roles_guard_1 = require("../auth/guards/roles.guard");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 const client_1 = require("@prisma/client");
-const common_2 = require("@nestjs/common");
 let SettingsController = class SettingsController {
     settingsService;
     constructor(settingsService) {
@@ -191,7 +190,7 @@ __decorate([
 ], SettingsController.prototype, "deleteDepartment", null);
 exports.SettingsController = SettingsController = __decorate([
     (0, common_1.Controller)('settings'),
-    (0, common_2.UseGuards)(roles_guard_1.RolesGuard),
+    (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)(client_1.SystemRole.TENANT_ADMIN),
     (0, common_1.UseInterceptors)(audit_interceptor_1.AuditInterceptor),
     __metadata("design:paramtypes", [settings_service_1.SettingsService])

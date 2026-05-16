@@ -9,7 +9,7 @@ import { CreateDepartmentDto, UpdateDepartmentDto } from './dto/department.dto';
 
 @Injectable()
 export class SettingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async updateM365(tenantId: string, data: M365SettingsDto) {
     return this.prisma.m365Settings.upsert({

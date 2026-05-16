@@ -4,7 +4,7 @@ import { SmtpSettingsDto, TestSmtpDto } from './dto/smtp-settings.dto';
 
 @Injectable()
 export class SmtpService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async upsert(tenantId: string, data: SmtpSettingsDto) {
     return this.prisma.smtpSettings.upsert({

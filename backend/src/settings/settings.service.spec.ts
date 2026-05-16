@@ -7,7 +7,6 @@ jest.mock('ldapjs');
 
 describe('SettingsService', () => {
   let service: SettingsService;
-  let prisma: PrismaService;
 
   const mockPrisma = {
     m365Settings: {
@@ -33,7 +32,6 @@ describe('SettingsService', () => {
     }).compile();
 
     service = module.get<SettingsService>(SettingsService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   it('should be defined', () => {
@@ -50,7 +48,9 @@ describe('SettingsService', () => {
 
   describe('updateAD', () => {
     it('should upsert AD settings', async () => {
-      const dto = { adServerIp: '1.1.1.1', domainName: 'test.com' } as any;
+      // NOSONAR - test IP address
+      const testIp = '192.0.2.1'; // RFC5737 TEST-NET, safe for tests
+      const dto = { adServerIp: testIp, domainName: 'test.com' } as any;
       await service.updateAD('tenant-1', dto);
       expect(mockPrisma.adSettings.upsert).toHaveBeenCalled();
     });
@@ -74,10 +74,12 @@ describe('SettingsService', () => {
       };
       (ldap.createClient as jest.Mock).mockReturnValue(mockClient);
 
+      // NOSONAR - test IP address
+      const testIp = '192.0.2.1'; // RFC5737 TEST-NET, safe for tests
       const result = await service.testAdConnection({
-        adServerIp: '1.1.1.1',
+        adServerIp: testIp,
         baseDn: 'dc=test',
-      } as any);
+      } as any) as { success: boolean; message?: string };
       expect(result.success).toBe(true);
     });
 
@@ -89,9 +91,11 @@ describe('SettingsService', () => {
       };
       (ldap.createClient as jest.Mock).mockReturnValue(mockClient);
 
+      // NOSONAR - test IP address
+      const testIp = '192.0.2.1'; // RFC5737 TEST-NET, safe for tests
       const result = await service.testAdConnection({
-        adServerIp: '1.1.1.1',
-      } as any);
+        adServerIp: testIp,
+      } as any) as { success: boolean; message?: string };
       expect(result.success).toBe(false);
       expect(result.message).toContain('Authentication failed');
     });

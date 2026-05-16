@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Briefcase, Plus, MoreVertical, CheckCircle2, X, Loader2, Edit2, Trash2 } from "lucide-react";
+import { Briefcase, Plus, CheckCircle2, X, Loader2, Edit2, Trash2 } from "lucide-react";
 
 export default function DepartmentSettings() {
   const [departments, setDepartments] = useState<any[]>([]);
@@ -67,7 +67,7 @@ export default function DepartmentSettings() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setSubmitting(true);
     const url = editingId ? `http://localhost:3001/settings/departments/${editingId}` : "http://localhost:3001/settings/departments";
@@ -121,20 +121,26 @@ export default function DepartmentSettings() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              {loading ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-indigo-500" />
-                  </td>
-                </tr>
-              ) : departments.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-slate-500">
-                    No departments found.
-                  </td>
-                </tr>
-              ) : (
-                departments.map((dept) => (
+              {(() => {
+                if (loading) {
+                  return (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-10 text-center">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-indigo-500" />
+                      </td>
+                    </tr>
+                  );
+                }
+                if (departments.length === 0) {
+                  return (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-10 text-center text-slate-500">
+                        No departments found.
+                      </td>
+                    </tr>
+                  );
+                }
+                return departments.map((dept) => (
                   <tr key={dept.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -161,8 +167,8 @@ export default function DepartmentSettings() {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
+                ));
+              })()}
             </tbody>
           </table>
         </div>
@@ -179,16 +185,18 @@ export default function DepartmentSettings() {
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Department Name</label>
+                  <label htmlFor="dept-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Department Name</label>
                   <input 
+                    id="dept-name"
                     type="text" required
                     value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status</label>
+                  <label htmlFor="dept-status" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status</label>
                   <select 
+                    id="dept-status"
                     value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                   >

@@ -5,7 +5,6 @@ import { NotFoundException } from '@nestjs/common';
 
 describe('RbacService', () => {
   let service: RbacService;
-  let prisma: PrismaService;
 
   const mockPrisma = {
     role: {
@@ -28,7 +27,6 @@ describe('RbacService', () => {
     }).compile();
 
     service = module.get<RbacService>(RbacService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   it('should be defined', () => {

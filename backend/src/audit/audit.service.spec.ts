@@ -25,7 +25,6 @@ describe('AuditService', () => {
     }).compile();
 
     service = module.get<AuditService>(AuditService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   it('should be defined', () => {

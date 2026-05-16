@@ -48,8 +48,8 @@ export default function RbacSettings() {
                   <Lock className="h-3 w-3" /> Permissions Matrix
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {role.permissions.map((perm, index) => (
-                    <span key={index} className="text-[11px] font-medium bg-slate-950 text-slate-300 border border-white/5 px-2.5 py-1 rounded-md">
+                  {role.permissions.map((perm) => (
+                    <span key={perm} className="text-[11px] font-medium bg-slate-950 text-slate-300 border border-white/5 px-2.5 py-1 rounded-md">
                       {perm}
                     </span>
                   ))}

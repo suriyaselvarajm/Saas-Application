@@ -4,7 +4,7 @@ import { CreateRoleDto } from './dto/create-role.dto';
 
 @Injectable()
 export class RbacService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async createRole(tenantId: string, data: CreateRoleDto) {
     return this.prisma.role.create({

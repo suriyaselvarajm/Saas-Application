@@ -57,7 +57,7 @@ export default function ADSettings() {
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -165,10 +165,11 @@ export default function ADSettings() {
               <form onSubmit={handleSave} className="space-y-6">
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <label htmlFor="ad-server-ip" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                       AD Server IP / Hostname
                     </label>
                     <input
+                      id="ad-server-ip"
                       type="text"
                       required
                       value={formData.adServerIp}
@@ -180,17 +181,18 @@ export default function ADSettings() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <label htmlFor="ad-port" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                       Port Number
                     </label>
                     <input
+                      id="ad-port"
                       type="number"
                       required
                       value={formData.port}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          port: parseInt(e.target.value) || 389,
+                          port: Number.parseInt(e.target.value) || 389,
                         })
                       }
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 transition-all outline-none"
@@ -200,10 +202,11 @@ export default function ADSettings() {
 
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <label htmlFor="ad-domain" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                       Domain Name
                     </label>
                     <input
+                      id="ad-domain"
                       type="text"
                       required
                       value={formData.domainName}
@@ -215,10 +218,11 @@ export default function ADSettings() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <label htmlFor="ad-base-dn" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                       Base DN
                     </label>
                     <input
+                      id="ad-base-dn"
                       type="text"
                       required
                       value={formData.baseDn}
@@ -232,10 +236,11 @@ export default function ADSettings() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="ad-bind-user" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     Bind Username
                   </label>
                   <input
+                    id="ad-bind-user"
                     type="text"
                     required
                     value={formData.bindUsername}
@@ -247,10 +252,11 @@ export default function ADSettings() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="ad-bind-pass" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     Bind Password
                   </label>
                   <input
+                    id="ad-bind-pass"
                     type="password"
                     required
                     value={formData.bindPassword}
@@ -271,7 +277,7 @@ export default function ADSettings() {
                       }
                       className="w-4 h-4 rounded bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-white/10 text-indigo-600 focus:ring-indigo-500"
                     />
-                    <label className="text-sm text-slate-600 dark:text-slate-300">
+                    <label htmlFor="ad-ssl" className="text-sm text-slate-600 dark:text-slate-300">
                       Enable LDAPS (SSL)
                     </label>
                   </div>
@@ -314,19 +320,27 @@ export default function ADSettings() {
                   <span className="text-sm text-slate-600 dark:text-slate-400">
                     Connection
                   </span>
-                  {status === "success" ? (
-                    <span className="flex items-center gap-1 text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-full">
-                      <Network className="h-3 w-3" /> Active
-                    </span>
-                  ) : status === "error" ? (
-                    <span className="flex items-center gap-1 text-xs font-medium text-red-400 bg-red-400/10 px-2 py-1 rounded-full">
-                      Failed
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-xs font-medium text-amber-400 bg-amber-400/10 px-2 py-1 rounded-full">
-                      Not Configured
-                    </span>
-                  )}
+                  {(() => {
+                    if (status === "success") {
+                      return (
+                        <span className="flex items-center gap-1 text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-full">
+                          <Network className="h-3 w-3" /> Active
+                        </span>
+                      );
+                    }
+                    if (status === "error") {
+                      return (
+                        <span className="flex items-center gap-1 text-xs font-medium text-red-400 bg-red-400/10 px-2 py-1 rounded-full">
+                          Failed
+                        </span>
+                      );
+                    }
+                    return (
+                      <span className="flex items-center gap-1 text-xs font-medium text-amber-400 bg-amber-400/10 px-2 py-1 rounded-full">
+                        Not Configured
+                      </span>
+                    );
+                  })()}
                 </div>
                 {status === "error" && errorMessage && (
                   <p className="text-[10px] text-red-400/80 leading-relaxed px-1">

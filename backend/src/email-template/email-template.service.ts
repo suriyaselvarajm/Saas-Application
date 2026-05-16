@@ -7,7 +7,7 @@ import {
 
 @Injectable()
 export class EmailTemplateService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(tenantId: string, data: CreateEmailTemplateDto) {
     return this.prisma.emailTemplate.create({

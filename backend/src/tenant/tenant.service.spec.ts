@@ -5,7 +5,6 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 
 describe('TenantService', () => {
   let service: TenantService;
-  let prisma: PrismaService;
 
   const mockPrisma = {
     tenant: {
@@ -33,7 +32,6 @@ describe('TenantService', () => {
     }).compile();
 
     service = module.get<TenantService>(TenantService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   it('should be defined', () => {
