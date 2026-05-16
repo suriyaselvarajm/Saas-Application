@@ -187,7 +187,11 @@ export class AuthService {
     }
 
     // Validate Password
-    if (user.password && user.password !== password) {
+    if (!user.password) {
+      throw new HttpException('Account has no password set. Please contact administrator.', HttpStatus.UNAUTHORIZED);
+    }
+
+    if (user.password !== password) {
       throw new HttpException('Invalid password.', HttpStatus.UNAUTHORIZED);
     }
 

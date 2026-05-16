@@ -148,7 +148,10 @@ let AuthService = class AuthService {
         if (!user || user.tenantId !== tenant.id) {
             throw new common_1.HttpException('Unauthorized. Only registered users for this organisation can login.', common_1.HttpStatus.UNAUTHORIZED);
         }
-        if (user.password && user.password !== password) {
+        if (!user.password) {
+            throw new common_1.HttpException('Account has no password set. Please contact administrator.', common_1.HttpStatus.UNAUTHORIZED);
+        }
+        if (user.password !== password) {
             throw new common_1.HttpException('Invalid password.', common_1.HttpStatus.UNAUTHORIZED);
         }
         return {
