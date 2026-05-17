@@ -52,49 +52,43 @@ export declare class AuthController {
         email: string;
         newPassword: string;
     }): Promise<{
-        id: string;
         name: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
-        tenantId: string;
         email: string;
         password: string | null;
         mustChangePassword: boolean;
-        roleId: string | null;
         systemRole: import("@prisma/client").$Enums.SystemRole;
         mfaEnabled: boolean;
         mfaSecret: string | null;
+        roleId: string | null;
+        tenantId: string;
     }>;
     adminResetPassword(body: {
         userId: string;
         newPassword: string;
     }): Promise<{
-        id: string;
         name: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
-        tenantId: string;
         email: string;
         password: string | null;
         mustChangePassword: boolean;
-        roleId: string | null;
         systemRole: import("@prisma/client").$Enums.SystemRole;
         mfaEnabled: boolean;
         mfaSecret: string | null;
+        roleId: string | null;
+        tenantId: string;
     }>;
     setupMfa(body: {
         userId: string;
-    }): Promise<{
-        otpauthUrl: string;
-        qrCodeDataUrl: string;
-        secret: string;
-    }>;
+    }): Promise<any>;
     enableMfa(body: {
         userId: string;
         token: string;
-    }): Promise<{
-        success: boolean;
-    }>;
+    }): Promise<any>;
     verifyMfaLogin(body: {
         userId: string;
         token: string;
@@ -113,7 +107,5 @@ export declare class AuthController {
     disableMfa(body: {
         userId: string;
         token: string;
-    }): Promise<{
-        success: boolean;
-    }>;
+    }): Promise<any>;
 }
