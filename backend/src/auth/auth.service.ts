@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async getTenantConfigByDomain(domain: string) {
     // 1. Master Tenant Auto-Seeding (Option B: Platform Owner)
@@ -13,32 +13,30 @@ export class AuthService {
         include: { m365Settings: true },
       });
 
-      if (!masterTenant) {
-        masterTenant = await this.prisma.tenant.create({
-          data: {
-            name: 'Petrus Platform Admin',
-            companyName: 'Petrus IAM',
-            domainName: 'petrus.io',
-            tenantCode: 'MASTER',
-            m365Settings: {
-              create: {
-                azureTenantId: 'petrus-master-azure-id',
-                clientId: 'petrus-master-client-id',
-                redirectUrl: 'http://localhost:3000/auth/callback',
-              },
-            },
+      masterTenant ??= await this.prisma.tenant.create({
+        data: {
+          name: 'Petrus Platform Admin',
+          companyName: 'Petrus IAM',
+          domainName: 'petrus.io',
+          tenantCode: 'MASTER',
+          m365Settings: {
+            create: [{
+              azureTenantId: 'petrus-master-azure-id',
+              clientId: 'petrus-master-client-id',
+              redirectUrl: 'http://localhost:3000/auth/callback',
+            }],
           },
-          include: { m365Settings: true },
-        });
-      }
+        },
+        include: { m365Settings: true },
+      });
 
       return {
         tenantId: masterTenant.id,
         tenantCode: masterTenant.tenantCode,
         name: masterTenant.name,
-        azureTenantId: masterTenant.m365Settings!.azureTenantId,
-        clientId: masterTenant.m365Settings!.clientId,
-        redirectUrl: masterTenant.m365Settings!.redirectUrl,
+        azureTenantId: masterTenant.m365Settings?.[0]?.azureTenantId,
+        clientId: masterTenant.m365Settings?.[0]?.clientId,
+        redirectUrl: masterTenant.m365Settings?.[0]?.redirectUrl,
       };
     }
 
@@ -56,9 +54,8 @@ export class AuthService {
     }
 
     if (
-      !tenant.m365Settings ||
-      !tenant.m365Settings.clientId ||
-      !tenant.m365Settings.azureTenantId
+      !tenant.m365Settings?.[0]?.clientId ||
+      !tenant.m365Settings?.[0]?.azureTenantId
     ) {
       throw new HttpException(
         'SSO is not configured for this tenant',
@@ -70,10 +67,10 @@ export class AuthService {
       tenantId: tenant.id,
       tenantCode: tenant.tenantCode,
       name: tenant.name,
-      azureTenantId: tenant.m365Settings.azureTenantId,
-      clientId: tenant.m365Settings.clientId,
+      azureTenantId: tenant.m365Settings[0].azureTenantId,
+      clientId: tenant.m365Settings[0].clientId,
       redirectUrl:
-        tenant.m365Settings.redirectUrl ||
+        tenant.m365Settings[0].redirectUrl ||
         'http://localhost:3000/auth/callback',
     };
   }
@@ -93,18 +90,16 @@ export class AuthService {
     });
 
     // Auto-provision if it's the first time admin logs in (for demo purposes)
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          email: mockEmail,
-          name:
-            config.tenantCode === 'MASTER'
-              ? 'Platform Super Admin'
-              : 'Tenant Administrator',
-          tenantId: config.tenantId,
-        },
-      });
-    }
+    user ??= await this.prisma.user.create({
+      data: {
+        email: mockEmail,
+        name:
+          config.tenantCode === 'MASTER'
+            ? 'Platform Super Admin'
+            : 'Tenant Administrator',
+        tenantId: config.tenantId,
+      },
+    });
 
     // 4. Issue Platform JWT
     const platformToken = `mock-jwt-token-for-${user.id}`;
@@ -130,18 +125,16 @@ export class AuthService {
         where: { email, tenantId: config.tenantId },
       });
 
-      if (!user) {
-        user = await this.prisma.user.create({
-          data: {
-            email,
-            password: 'admin',
-            name: 'Platform Super Admin',
-            tenantId: config.tenantId,
-            systemRole: 'SUPER_ADMIN',
-            mustChangePassword: false,
-          },
-        });
-      }
+      user ??= await this.prisma.user.create({
+        data: {
+          email,
+          password: 'admin',
+          name: 'Platform Super Admin',
+          tenantId: config.tenantId,
+          systemRole: 'SUPER_ADMIN',
+          mustChangePassword: false,
+        },
+      });
 
       return {
         accessToken: `mock-jwt-token-for-${user.id}`,
@@ -179,7 +172,7 @@ export class AuthService {
       where: { email },
     });
 
-    if (!user || user.tenantId !== tenant.id) {
+    if (user?.tenantId !== tenant.id) {
       throw new HttpException(
         'Unauthorized. Only registered users for this organisation can login.',
         HttpStatus.UNAUTHORIZED,
@@ -193,6 +186,15 @@ export class AuthService {
 
     if (user.password !== password) {
       throw new HttpException('Invalid password.', HttpStatus.UNAUTHORIZED);
+    }
+
+    // Check if MFA is enabled — return a challenge instead of full token
+    if (user.mfaEnabled) {
+      return {
+        mfaRequired: true,
+        userId: user.id,
+        // Do NOT return accessToken yet — the client must verify the OTP first
+      };
     }
 
     return {
@@ -233,5 +235,27 @@ export class AuthService {
         mustChangePassword: true, // Force them to change it again
       },
     });
+  }
+
+  /** Called after OTP is verified — issues the full session token */
+  async completeMfaLogin(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { tenant: true },
+    });
+    if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+
+    return {
+      accessToken: `mock-jwt-token-for-${user.id}`,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        tenantCode: user.tenant.tenantCode,
+        tenantName: user.tenant.name,
+        systemRole: user.systemRole,
+        mustChangePassword: user.mustChangePassword,
+      },
+    };
   }
 }

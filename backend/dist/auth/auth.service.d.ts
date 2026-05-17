@@ -1,6 +1,6 @@
 import { PrismaService } from '../prisma/prisma.service';
 export declare class AuthService {
-    private prisma;
+    private readonly prisma;
     constructor(prisma: PrismaService);
     getTenantConfigByDomain(domain: string): Promise<{
         tenantId: string;
@@ -32,6 +32,13 @@ export declare class AuthService {
             systemRole: import("@prisma/client").$Enums.SystemRole;
             mustChangePassword: boolean;
         };
+        mfaRequired?: undefined;
+        userId?: undefined;
+    } | {
+        mfaRequired: boolean;
+        userId: string;
+        accessToken?: undefined;
+        user?: undefined;
     }>;
     changePassword(email: string, newPassword: string): Promise<{
         id: string;
@@ -44,6 +51,8 @@ export declare class AuthService {
         mustChangePassword: boolean;
         roleId: string | null;
         systemRole: import("@prisma/client").$Enums.SystemRole;
+        mfaEnabled: boolean;
+        mfaSecret: string | null;
     }>;
     adminResetPassword(userId: string, newPassword: string): Promise<{
         id: string;
@@ -56,5 +65,19 @@ export declare class AuthService {
         mustChangePassword: boolean;
         roleId: string | null;
         systemRole: import("@prisma/client").$Enums.SystemRole;
+        mfaEnabled: boolean;
+        mfaSecret: string | null;
+    }>;
+    completeMfaLogin(userId: string): Promise<{
+        accessToken: string;
+        user: {
+            id: string;
+            email: string;
+            name: string | null;
+            tenantCode: string;
+            tenantName: string;
+            systemRole: import("@prisma/client").$Enums.SystemRole;
+            mustChangePassword: boolean;
+        };
     }>;
 }

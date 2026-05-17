@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Monitor, Plus, Edit, FileText, FileUp, Settings, ChevronDown, Search, ArrowRight, Shield, Trash2, RefreshCcw, Move } from "lucide-react";
+import { Plus, Settings, ChevronDown, Search } from "lucide-react";
 
 export default function ComputerManagementPage() {
   const [domain, setDomain] = useState("admanagerplus.com");

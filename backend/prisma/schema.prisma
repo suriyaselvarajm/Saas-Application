@@ -27,12 +27,12 @@ model Tenant {
   createdBy        String?
   updatedBy        String?
   deletedAt        DateTime?
-  adSettings       AdSettings?
+  adSettings       AdSettings[]
   auditLogs        AuditLog[]
   authSettings     AuthSettings?
   departments      Department[]
   emailTemplates   EmailTemplate[]
-  m365Settings     M365Settings?
+  m365Settings     M365Settings[]
   offices          Office[]
   roles            Role[]
   smtpSettings     SmtpSettings?
@@ -42,25 +42,27 @@ model Tenant {
 }
 
 model User {
-  id         String     @id @default(uuid())
-  email      String     @unique
-  password   String?
-  mustChangePassword Boolean @default(false)
-  name       String?
-  tenantId   String
-  roleId     String?
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  systemRole SystemRole @default(EMPLOYEE)
-  role       Role?      @relation(fields: [roleId], references: [id])
-  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  id                 String     @id @default(uuid())
+  email              String     @unique
+  password           String?
+  mustChangePassword Boolean    @default(false)
+  name               String?
+  tenantId           String
+  roleId             String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  systemRole         SystemRole @default(EMPLOYEE)
+  mfaEnabled         Boolean    @default(false)
+  mfaSecret          String?
+  role               Role?      @relation(fields: [roleId], references: [id])
+  tenant             Tenant     @relation(fields: [tenantId], references: [id])
 
   @@map("users")
 }
 
 model M365Settings {
   id              String   @id @default(uuid())
-  tenantId        String   @unique
+  tenantId        String
   azureTenantId   String?
   clientId        String?
   clientSecret    String?
@@ -75,7 +77,7 @@ model M365Settings {
 
 model AdSettings {
   id           String   @id @default(uuid())
-  tenantId     String   @unique
+  tenantId     String
   adServerIp   String?
   domainName   String?
   ldapPath     String?

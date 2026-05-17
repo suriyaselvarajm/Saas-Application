@@ -1,7 +1,9 @@
 import { AuthService } from './auth.service';
+import { MfaService } from './mfa.service';
 export declare class AuthController {
     private readonly authService;
-    constructor(authService: AuthService);
+    private readonly mfaService;
+    constructor(authService: AuthService, mfaService: MfaService);
     getTenantConfig(domain: string): Promise<{
         tenantId: string;
         tenantCode: string;
@@ -38,6 +40,13 @@ export declare class AuthController {
             systemRole: import("@prisma/client").$Enums.SystemRole;
             mustChangePassword: boolean;
         };
+        mfaRequired?: undefined;
+        userId?: undefined;
+    } | {
+        mfaRequired: boolean;
+        userId: string;
+        accessToken?: undefined;
+        user?: undefined;
     }>;
     changePassword(body: {
         email: string;
@@ -53,6 +62,8 @@ export declare class AuthController {
         mustChangePassword: boolean;
         roleId: string | null;
         systemRole: import("@prisma/client").$Enums.SystemRole;
+        mfaEnabled: boolean;
+        mfaSecret: string | null;
     }>;
     adminResetPassword(body: {
         userId: string;
@@ -68,5 +79,41 @@ export declare class AuthController {
         mustChangePassword: boolean;
         roleId: string | null;
         systemRole: import("@prisma/client").$Enums.SystemRole;
+        mfaEnabled: boolean;
+        mfaSecret: string | null;
+    }>;
+    setupMfa(body: {
+        userId: string;
+    }): Promise<{
+        otpauthUrl: string;
+        qrCodeDataUrl: string;
+        secret: string;
+    }>;
+    enableMfa(body: {
+        userId: string;
+        token: string;
+    }): Promise<{
+        success: boolean;
+    }>;
+    verifyMfaLogin(body: {
+        userId: string;
+        token: string;
+    }): Promise<{
+        accessToken: string;
+        user: {
+            id: string;
+            email: string;
+            name: string | null;
+            tenantCode: string;
+            tenantName: string;
+            systemRole: import("@prisma/client").$Enums.SystemRole;
+            mustChangePassword: boolean;
+        };
+    }>;
+    disableMfa(body: {
+        userId: string;
+        token: string;
+    }): Promise<{
+        success: boolean;
     }>;
 }

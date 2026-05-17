@@ -5,27 +5,27 @@ export declare class SmtpController {
     constructor(smtpService: SmtpService);
     get(tenantId: string): Promise<{
         id: string;
+        updatedAt: Date;
+        password: string | null;
         tenantId: string;
-        host: string | null;
+        sslEnabled: boolean;
         port: number;
+        host: string | null;
         senderEmail: string | null;
         senderName: string | null;
         username: string | null;
-        password: string | null;
-        sslEnabled: boolean;
-        updatedAt: Date;
     }>;
     upsert(tenantId: string, dto: SmtpSettingsDto): Promise<{
         id: string;
+        updatedAt: Date;
+        password: string | null;
         tenantId: string;
-        host: string | null;
+        sslEnabled: boolean;
         port: number;
+        host: string | null;
         senderEmail: string | null;
         senderName: string | null;
         username: string | null;
-        password: string | null;
-        sslEnabled: boolean;
-        updatedAt: Date;
     }>;
     test(dto: TestSmtpDto): {
         success: boolean;

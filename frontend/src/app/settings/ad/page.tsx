@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Server, ShieldCheck, RefreshCw, Network, Loader2 } from "lucide-react";
+import { Server, ShieldCheck, RefreshCw, Network, Loader2, HelpCircle, Plus, Edit2, Trash2, X } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function ADSettings() {
@@ -10,7 +10,16 @@ export default function ADSettings() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const [formData, setFormData] = useState({
+  const [adList, setAdList] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [adToDelete, setAdToDelete] = useState<string | null>(null);
+  const [deleteInput, setDeleteInput] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  
+  const initialFormState = {
     adServerIp: "",
     port: 389,
     domainName: "",
@@ -19,10 +28,15 @@ export default function ADSettings() {
     bindPassword: "",
     sslEnabled: false,
     ldapPath: "",
-  });
+  };
+  const [formData, setFormData] = useState(initialFormState);
 
   useEffect(() => {
     fetchSettings();
+    try {
+      const u = JSON.parse(localStorage.getItem("petrus_user") || "{}");
+      setUser(u);
+    } catch (e) {}
   }, []);
 
   const fetchSettings = async () => {
@@ -37,17 +51,11 @@ export default function ADSettings() {
       if (res.ok) {
         const data = await res.json();
         if (data.adSettings) {
-          setFormData({
-            adServerIp: data.adSettings.adServerIp || "",
-            port: data.adSettings.port || 389,
-            domainName: data.adSettings.domainName || "",
-            baseDn: data.adSettings.baseDn || "",
-            bindUsername: data.adSettings.bindUsername || "",
-            bindPassword: data.adSettings.bindPassword || "",
-            sslEnabled: data.adSettings.sslEnabled || false,
-            ldapPath: data.adSettings.ldapPath || "",
-          });
-          setStatus("success");
+          const list = Array.isArray(data.adSettings) ? data.adSettings : [data.adSettings];
+          setAdList(list);
+          if (list.length === 0) setShowForm(true);
+        } else {
+          setShowForm(true);
         }
       }
     } catch (error) {
@@ -70,11 +78,15 @@ export default function ADSettings() {
         },
         body: JSON.stringify({
           ...formData,
+          id: editingId,
           ldapPath: formData.ldapPath || `LDAP://${formData.adServerIp}`,
         }),
       });
       if (res.ok) {
         alert("Settings saved successfully");
+        fetchSettings();
+        setShowForm(false);
+        setEditingId(null);
       } else {
         try {
           const errorData = await res.json();
@@ -147,21 +159,149 @@ export default function ADSettings() {
     );
   }
 
+  const handleDeleteClick = (id: string) => {
+    setAdToDelete(id);
+    setDeleteInput("");
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    if (!adToDelete) return;
+
+    setDeleting(true);
+    if (user?.mfaEnabled) {
+      if (deleteInput.length !== 6) {
+        alert("Please enter a valid 6-digit MFA code.");
+        setDeleting(false);
+        return;
+      }
+      try {
+        const res = await fetch("http://localhost:3001/auth/mfa/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id, token: deleteInput }),
+        });
+        if (!res.ok) {
+          alert("Invalid MFA code.");
+          setDeleting(false);
+          return;
+        }
+      } catch (err) {
+        alert("MFA verification failed.");
+        setDeleting(false);
+        return;
+      }
+    } else {
+      if (deleteInput !== "delete") {
+        alert('Please type "delete" to confirm.');
+        setDeleting(false);
+        return;
+      }
+    }
+
+    try {
+      const token = localStorage.getItem("petrus_token");
+      await fetch(`http://localhost:3001/settings/ad/${adToDelete}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchSettings();
+      setDeleteModalOpen(false);
+      setAdToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete", error);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleEdit = (ad: any) => {
+    setFormData(ad);
+    setEditingId(ad.id);
+    setShowForm(true);
+  };
+
+  const handleAddNew = () => {
+    setFormData(initialFormState);
+    setEditingId(null);
+    setShowForm(true);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white font-outfit">
-            Active Directory Integration
-          </h1>
-          <p className="mt-2 text-slate-600 dark:text-slate-400">
-            Manage on-premise AD synchronization via LDAP.
-          </p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white font-outfit">
+              Active Directory Settings
+            </h1>
+            <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" title="Help">
+              <HelpCircle className="h-4 w-4" />
+            </button>
+          </div>
+          
+          <div className="mt-6 flex space-x-6 border-b border-slate-200 dark:border-white/10">
+            <button className="pb-3 border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 text-sm font-semibold">
+              Active Directory
+            </button>
+          </div>
         </div>
 
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white">Configured Domains</h2>
+          {!showForm && (
+            <button 
+              onClick={handleAddNew}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" /> Add Domain Details
+            </button>
+          )}
+        </div>
+
+        {adList.length > 0 && !showForm && (
+          <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm dark:shadow-2xl overflow-hidden mb-8">
+            <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+              <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 font-semibold">
+                <tr>
+                  <th className="px-6 py-4">Domain Name</th>
+                  <th className="px-6 py-4">AD Server IP</th>
+                  <th className="px-6 py-4">Base DN</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                {adList.map((ad, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{ad.domainName}</td>
+                    <td className="px-6 py-4">{ad.adServerIp}:{ad.port}</td>
+                    <td className="px-6 py-4 truncate max-w-xs">{ad.baseDn}</td>
+                    <td className="px-6 py-4 text-right space-x-3">
+                      <button onClick={() => handleEdit(ad)} className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400">
+                        <Edit2 className="h-4 w-4 inline" />
+                      </button>
+                      <button onClick={() => handleDeleteClick(ad.id)} className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400">
+                        <Trash2 className="h-4 w-4 inline" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {showForm && (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-8 shadow-sm dark:shadow-2xl">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">{editingId ? 'Edit Domain Details' : 'Add Domain Details'}</h3>
+                {adList.length > 0 && (
+                  <button type="button" onClick={() => setShowForm(false)} className="text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">Cancel</button>
+                )}
+              </div>
               <form onSubmit={handleSave} className="space-y-6">
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -360,6 +500,48 @@ export default function ADSettings() {
             </div>
           </div>
         </div>
+        )}
+
+        {deleteModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-slate-950/80 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-6 border-b border-slate-200 dark:border-white/5 flex justify-between items-center">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white font-outfit">Confirm Deletion</h2>
+                <button type="button" onClick={() => setDeleteModalOpen(false)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <form onSubmit={confirmDelete} className="p-6 space-y-4">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Are you sure you want to delete this AD integration? This action cannot be undone.
+                </p>
+                <div>
+                  <label htmlFor="delete-confirm" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    {user?.mfaEnabled ? "Enter 6-digit MFA Code" : "Type 'delete' to confirm"}
+                  </label>
+                  <input
+                    id="delete-confirm"
+                    type="text"
+                    required
+                    value={deleteInput}
+                    onChange={e => setDeleteInput(e.target.value)}
+                    placeholder={user?.mfaEnabled ? "000000" : "delete"}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <div className="pt-4 flex gap-3">
+                  <button type="button" onClick={() => setDeleteModalOpen(false)} className="flex-1 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={deleting} className="flex-1 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-500 transition-colors disabled:opacity-50 flex justify-center items-center gap-2">
+                    {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Delete
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

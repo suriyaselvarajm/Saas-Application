@@ -63,6 +63,16 @@ export class SettingsController {
     return this.settingsService.testAdConnection(data);
   }
 
+  @Delete('ad/:id')
+  deleteAD(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.settingsService.deleteAD(id, tenantId);
+  }
+
+  @Delete('m365/:id')
+  deleteM365(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.settingsService.deleteM365(id, tenantId);
+  }
+
   // Office Endpoints
   @Get('offices')
   getOffices(@TenantId() tenantId: string) {

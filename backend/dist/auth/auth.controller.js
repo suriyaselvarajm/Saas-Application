@@ -15,10 +15,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const auth_service_1 = require("./auth.service");
+const mfa_service_1 = require("./mfa.service");
 let AuthController = class AuthController {
     authService;
-    constructor(authService) {
+    mfaService;
+    constructor(authService, mfaService) {
         this.authService = authService;
+        this.mfaService = mfaService;
     }
     async getTenantConfig(domain) {
         if (!domain) {
@@ -49,6 +52,34 @@ let AuthController = class AuthController {
             throw new common_1.HttpException('User ID and new password are required', common_1.HttpStatus.BAD_REQUEST);
         }
         return this.authService.adminResetPassword(body.userId, body.newPassword);
+    }
+    async setupMfa(body) {
+        if (!body.userId) {
+            throw new common_1.HttpException('userId is required', common_1.HttpStatus.BAD_REQUEST);
+        }
+        return this.mfaService.generateSetup(body.userId);
+    }
+    async enableMfa(body) {
+        if (!body.userId || !body.token) {
+            throw new common_1.HttpException('userId and token are required', common_1.HttpStatus.BAD_REQUEST);
+        }
+        return this.mfaService.enableMfa(body.userId, body.token);
+    }
+    async verifyMfaLogin(body) {
+        if (!body.userId || !body.token) {
+            throw new common_1.HttpException('userId and token are required', common_1.HttpStatus.BAD_REQUEST);
+        }
+        const valid = await this.mfaService.verifyLoginOtp(body.userId, body.token);
+        if (!valid) {
+            throw new common_1.HttpException('Invalid or expired OTP code', common_1.HttpStatus.UNAUTHORIZED);
+        }
+        return this.authService.completeMfaLogin(body.userId);
+    }
+    async disableMfa(body) {
+        if (!body.userId || !body.token) {
+            throw new common_1.HttpException('userId and token are required', common_1.HttpStatus.BAD_REQUEST);
+        }
+        return this.mfaService.disableMfa(body.userId, body.token);
     }
 };
 exports.AuthController = AuthController;
@@ -87,8 +118,37 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "adminResetPassword", null);
+__decorate([
+    (0, common_1.Post)('mfa/setup'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "setupMfa", null);
+__decorate([
+    (0, common_1.Post)('mfa/enable'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "enableMfa", null);
+__decorate([
+    (0, common_1.Post)('mfa/verify'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "verifyMfaLogin", null);
+__decorate([
+    (0, common_1.Post)('mfa/disable'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "disableMfa", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
-    __metadata("design:paramtypes", [auth_service_1.AuthService])
+    __metadata("design:paramtypes", [auth_service_1.AuthService,
+        mfa_service_1.MfaService])
 ], AuthController);
 //# sourceMappingURL=auth.controller.js.map

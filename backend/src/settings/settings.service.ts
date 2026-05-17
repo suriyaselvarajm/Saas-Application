@@ -11,19 +11,39 @@ import { CreateDepartmentDto, UpdateDepartmentDto } from './dto/department.dto';
 export class SettingsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async updateM365(tenantId: string, data: M365SettingsDto) {
-    return this.prisma.m365Settings.upsert({
-      where: { tenantId },
-      update: data,
-      create: { ...data, tenantId },
+  async updateM365(tenantId: string, data: M365SettingsDto & { id?: string }) {
+    if (data.id) {
+      return this.prisma.m365Settings.update({
+        where: { id: data.id },
+        data: { ...data, tenantId },
+      });
+    }
+    return this.prisma.m365Settings.create({
+      data: { ...data, tenantId },
     });
   }
 
-  async updateAD(tenantId: string, data: AdSettingsDto) {
-    return this.prisma.adSettings.upsert({
-      where: { tenantId },
-      update: data,
-      create: { ...data, tenantId },
+  async updateAD(tenantId: string, data: AdSettingsDto & { id?: string }) {
+    if (data.id) {
+      return this.prisma.adSettings.update({
+        where: { id: data.id },
+        data: { ...data, tenantId },
+      });
+    }
+    return this.prisma.adSettings.create({
+      data: { ...data, tenantId },
+    });
+  }
+
+  async deleteAD(id: string, tenantId: string) {
+    return this.prisma.adSettings.deleteMany({
+      where: { id, tenantId },
+    });
+  }
+
+  async deleteM365(id: string, tenantId: string) {
+    return this.prisma.m365Settings.deleteMany({
+      where: { id, tenantId },
     });
   }
 
@@ -59,84 +79,58 @@ export class SettingsService {
     };
   }
 
-  async testAdConnection(data: AdSettingsDto) {
+  async testAdConnection(data: AdSettingsDto): Promise<{ success: boolean; message: string }> {
     const url = `${data.sslEnabled ? 'ldaps' : 'ldap'}://${data.adServerIp}:${data.port || 389}`;
     console.log(`Testing full LDAP bind to ${url} with user ${data.bindUsername}`);
 
-    return new Promise((resolve) => {
-      const client = ldap.createClient({
-        url: url,
-        timeout: 10000,
-        connectTimeout: 10000,
-        tlsOptions: data.sslEnabled ? { rejectUnauthorized: false } : undefined,
-      });
+    const client = ldap.createClient({
+      url: url,
+      timeout: 10000,
+      connectTimeout: 10000,
+      tlsOptions: data.sslEnabled ? { rejectUnauthorized: false } : undefined,
+    });
 
-      client.on('error', (err) => {
-        console.error('LDAP Client Error:', err.message);
-        resolve({
-          success: false,
-          message: `Connection failed: ${err.message}`,
+    try {
+      await new Promise<void>((resolve, reject) => {
+        client.on('error', (err) => reject(new Error(`Connection failed: ${err.message}`)));
+        client.bind(data.bindUsername, data.bindPassword, (err) => {
+          if (err) reject(new Error(`Authentication failed: ${err.message}`));
+          else resolve();
         });
       });
 
-      client.bind(data.bindUsername, data.bindPassword, (err) => {
-        if (err) {
-          console.error('LDAP Bind Failed:', err.message);
-          client.unbind();
-          resolve({
-            success: false,
-            message: `Authentication failed: ${err.message}`,
-          });
-        } else {
-          console.log('LDAP Bind Successful, now validating Base DN...');
-          
-          // Perform a search on the Base DN to see if it exists
-          const searchOptions: ldap.SearchOptions = {
-            scope: 'base',
-            attributes: ['dn'],
-          };
+      console.log('LDAP Bind Successful, now validating Base DN...');
 
-          client.search(data.baseDn, searchOptions, (err, res) => {
-            if (err) {
-              client.unbind();
-              resolve({
-                success: false,
-                message: `Base DN validation failed: ${err.message}`,
-              });
-              return;
-            }
+      const searchOptions: ldap.SearchOptions = {
+        scope: 'base',
+        attributes: ['dn'],
+      };
 
-            let found = false;
-            res.on('searchEntry', () => {
-              found = true;
-            });
+      const found = await new Promise<boolean>((resolve, reject) => {
+        client.search(data.baseDn, searchOptions, (err, res) => {
+          if (err) {
+            reject(new Error(`Base DN validation failed: ${err.message}`));
+            return;
+          }
 
-            res.on('error', (err) => {
-              client.unbind();
-              resolve({
-                success: false,
-                message: `Search error on Base DN: ${err.message}`,
-              });
-            });
-
-            res.on('end', () => {
-              client.unbind();
-              if (found) {
-                resolve({
-                  success: true,
-                  message: `Successfully authenticated and validated Base DN: ${data.baseDn}`,
-                });
-              } else {
-                resolve({
-                  success: false,
-                  message: `Base DN "${data.baseDn}" was not found on the server.`,
-                });
-              }
-            });
-          });
-        }
+          let isFound = false;
+          res.on('searchEntry', () => { isFound = true; });
+          res.on('error', (err) => reject(new Error(`Search error on Base DN: ${err.message}`)));
+          res.on('end', () => resolve(isFound));
+        });
       });
-    });
+
+      if (found) {
+        return { success: true, message: `Successfully authenticated and validated Base DN: ${data.baseDn}` };
+      } else {
+        return { success: false, message: `Base DN "${data.baseDn}" was not found on the server.` };
+      }
+    } catch (err: any) {
+      console.error('LDAP Error:', err.message);
+      return { success: false, message: err.message };
+    } finally {
+      client.unbind();
+    }
   }
 
   // Office Management

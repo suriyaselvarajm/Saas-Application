@@ -23,31 +23,29 @@ let AuthService = class AuthService {
                 where: { domainName: 'petrus.io' },
                 include: { m365Settings: true },
             });
-            if (!masterTenant) {
-                masterTenant = await this.prisma.tenant.create({
-                    data: {
-                        name: 'Petrus Platform Admin',
-                        companyName: 'Petrus IAM',
-                        domainName: 'petrus.io',
-                        tenantCode: 'MASTER',
-                        m365Settings: {
-                            create: {
+            masterTenant ??= await this.prisma.tenant.create({
+                data: {
+                    name: 'Petrus Platform Admin',
+                    companyName: 'Petrus IAM',
+                    domainName: 'petrus.io',
+                    tenantCode: 'MASTER',
+                    m365Settings: {
+                        create: [{
                                 azureTenantId: 'petrus-master-azure-id',
                                 clientId: 'petrus-master-client-id',
                                 redirectUrl: 'http://localhost:3000/auth/callback',
-                            },
-                        },
+                            }],
                     },
-                    include: { m365Settings: true },
-                });
-            }
+                },
+                include: { m365Settings: true },
+            });
             return {
                 tenantId: masterTenant.id,
                 tenantCode: masterTenant.tenantCode,
                 name: masterTenant.name,
-                azureTenantId: masterTenant.m365Settings.azureTenantId,
-                clientId: masterTenant.m365Settings.clientId,
-                redirectUrl: masterTenant.m365Settings.redirectUrl,
+                azureTenantId: masterTenant.m365Settings?.[0]?.azureTenantId,
+                clientId: masterTenant.m365Settings?.[0]?.clientId,
+                redirectUrl: masterTenant.m365Settings?.[0]?.redirectUrl,
             };
         }
         const tenant = await this.prisma.tenant.findFirst({
@@ -57,18 +55,17 @@ let AuthService = class AuthService {
         if (!tenant) {
             throw new common_1.HttpException('Tenant not found or inactive', common_1.HttpStatus.NOT_FOUND);
         }
-        if (!tenant.m365Settings ||
-            !tenant.m365Settings.clientId ||
-            !tenant.m365Settings.azureTenantId) {
+        if (!tenant.m365Settings?.[0]?.clientId ||
+            !tenant.m365Settings?.[0]?.azureTenantId) {
             throw new common_1.HttpException('SSO is not configured for this tenant', common_1.HttpStatus.BAD_REQUEST);
         }
         return {
             tenantId: tenant.id,
             tenantCode: tenant.tenantCode,
             name: tenant.name,
-            azureTenantId: tenant.m365Settings.azureTenantId,
-            clientId: tenant.m365Settings.clientId,
-            redirectUrl: tenant.m365Settings.redirectUrl ||
+            azureTenantId: tenant.m365Settings[0].azureTenantId,
+            clientId: tenant.m365Settings[0].clientId,
+            redirectUrl: tenant.m365Settings[0].redirectUrl ||
                 'http://localhost:3000/auth/callback',
         };
     }
@@ -78,17 +75,15 @@ let AuthService = class AuthService {
         let user = await this.prisma.user.findFirst({
             where: { email: mockEmail, tenantId: config.tenantId },
         });
-        if (!user) {
-            user = await this.prisma.user.create({
-                data: {
-                    email: mockEmail,
-                    name: config.tenantCode === 'MASTER'
-                        ? 'Platform Super Admin'
-                        : 'Tenant Administrator',
-                    tenantId: config.tenantId,
-                },
-            });
-        }
+        user ??= await this.prisma.user.create({
+            data: {
+                email: mockEmail,
+                name: config.tenantCode === 'MASTER'
+                    ? 'Platform Super Admin'
+                    : 'Tenant Administrator',
+                tenantId: config.tenantId,
+            },
+        });
         const platformToken = `mock-jwt-token-for-${user.id}`;
         return {
             accessToken: platformToken,
@@ -108,18 +103,16 @@ let AuthService = class AuthService {
             let user = await this.prisma.user.findFirst({
                 where: { email, tenantId: config.tenantId },
             });
-            if (!user) {
-                user = await this.prisma.user.create({
-                    data: {
-                        email,
-                        password: 'admin',
-                        name: 'Platform Super Admin',
-                        tenantId: config.tenantId,
-                        systemRole: 'SUPER_ADMIN',
-                        mustChangePassword: false,
-                    },
-                });
-            }
+            user ??= await this.prisma.user.create({
+                data: {
+                    email,
+                    password: 'admin',
+                    name: 'Platform Super Admin',
+                    tenantId: config.tenantId,
+                    systemRole: 'SUPER_ADMIN',
+                    mustChangePassword: false,
+                },
+            });
             return {
                 accessToken: `mock-jwt-token-for-${user.id}`,
                 user: {
@@ -145,7 +138,7 @@ let AuthService = class AuthService {
         const user = await this.prisma.user.findUnique({
             where: { email },
         });
-        if (!user || user.tenantId !== tenant.id) {
+        if (user?.tenantId !== tenant.id) {
             throw new common_1.HttpException('Unauthorized. Only registered users for this organisation can login.', common_1.HttpStatus.UNAUTHORIZED);
         }
         if (!user.password) {
@@ -153,6 +146,12 @@ let AuthService = class AuthService {
         }
         if (user.password !== password) {
             throw new common_1.HttpException('Invalid password.', common_1.HttpStatus.UNAUTHORIZED);
+        }
+        if (user.mfaEnabled) {
+            return {
+                mfaRequired: true,
+                userId: user.id,
+            };
         }
         return {
             accessToken: `mock-jwt-token-for-${user.id}`,
@@ -189,6 +188,26 @@ let AuthService = class AuthService {
                 mustChangePassword: true,
             },
         });
+    }
+    async completeMfaLogin(userId) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: { tenant: true },
+        });
+        if (!user)
+            throw new common_1.HttpException('User not found', common_1.HttpStatus.NOT_FOUND);
+        return {
+            accessToken: `mock-jwt-token-for-${user.id}`,
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                tenantCode: user.tenant.tenantCode,
+                tenantName: user.tenant.name,
+                systemRole: user.systemRole,
+                mustChangePassword: user.mustChangePassword,
+            },
+        };
     }
 };
 exports.AuthService = AuthService;

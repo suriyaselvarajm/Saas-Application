@@ -166,6 +166,16 @@ export default function TenantManagement() {
     }
   };
 
+  const handleResetAdminPasswordClick = (tenant: any) => {
+    const adminUser = tenant.users?.find((u: any) => u.systemRole === "TENANT_ADMIN");
+    if (adminUser) {
+      setResetUserId(adminUser.id);
+      setIsResetModalOpen(true);
+    } else {
+      alert("No tenant admin found for this organization.");
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8 relative">
@@ -288,17 +298,7 @@ export default function TenantManagement() {
                       {tenant.tenantCode !== "MASTER" && (
                         <div className="flex justify-end gap-3">
                           <button
-                            onClick={() => {
-                              const adminUser = tenant.users?.find(
-                                (u) => u.systemRole === "TENANT_ADMIN",
-                              );
-                              if (adminUser) {
-                                setResetUserId(adminUser.id);
-                                setIsResetModalOpen(true);
-                              } else {
-                                alert("No tenant admin found for this organization.");
-                              }
-                            }}
+                            onClick={() => handleResetAdminPasswordClick(tenant)}
                             className="text-slate-500 hover:text-amber-400 transition-colors"
                             title="Reset Admin Password"
                           >
@@ -331,16 +331,16 @@ export default function TenantManagement() {
         {/* Add/Edit Tenant Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 dark:bg-slate-950/80 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-              <div className="p-6 border-b border-slate-200 dark:border-white/5 flex justify-between items-center">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-6 border-b border-slate-200 dark:border-white/5 flex justify-between items-center shrink-0">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white font-outfit">
                   {editingId ? "Edit Tenant" : "Add New Tenant"}
                 </h2>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
                 <div>
                   <label htmlFor="tenant-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tenant Name</label>
                   <input 
@@ -400,13 +400,15 @@ export default function TenantManagement() {
                     />
                   </div>
                 )}
-                <div className="pt-4 flex gap-3">
+                <div className="pt-4 flex gap-3 shrink-0">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors">
                     Cancel
                   </button>
                   <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors disabled:opacity-50 flex justify-center items-center gap-2">
                     {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {submitting ? "Saving..." : editingId ? "Save Changes" : "Create Tenant"}
+                    {submitting && "Saving..."}
+                    {!submitting && editingId && "Save Changes"}
+                    {!submitting && !editingId && "Create Tenant"}
                   </button>
                 </div>
               </form>

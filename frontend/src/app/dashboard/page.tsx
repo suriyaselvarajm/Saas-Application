@@ -3,20 +3,10 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { 
-  Users, 
-  Monitor, 
-  ShieldCheck, 
-  AlertTriangle, 
-  Clock, 
   Building2,
   ChevronDown,
   RefreshCw,
-  ExternalLink,
-  ChevronRight,
-  UserCheck,
-  UserX,
-  Lock,
-  Key
+  ChevronRight
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -179,7 +169,7 @@ export default function Dashboard() {
   );
 }
 
-function ReportCard({ title, data, horizontal = false }: { title: string, data: any[], horizontal?: boolean }) {
+function ReportCard({ title, data, horizontal = false }: Readonly<{ title: string, data: any[], horizontal?: boolean }>) {
   const maxVal = Math.max(...data.map(d => d.value), 1);
   
   return (
@@ -189,35 +179,11 @@ function ReportCard({ title, data, horizontal = false }: { title: string, data: 
         <RefreshCw className="h-3 w-3 text-slate-300 hover:text-indigo-500 cursor-pointer" />
       </div>
       
-      {!horizontal ? (
-        <div className="space-y-6">
-          <div className="flex items-end space-x-4 h-32 px-4">
-            {data.map((item, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center group">
-                <div 
-                  className={`${item.color} w-full rounded-t-lg transition-all duration-500 group-hover:brightness-110`}
-                  style={{ height: `${(item.value / (item.total || maxVal)) * 100}%`, minHeight: item.value > 0 ? '4px' : '0' }}
-                ></div>
-              </div>
-            ))}
-          </div>
-          <div className="space-y-2 mt-4">
-            {data.map((item, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className={`w-2.5 h-2.5 rounded-sm ${item.color}`}></div>
-                  <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-[150px]">{item.label}</span>
-                </div>
-                <span className="text-[10px] font-bold text-slate-900 dark:text-white">{item.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
+      {horizontal ? (
         <div className="space-y-4">
           <div className="space-y-3">
-            {data.map((item, i) => (
-              <div key={i} className="space-y-1">
+            {data.map((item) => (
+              <div key={item.label} className="space-y-1">
                 <div className="flex items-center justify-between text-[10px] mb-1">
                   <span className="text-slate-500 dark:text-slate-400 truncate max-w-[200px]">{item.label}</span>
                   <span className="font-bold text-slate-900 dark:text-white">{item.value}</span>
@@ -228,6 +194,30 @@ function ReportCard({ title, data, horizontal = false }: { title: string, data: 
                     style={{ width: `${(item.value / maxVal) * 100}%` }}
                   ></div>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="flex items-end space-x-4 h-32 px-4">
+            {data.map((item) => (
+              <div key={item.label} className="flex-1 flex flex-col items-center group">
+                <div 
+                  className={`${item.color} w-full rounded-t-lg transition-all duration-500 group-hover:brightness-110`}
+                  style={{ height: `${(item.value / (item.total || maxVal)) * 100}%`, minHeight: item.value > 0 ? '4px' : '0' }}
+                ></div>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-2 mt-4">
+            {data.map((item) => (
+              <div key={item.label} className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className={`w-2.5 h-2.5 rounded-sm ${item.color}`}></div>
+                  <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-[150px]">{item.label}</span>
+                </div>
+                <span className="text-[10px] font-bold text-slate-900 dark:text-white">{item.value}</span>
               </div>
             ))}
           </div>

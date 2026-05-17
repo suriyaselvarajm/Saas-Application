@@ -7,23 +7,27 @@ import { CreateDepartmentDto, UpdateDepartmentDto } from './dto/department.dto';
 export declare class SettingsService {
     private readonly prisma;
     constructor(prisma: PrismaService);
-    updateM365(tenantId: string, data: M365SettingsDto): Promise<{
+    updateM365(tenantId: string, data: M365SettingsDto & {
+        id?: string;
+    }): Promise<{
         id: string;
-        tenantId: string;
+        updatedAt: Date;
         azureTenantId: string | null;
         clientId: string | null;
         clientSecret: string | null;
         redirectUrl: string | null;
         microsoftDomain: string | null;
         graphApiStatus: string | null;
-        updatedAt: Date;
-    }>;
-    updateAD(tenantId: string, data: AdSettingsDto): Promise<{
-        id: string;
         tenantId: string;
-        updatedAt: Date;
-        adServerIp: string | null;
+    }>;
+    updateAD(tenantId: string, data: AdSettingsDto & {
+        id?: string;
+    }): Promise<{
         domainName: string | null;
+        id: string;
+        updatedAt: Date;
+        tenantId: string;
+        adServerIp: string | null;
         ldapPath: string | null;
         baseDn: string | null;
         bindUsername: string | null;
@@ -31,10 +35,12 @@ export declare class SettingsService {
         sslEnabled: boolean;
         port: number;
     }>;
+    deleteAD(id: string, tenantId: string): Promise<import("@prisma/client").Prisma.BatchPayload>;
+    deleteM365(id: string, tenantId: string): Promise<import("@prisma/client").Prisma.BatchPayload>;
     updateAuth(tenantId: string, data: AuthSettingsDto): Promise<{
         id: string;
-        tenantId: string;
         updatedAt: Date;
+        tenantId: string;
         ssoEnabled: boolean;
         enforceM365Login: boolean;
         sessionTimeout: number;
@@ -50,32 +56,44 @@ export declare class SettingsService {
     getSettings(tenantId: string): Promise<{
         m365Settings: {
             id: string;
-            tenantId: string;
+            updatedAt: Date;
             azureTenantId: string | null;
             clientId: string | null;
             clientSecret: string | null;
             redirectUrl: string | null;
             microsoftDomain: string | null;
             graphApiStatus: string | null;
-            updatedAt: Date;
-        } | null;
-        adSettings: {
-            id: string;
             tenantId: string;
-            updatedAt: Date;
-            adServerIp: string | null;
+        }[];
+        adSettings: {
             domainName: string | null;
+            id: string;
+            updatedAt: Date;
+            tenantId: string;
+            adServerIp: string | null;
             ldapPath: string | null;
             baseDn: string | null;
             bindUsername: string | null;
             bindPassword: string | null;
             sslEnabled: boolean;
             port: number;
+        }[];
+        smtpSettings: {
+            id: string;
+            updatedAt: Date;
+            password: string | null;
+            tenantId: string;
+            sslEnabled: boolean;
+            port: number;
+            host: string | null;
+            senderEmail: string | null;
+            senderName: string | null;
+            username: string | null;
         } | null;
         authSettings: {
             id: string;
-            tenantId: string;
             updatedAt: Date;
+            tenantId: string;
             ssoEnabled: boolean;
             enforceM365Login: boolean;
             sessionTimeout: number;
@@ -88,35 +106,23 @@ export declare class SettingsService {
             requireSymbols: boolean;
             expiryDays: number;
         } | null;
-        smtpSettings: {
-            id: string;
-            tenantId: string;
-            updatedAt: Date;
-            sslEnabled: boolean;
-            port: number;
-            host: string | null;
-            senderEmail: string | null;
-            senderName: string | null;
-            username: string | null;
-            password: string | null;
-        } | null;
     } & {
-        id: string;
-        updatedAt: Date;
-        name: string;
-        domainName: string;
         tenantCode: string;
+        name: string;
         companyName: string;
-        status: import("@prisma/client").$Enums.TenantStatus;
+        domainName: string;
         subscriptionType: import("@prisma/client").$Enums.SubscriptionType;
         timeZone: string | null;
         country: string | null;
         currency: string | null;
-        contactEmail: string | null;
         contactMobile: string | null;
+        id: string;
+        status: import("@prisma/client").$Enums.TenantStatus;
+        contactEmail: string | null;
         logoUrl: string | null;
         faviconUrl: string | null;
         createdAt: Date;
+        updatedAt: Date;
         createdBy: string | null;
         updatedBy: string | null;
         deletedAt: Date | null;
@@ -125,97 +131,100 @@ export declare class SettingsService {
         success: boolean;
         message: string;
     };
-    testAdConnection(data: AdSettingsDto): Promise<unknown>;
+    testAdConnection(data: AdSettingsDto): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     getOffices(tenantId: string): Promise<{
-        id: string;
-        tenantId: string;
-        updatedAt: Date;
         name: string;
         country: string | null;
+        id: string;
         createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
         address: string | null;
         city: string | null;
         state: string | null;
         zipCode: string | null;
+        isDefault: boolean;
         latitude: number | null;
         longitude: number | null;
-        isDefault: boolean;
     }[]>;
     createOffice(tenantId: string, data: CreateOfficeDto): Promise<{
-        id: string;
-        tenantId: string;
-        updatedAt: Date;
         name: string;
         country: string | null;
+        id: string;
         createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
         address: string | null;
         city: string | null;
         state: string | null;
         zipCode: string | null;
+        isDefault: boolean;
         latitude: number | null;
         longitude: number | null;
-        isDefault: boolean;
     }>;
     updateOffice(id: string, tenantId: string, data: UpdateOfficeDto): Promise<{
-        id: string;
-        tenantId: string;
-        updatedAt: Date;
         name: string;
         country: string | null;
+        id: string;
         createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
         address: string | null;
         city: string | null;
         state: string | null;
         zipCode: string | null;
+        isDefault: boolean;
         latitude: number | null;
         longitude: number | null;
-        isDefault: boolean;
     }>;
     deleteOffice(id: string, tenantId: string): Promise<{
-        id: string;
-        tenantId: string;
-        updatedAt: Date;
         name: string;
         country: string | null;
+        id: string;
         createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
         address: string | null;
         city: string | null;
         state: string | null;
         zipCode: string | null;
+        isDefault: boolean;
         latitude: number | null;
         longitude: number | null;
-        isDefault: boolean;
     }>;
     getDepartments(tenantId: string): Promise<{
-        id: string;
-        tenantId: string;
-        updatedAt: Date;
         name: string;
+        id: string;
         status: string;
         createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
     }[]>;
     createDepartment(tenantId: string, data: CreateDepartmentDto): Promise<{
-        id: string;
-        tenantId: string;
-        updatedAt: Date;
         name: string;
+        id: string;
         status: string;
         createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
     }>;
     updateDepartment(id: string, tenantId: string, data: UpdateDepartmentDto): Promise<{
-        id: string;
-        tenantId: string;
-        updatedAt: Date;
         name: string;
+        id: string;
         status: string;
         createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
     }>;
     deleteDepartment(id: string, tenantId: string): Promise<{
-        id: string;
-        tenantId: string;
-        updatedAt: Date;
         name: string;
+        id: string;
         status: string;
         createdAt: Date;
+        updatedAt: Date;
+        tenantId: string;
     }>;
 }

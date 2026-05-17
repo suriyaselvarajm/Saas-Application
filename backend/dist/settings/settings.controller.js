@@ -54,6 +54,12 @@ let SettingsController = class SettingsController {
     testAD(data) {
         return this.settingsService.testAdConnection(data);
     }
+    deleteAD(tenantId, id) {
+        return this.settingsService.deleteAD(id, tenantId);
+    }
+    deleteM365(tenantId, id) {
+        return this.settingsService.deleteM365(id, tenantId);
+    }
     getOffices(tenantId) {
         return this.settingsService.getOffices(tenantId);
     }
@@ -124,6 +130,22 @@ __decorate([
     __metadata("design:paramtypes", [ad_settings_dto_1.AdSettingsDto]),
     __metadata("design:returntype", void 0)
 ], SettingsController.prototype, "testAD", null);
+__decorate([
+    (0, common_1.Delete)('ad/:id'),
+    __param(0, (0, tenant_id_decorator_1.TenantId)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], SettingsController.prototype, "deleteAD", null);
+__decorate([
+    (0, common_1.Delete)('m365/:id'),
+    __param(0, (0, tenant_id_decorator_1.TenantId)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], SettingsController.prototype, "deleteM365", null);
 __decorate([
     (0, common_1.Get)('offices'),
     __param(0, (0, tenant_id_decorator_1.TenantId)()),

@@ -3,19 +3,10 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { 
-  Users, 
   Search, 
   ChevronDown, 
   Plus, 
-  Settings,
-  ShieldCheck,
-  Share2,
-  Mail,
-  Trash2,
-  RefreshCcw,
-  Move,
-  Layers,
-  ArrowRight
+  Settings
 } from "lucide-react";
 
 export default function GroupManagementPage() {

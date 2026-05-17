@@ -3,28 +3,10 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { 
-  Users, 
   Search, 
   ChevronDown, 
   Plus, 
-  UserPlus, 
-  UserCog, 
-  FileText, 
-  FileUp, 
-  RefreshCcw, 
-  Unlock, 
-  UserCheck, 
-  MoreHorizontal,
-  Mail,
-  HardDrive,
-  ShieldCheck,
-  Globe,
-  Settings,
-  Monitor,
-  Key,
-  Trash2,
-  Share2,
-  Network
+  Settings
 } from "lucide-react";
 
 export default function UserManagementPage() {
