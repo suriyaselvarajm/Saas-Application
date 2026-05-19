@@ -9,6 +9,7 @@ import { RbacModule } from './rbac/rbac.module';
 import { SmtpModule } from './smtp/smtp.module';
 import { EmailTemplateModule } from './email-template/email-template.module';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AuthModule } from './auth/auth.module';
     SmtpModule,
     EmailTemplateModule,
     AuthModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

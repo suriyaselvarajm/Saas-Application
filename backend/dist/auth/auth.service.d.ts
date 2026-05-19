@@ -41,32 +41,32 @@ export declare class AuthService {
         user?: undefined;
     }>;
     changePassword(email: string, newPassword: string): Promise<{
-        id: string;
         name: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
-        tenantId: string;
         email: string;
         password: string | null;
         mustChangePassword: boolean;
-        roleId: string | null;
         systemRole: import("@prisma/client").$Enums.SystemRole;
         mfaEnabled: boolean;
         mfaSecret: string | null;
+        roleId: string | null;
+        tenantId: string;
     }>;
     adminResetPassword(userId: string, newPassword: string): Promise<{
-        id: string;
         name: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
-        tenantId: string;
         email: string;
         password: string | null;
         mustChangePassword: boolean;
-        roleId: string | null;
         systemRole: import("@prisma/client").$Enums.SystemRole;
         mfaEnabled: boolean;
         mfaSecret: string | null;
+        roleId: string | null;
+        tenantId: string;
     }>;
     completeMfaLogin(userId: string): Promise<{
         accessToken: string;

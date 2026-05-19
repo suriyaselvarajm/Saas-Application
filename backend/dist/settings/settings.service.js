@@ -52,25 +52,27 @@ let SettingsService = class SettingsService {
         this.prisma = prisma;
     }
     async updateM365(tenantId, data) {
-        if (data.id) {
+        const { id, ...updateData } = data;
+        if (id) {
             return this.prisma.m365Settings.update({
-                where: { id: data.id },
-                data: { ...data, tenantId },
+                where: { id },
+                data: { ...updateData, tenantId },
             });
         }
         return this.prisma.m365Settings.create({
-            data: { ...data, tenantId },
+            data: { ...updateData, tenantId },
         });
     }
     async updateAD(tenantId, data) {
-        if (data.id) {
+        const { id, ...updateData } = data;
+        if (id) {
             return this.prisma.adSettings.update({
-                where: { id: data.id },
-                data: { ...data, tenantId },
+                where: { id },
+                data: { ...updateData, tenantId },
             });
         }
         return this.prisma.adSettings.create({
-            data: { ...data, tenantId },
+            data: { ...updateData, tenantId },
         });
     }
     async deleteAD(id, tenantId) {
@@ -118,6 +120,9 @@ let SettingsService = class SettingsService {
             timeout: 10000,
             connectTimeout: 10000,
             tlsOptions: data.sslEnabled ? { rejectUnauthorized: false } : undefined,
+        });
+        client.on('error', (err) => {
+            console.error('LDAP Client global connection test error:', err.message);
         });
         try {
             await new Promise((resolve, reject) => {

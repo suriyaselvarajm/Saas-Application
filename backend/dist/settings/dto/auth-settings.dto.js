@@ -23,6 +23,9 @@ class AuthSettingsDto {
     requireNumbers;
     requireSymbols;
     expiryDays;
+    tenantId;
+    createdAt;
+    updatedAt;
 }
 exports.AuthSettingsDto = AuthSettingsDto;
 __decorate([
@@ -81,4 +84,19 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], AuthSettingsDto.prototype, "expiryDays", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], AuthSettingsDto.prototype, "tenantId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], AuthSettingsDto.prototype, "createdAt", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], AuthSettingsDto.prototype, "updatedAt", void 0);
 //# sourceMappingURL=auth-settings.dto.js.map

@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdSettingsDto = void 0;
 const class_validator_1 = require("class-validator");
 class AdSettingsDto {
+    id;
     adServerIp;
     domainName;
     ldapPath;
@@ -20,8 +21,16 @@ class AdSettingsDto {
     bindPassword;
     sslEnabled;
     port;
+    tenantId;
+    createdAt;
+    updatedAt;
 }
 exports.AdSettingsDto = AdSettingsDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], AdSettingsDto.prototype, "id", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -62,4 +71,19 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], AdSettingsDto.prototype, "port", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], AdSettingsDto.prototype, "tenantId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], AdSettingsDto.prototype, "createdAt", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], AdSettingsDto.prototype, "updatedAt", void 0);
 //# sourceMappingURL=ad-settings.dto.js.map

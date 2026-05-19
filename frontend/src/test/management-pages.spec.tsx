@@ -9,6 +9,12 @@ vi.mock('@/components/layout/DashboardLayout', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div data-testid="layout">{children}</div>,
 }));
 
+const mockPush = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+  usePathname: () => '/management/users',
+}));
+
 globalThis.alert = vi.fn();
 
 const localStorageMock = (() => {

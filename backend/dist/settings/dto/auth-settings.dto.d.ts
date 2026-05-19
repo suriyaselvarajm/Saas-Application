@@ -10,4 +10,7 @@ export declare class AuthSettingsDto {
     requireNumbers?: boolean;
     requireSymbols?: boolean;
     expiryDays?: number;
+    tenantId?: string;
+    createdAt?: string;
+    updatedAt?: string;
 }

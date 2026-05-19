@@ -52,4 +52,16 @@ export class AuthSettingsDto {
   @IsInt()
   @IsOptional()
   expiryDays?: number;
+
+  @IsString()
+  @IsOptional()
+  tenantId?: string;
+
+  @IsString()
+  @IsOptional()
+  createdAt?: string;
+
+  @IsString()
+  @IsOptional()
+  updatedAt?: string;
 }

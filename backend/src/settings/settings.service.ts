@@ -12,26 +12,28 @@ export class SettingsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async updateM365(tenantId: string, data: M365SettingsDto & { id?: string }) {
-    if (data.id) {
+    const { id, ...updateData } = data;
+    if (id) {
       return this.prisma.m365Settings.update({
-        where: { id: data.id },
-        data: { ...data, tenantId },
+        where: { id },
+        data: { ...updateData, tenantId },
       });
     }
     return this.prisma.m365Settings.create({
-      data: { ...data, tenantId },
+      data: { ...updateData, tenantId },
     });
   }
 
   async updateAD(tenantId: string, data: AdSettingsDto & { id?: string }) {
-    if (data.id) {
+    const { id, ...updateData } = data;
+    if (id) {
       return this.prisma.adSettings.update({
-        where: { id: data.id },
-        data: { ...data, tenantId },
+        where: { id },
+        data: { ...updateData, tenantId },
       });
     }
     return this.prisma.adSettings.create({
-      data: { ...data, tenantId },
+      data: { ...updateData, tenantId },
     });
   }
 
@@ -88,6 +90,11 @@ export class SettingsService {
       timeout: 10000,
       connectTimeout: 10000,
       tlsOptions: data.sslEnabled ? { rejectUnauthorized: false } : undefined,
+    });
+
+    // Prevent unhandled server connection crashes
+    client.on('error', (err) => {
+      console.error('LDAP Client global connection test error:', err.message);
     });
 
     try {

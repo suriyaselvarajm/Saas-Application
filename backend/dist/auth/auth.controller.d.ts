@@ -52,35 +52,35 @@ export declare class AuthController {
         email: string;
         newPassword: string;
     }): Promise<{
-        id: string;
         name: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
-        tenantId: string;
         email: string;
         password: string | null;
         mustChangePassword: boolean;
-        roleId: string | null;
         systemRole: import("@prisma/client").$Enums.SystemRole;
         mfaEnabled: boolean;
         mfaSecret: string | null;
+        roleId: string | null;
+        tenantId: string;
     }>;
     adminResetPassword(body: {
         userId: string;
         newPassword: string;
     }): Promise<{
-        id: string;
         name: string | null;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
-        tenantId: string;
         email: string;
         password: string | null;
         mustChangePassword: boolean;
-        roleId: string | null;
         systemRole: import("@prisma/client").$Enums.SystemRole;
         mfaEnabled: boolean;
         mfaSecret: string | null;
+        roleId: string | null;
+        tenantId: string;
     }>;
     setupMfa(body: {
         userId: string;

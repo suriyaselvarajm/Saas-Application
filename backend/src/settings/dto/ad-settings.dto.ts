@@ -8,6 +8,10 @@ import {
 
 export class AdSettingsDto {
   @IsString()
+  @IsOptional()
+  id?: string;
+
+  @IsString()
   @IsNotEmpty()
   adServerIp: string;
 
@@ -38,4 +42,16 @@ export class AdSettingsDto {
   @IsInt()
   @IsOptional()
   port?: number;
+
+  @IsString()
+  @IsOptional()
+  tenantId?: string;
+
+  @IsString()
+  @IsOptional()
+  createdAt?: string;
+
+  @IsString()
+  @IsOptional()
+  updatedAt?: string;
 }

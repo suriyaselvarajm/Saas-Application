@@ -12,13 +12,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.M365SettingsDto = void 0;
 const class_validator_1 = require("class-validator");
 class M365SettingsDto {
+    id;
     azureTenantId;
     clientId;
     clientSecret;
     redirectUrl;
     microsoftDomain;
+    tenantId;
+    createdAt;
+    updatedAt;
 }
 exports.M365SettingsDto = M365SettingsDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], M365SettingsDto.prototype, "id", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -44,4 +53,19 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], M365SettingsDto.prototype, "microsoftDomain", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], M365SettingsDto.prototype, "tenantId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], M365SettingsDto.prototype, "createdAt", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], M365SettingsDto.prototype, "updatedAt", void 0);
 //# sourceMappingURL=m365-settings.dto.js.map

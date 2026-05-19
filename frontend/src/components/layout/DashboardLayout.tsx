@@ -25,6 +25,8 @@ import SearchOverlay from "./SearchOverlay";
 interface UserData {
   name: string;
   email: string;
+  systemRole?: string;
+  isSuperAdmin?: boolean;
 }
 
 export default function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -40,7 +42,8 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
   const isM365 = pathname?.startsWith('/m365');
   const isDelegation = pathname?.startsWith('/delegation');
   const isDashboard = pathname === '/dashboard';
-  const showSidebar = isManagement || isReports || isM365 || isDelegation;
+  const isTenants = pathname?.startsWith('/tenants');
+  const showSidebar = isManagement || isReports || isM365 || isDelegation || isTenants;
 
   useEffect(() => {
     const userStr = localStorage.getItem("petrus_user");
@@ -86,6 +89,18 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
               >
                 Home
               </Link>
+              {userData?.systemRole === "SUPER_ADMIN" && (
+                <Link 
+                  href="/tenants" 
+                  className={`px-4 h-full flex items-center text-xs font-medium transition-colors whitespace-nowrap border-b-2 ${
+                    isTenants 
+                    ? "text-indigo-600 dark:text-indigo-400 border-indigo-600 dark:border-indigo-400" 
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white border-transparent"
+                  }`}
+                >
+                  Tenants
+                </Link>
+              )}
               <Link 
                 href="/management/users" 
                 className={`px-4 h-full flex items-center text-xs font-medium transition-colors whitespace-nowrap border-b-2 ${
@@ -116,7 +131,6 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
               >
                 Microsoft 365
               </Link>
-              <button className="px-4 h-full text-xs font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white border-b-2 border-transparent transition-colors whitespace-nowrap">Governance</button>
               <Link 
                 href="/delegation" 
                 className={`px-4 h-full flex items-center text-xs font-medium transition-colors whitespace-nowrap border-b-2 ${
