@@ -103,126 +103,130 @@ let UsersService = class UsersService {
         const ad = dto.adSettingsId
             ? await this.prisma.adSettings.findFirst({ where: { id: dto.adSettingsId, tenantId } })
             : await this.prisma.adSettings.findFirst({ where: { tenantId } });
-        if (ad) {
-            const url = `${ad.sslEnabled ? 'ldaps' : 'ldap'}://${ad.adServerIp}:${ad.port || 389}`;
-            logs.push(`[AD] Target: ${url} (Domain: ${ad.domainName})`, `[AD] Connecting to LDAP Server...`, `[AD] Binding as Service Account: ${ad.bindUsername}`);
-            const sAMAccountName = dto.email.split('@')[0];
-            try {
-                const client = ldap.createClient({
-                    url: url,
-                    timeout: 3000,
-                    connectTimeout: 3000,
-                });
-                client.on('error', (err) => {
-                    logs.push(`[AD] [ERROR] LDAP Client error: ${err.message}`);
-                });
-                const bindSuccess = await new Promise((resolve) => {
-                    client.bind(ad.bindUsername || '', ad.bindPassword || '', (err) => {
-                        if (err) {
-                            logs.push(`[AD] Bind error details: ${err.message}`);
-                            resolve(false);
-                        }
-                        else {
-                            resolve(true);
-                        }
-                    });
-                });
-                if (bindSuccess) {
-                    const targetContainer = dto.targetOu ? dto.targetOu : 'CN=Users';
-                    const userDn = `CN=${dto.displayName},${targetContainer},${ad.baseDn}`;
-                    logs.push(`[AD] Bind successful. Creating user DN: ${userDn}`);
-                    const isSecure = !!ad.sslEnabled;
-                    const userAccountControlValue = (isSecure && dto.password) ? '512' : '514';
-                    const entry = {
-                        cn: dto.displayName,
-                        objectClass: ['top', 'person', 'organizationalPerson', 'user'],
-                        sAMAccountName: sAMAccountName,
-                        userPrincipalName: dto.email,
-                        displayName: dto.displayName,
-                        givenName: dto.firstName,
-                        sn: dto.lastName,
-                        userAccountControl: userAccountControlValue,
-                    };
-                    const optionalFields = {
-                        initials: dto.initials,
-                        title: dto.jobTitle,
-                        department: dto.department,
-                        physicalDeliveryOfficeName: dto.office,
-                        telephoneNumber: dto.officePhone,
-                        facsimileTelephoneNumber: dto.faxNumber,
-                        mobile: dto.mobileNumber,
-                        streetAddress: dto.streetAddress,
-                        l: dto.city,
-                        st: dto.stateProvince,
-                        postalCode: dto.zipPostalCode,
-                        co: dto.countryRegion,
-                    };
-                    for (const [key, val] of Object.entries(optionalFields)) {
-                        if (val !== undefined && val !== null && val !== '') {
-                            entry[key] = val;
-                        }
-                    }
-                    if (ad.sslEnabled && dto.password) {
-                        entry.unicodePwd = Buffer.from(`"${dto.password}"`, 'utf16le');
-                    }
-                    const addSuccess = await new Promise((resolve) => {
-                        client.add(userDn, entry, (err) => {
-                            if (err) {
-                                logs.push(`[AD] [ERROR] LDAP add user failed: ${err.message}`);
-                                resolve(false);
-                            }
-                            else {
-                                resolve(true);
-                            }
-                        });
-                    });
-                    if (addSuccess) {
-                        logs.push(`[AD] User account successfully provisioned directly in Active Directory server.`);
-                        if (dto.adGroupDn) {
-                            logs.push(`[AD] Adding user to target security group: ${dto.adGroupDn}...`);
-                            const change = new ldap.Change({
-                                operation: 'add',
-                                modification: {
-                                    member: [userDn]
-                                }
-                            });
-                            await new Promise((resolve) => {
-                                client.modify(dto.adGroupDn, change, (err) => {
-                                    if (err) {
-                                        logs.push(`[AD] [WARNING] Failed to add user to group: ${err.message}`);
-                                    }
-                                    else {
-                                        logs.push(`[AD] Successfully added user to security group.`);
-                                    }
-                                    resolve();
-                                });
-                            });
-                        }
-                        client.unbind();
-                        return true;
-                    }
-                    client.unbind();
-                    return false;
-                }
-                else {
-                    const targetContainer = dto.targetOu ? dto.targetOu : 'CN=Users';
-                    const userDn = `CN=${dto.displayName},${targetContainer},${ad.baseDn}`;
-                    logs.push(`[AD] Connection timed out or server unreachable at ${ad.adServerIp}.`, `[AD] [SIMULATION] Activating fallback high-fidelity Active Directory Sandbox...`, `[AD] [SIMULATION] User Account successfully simulated in AD Domain Controller: ${userDn}`, `[AD] [SIMULATION] AD Attributes applied: title='${dto.jobTitle}', department='${dto.department || ''}', physicalDeliveryOfficeName='${dto.office}', mobile='${dto.mobileNumber}', initials='${dto.initials || ''}'`);
-                    if (dto.adGroupDn) {
-                        logs.push(`[AD] [SIMULATION] Successfully added simulated user ${userDn} to security group ${dto.adGroupDn}.`);
-                    }
-                    return true;
-                }
-            }
-            catch (err) {
-                logs.push(`[AD] LDAP Exception: ${err.message}`, `[AD] [SIMULATION] Activating fallback high-fidelity Active Directory Sandbox...`, `[AD] [SIMULATION] User Account successfully simulated in AD Domain Controller: CN=${dto.displayName},${ad.baseDn}`);
-                return true;
-            }
-        }
-        else {
+        if (!ad) {
             logs.push(`[AD] [ERROR] No Active Directory settings found for this tenant!`);
             return false;
         }
+        const url = `${ad.sslEnabled ? 'ldaps' : 'ldap'}://${ad.adServerIp}:${ad.port || 389}`;
+        logs.push(`[AD] Target: ${url} (Domain: ${ad.domainName})`, `[AD] Connecting to LDAP Server...`, `[AD] Binding as Service Account: ${ad.bindUsername}`);
+        const sAMAccountName = dto.email.split('@')[0];
+        const targetContainer = dto.targetOu ? dto.targetOu : 'CN=Users';
+        const userDn = `CN=${dto.displayName},${targetContainer},${ad.baseDn}`;
+        try {
+            const client = ldap.createClient({
+                url: url,
+                timeout: 3000,
+                connectTimeout: 3000,
+            });
+            client.on('error', (err) => {
+                logs.push(`[AD] [ERROR] LDAP Client error: ${err.message}`);
+            });
+            const bindSuccess = await new Promise((resolve) => {
+                client.bind(ad.bindUsername || '', ad.bindPassword || '', (err) => {
+                    if (err) {
+                        logs.push(`[AD] Bind error details: ${err.message}`);
+                        resolve(false);
+                    }
+                    else {
+                        resolve(true);
+                    }
+                });
+            });
+            if (!bindSuccess) {
+                return this.simulateAdCreation(dto, userDn, ad.adServerIp, logs);
+            }
+            logs.push(`[AD] Bind successful. Creating user DN: ${userDn}`);
+            const entry = this.buildAdUserEntry(dto, sAMAccountName, !!ad.sslEnabled);
+            const addSuccess = await new Promise((resolve) => {
+                client.add(userDn, entry, (err) => {
+                    if (err) {
+                        logs.push(`[AD] [ERROR] LDAP add user failed: ${err.message}`);
+                        resolve(false);
+                    }
+                    else {
+                        resolve(true);
+                    }
+                });
+            });
+            if (addSuccess) {
+                logs.push(`[AD] User account successfully provisioned directly in Active Directory server.`);
+                const groupDn = dto.adGroupDn;
+                if (groupDn) {
+                    await this.addUserToAdGroup(client, userDn, groupDn, logs);
+                }
+                client.unbind();
+                return true;
+            }
+            client.unbind();
+            return false;
+        }
+        catch (err) {
+            logs.push(`[AD] LDAP Exception: ${err.message}`, `[AD] [SIMULATION] Activating fallback high-fidelity Active Directory Sandbox...`, `[AD] [SIMULATION] User Account successfully simulated in AD Domain Controller: CN=${dto.displayName},${ad.baseDn}`);
+            return true;
+        }
+    }
+    simulateAdCreation(dto, userDn, adServerIp, logs) {
+        logs.push(`[AD] Connection timed out or server unreachable at ${adServerIp}.`, `[AD] [SIMULATION] Activating fallback high-fidelity Active Directory Sandbox...`, `[AD] [SIMULATION] User Account successfully simulated in AD Domain Controller: ${userDn}`, `[AD] [SIMULATION] AD Attributes applied: title='${dto.jobTitle}', department='${dto.department || ''}', physicalDeliveryOfficeName='${dto.office}', mobile='${dto.mobileNumber}', initials='${dto.initials || ''}'`);
+        if (dto.adGroupDn) {
+            logs.push(`[AD] [SIMULATION] Successfully added simulated user ${userDn} to security group ${dto.adGroupDn}.`);
+        }
+        return true;
+    }
+    buildAdUserEntry(dto, sAMAccountName, isSecure) {
+        const userAccountControlValue = (isSecure && dto.password) ? '512' : '514';
+        const entry = {
+            cn: dto.displayName,
+            objectClass: ['top', 'person', 'organizationalPerson', 'user'],
+            sAMAccountName: sAMAccountName,
+            userPrincipalName: dto.email,
+            displayName: dto.displayName,
+            givenName: dto.firstName,
+            sn: dto.lastName,
+            userAccountControl: userAccountControlValue,
+        };
+        const optionalFields = {
+            initials: dto.initials,
+            title: dto.jobTitle,
+            department: dto.department,
+            physicalDeliveryOfficeName: dto.office,
+            telephoneNumber: dto.officePhone,
+            facsimileTelephoneNumber: dto.faxNumber,
+            mobile: dto.mobileNumber,
+            streetAddress: dto.streetAddress,
+            l: dto.city,
+            st: dto.stateProvince,
+            postalCode: dto.zipPostalCode,
+            co: dto.countryRegion,
+        };
+        for (const [key, val] of Object.entries(optionalFields)) {
+            if (val !== undefined && val !== null && val !== '') {
+                entry[key] = val;
+            }
+        }
+        if (isSecure && dto.password) {
+            entry.unicodePwd = Buffer.from(`"${dto.password}"`, 'utf16le');
+        }
+        return entry;
+    }
+    async addUserToAdGroup(client, userDn, groupDn, logs) {
+        logs.push(`[AD] Adding user to target security group: ${groupDn}...`);
+        const change = new ldap.Change({
+            operation: 'add',
+            modification: {
+                member: [userDn]
+            }
+        });
+        await new Promise((resolve) => {
+            client.modify(groupDn, change, (err) => {
+                if (err) {
+                    logs.push(`[AD] [WARNING] Failed to add user to group: ${err.message}`);
+                }
+                else {
+                    logs.push(`[AD] Successfully added user to security group.`);
+                }
+                resolve();
+            });
+        });
     }
     async handleMicrosoft365Creation(tenantId, dto, logs) {
         logs.push(`[M365] Microsoft 365 option selected. Fetching M365 configuration...`);
@@ -246,49 +250,54 @@ let UsersService = class UsersService {
             return false;
         }
     }
+    async provisionSingleBulkUser(tenantId, dto, logs) {
+        logs.push(`\n--------------------------------------------`, `[System] Provisioning user: ${dto.firstName} ${dto.lastName} (${dto.email})`);
+        const isAvailable = await this.checkAvailability(dto.email);
+        if (!isAvailable) {
+            logs.push(`[System] [ERROR] A user with email ${dto.email} already exists. Skipping.`);
+            return false;
+        }
+        let success = true;
+        if (dto.createInAd) {
+            const adSuccess = await this.handleActiveDirectoryCreation(tenantId, dto, logs);
+            if (!adSuccess)
+                success = false;
+        }
+        if (dto.createInM365) {
+            const m365Success = await this.handleMicrosoft365Creation(tenantId, dto, logs);
+            if (!m365Success)
+                success = false;
+        }
+        if (success) {
+            logs.push(`[Database] Synchronizing account in Petrus IAM database...`);
+            await this.prisma.user.create({
+                data: {
+                    email: dto.email,
+                    password: dto.password,
+                    name: dto.displayName,
+                    tenantId: tenantId,
+                    systemRole: 'EMPLOYEE',
+                },
+            });
+            logs.push(`[System] Successfully provisioned: ${dto.email}`);
+            return true;
+        }
+        else {
+            logs.push(`[System] [ERROR] Failed to provision: ${dto.email}`);
+            return false;
+        }
+    }
     async createBulkUsers(tenantId, users) {
         const logs = [];
         logs.push(`[System] Initializing batch bulk creation workflow for ${users.length} users.`);
         let createdCount = 0;
         for (const dto of users) {
-            logs.push(`\n--------------------------------------------`);
-            logs.push(`[System] Provisioning user: ${dto.firstName} ${dto.lastName} (${dto.email})`);
-            const isAvailable = await this.checkAvailability(dto.email);
-            if (!isAvailable) {
-                logs.push(`[System] [ERROR] A user with email ${dto.email} already exists. Skipping.`);
-                continue;
-            }
-            let success = true;
-            if (dto.createInAd) {
-                const adSuccess = await this.handleActiveDirectoryCreation(tenantId, dto, logs);
-                if (!adSuccess)
-                    success = false;
-            }
-            if (dto.createInM365) {
-                const m365Success = await this.handleMicrosoft365Creation(tenantId, dto, logs);
-                if (!m365Success)
-                    success = false;
-            }
+            const success = await this.provisionSingleBulkUser(tenantId, dto, logs);
             if (success) {
-                logs.push(`[Database] Synchronizing account in Petrus IAM database...`);
-                await this.prisma.user.create({
-                    data: {
-                        email: dto.email,
-                        password: dto.password,
-                        name: dto.displayName,
-                        tenantId: tenantId,
-                        systemRole: 'EMPLOYEE',
-                    },
-                });
-                logs.push(`[System] Successfully provisioned: ${dto.email}`);
                 createdCount++;
             }
-            else {
-                logs.push(`[System] [ERROR] Failed to provision: ${dto.email}`);
-            }
         }
-        logs.push(`\n--------------------------------------------`);
-        logs.push(`[System] Bulk creation complete. ${createdCount} of ${users.length} users provisioned successfully.`);
+        logs.push(`\n--------------------------------------------`, `[System] Bulk creation complete. ${createdCount} of ${users.length} users provisioned successfully.`);
         return { success: true, createdCount, logs };
     }
 };

@@ -10,7 +10,11 @@ export declare class UsersService {
         message: string;
     }>;
     private handleActiveDirectoryCreation;
+    private simulateAdCreation;
+    private buildAdUserEntry;
+    private addUserToAdGroup;
     private handleMicrosoft365Creation;
+    private provisionSingleBulkUser;
     createBulkUsers(tenantId: string, users: CreateSingleUserDto[]): Promise<{
         success: boolean;
         createdCount: number;
