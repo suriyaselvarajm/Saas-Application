@@ -3,6 +3,11 @@ import { CreateSingleUserDto } from './dto/create-single-user.dto';
 export declare class UsersService {
     private readonly prisma;
     constructor(prisma: PrismaService);
+    private getTemplatesFilePath;
+    getTemplates(): Promise<any[]>;
+    private writeTemplates;
+    saveTemplate(template: any): Promise<any[]>;
+    deleteTemplate(id: string): Promise<any[]>;
     checkAvailability(email: string): Promise<boolean>;
     createSingleUser(tenantId: string, dto: CreateSingleUserDto): Promise<{
         success: boolean;
@@ -20,4 +25,5 @@ export declare class UsersService {
         createdCount: number;
         logs: string[];
     }>;
+    validateUserSchema(dto: any): void;
 }

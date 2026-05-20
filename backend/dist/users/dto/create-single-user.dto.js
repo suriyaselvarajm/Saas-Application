@@ -37,6 +37,7 @@ class CreateSingleUserDto {
     createWithoutLicense;
     targetOu;
     adGroupDn;
+    selectedTemplate;
 }
 exports.CreateSingleUserDto = CreateSingleUserDto;
 __decorate([
@@ -163,4 +164,9 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateSingleUserDto.prototype, "adGroupDn", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateSingleUserDto.prototype, "selectedTemplate", void 0);
 //# sourceMappingURL=create-single-user.dto.js.map

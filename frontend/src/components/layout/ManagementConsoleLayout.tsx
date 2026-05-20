@@ -41,7 +41,7 @@ export default function ManagementConsoleLayout({
   onPrimaryActionClick,
   children
 }: ManagementConsoleLayoutProps) {
-  const [domain, setDomain] = useState("admanagerplus.com");
+  const [domain, setDomain] = useState("petrus.io");
 
   useEffect(() => {
     const userStr = localStorage.getItem("petrus_user");

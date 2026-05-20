@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 export default function Dashboard() {
-  const [domain, setDomain] = useState("admanagerplus.com");
+  const [domain, setDomain] = useState("petrus.io");
   const [activeTab, setActiveTab] = useState<"graphical" | "summary" | "config">("graphical");
   const [isSaved, setIsSaved] = useState(false);
 

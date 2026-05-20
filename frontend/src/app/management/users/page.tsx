@@ -61,6 +61,86 @@ const TEMPLATE_COMPUTERS: Record<string, (f: string, l: string, fInit: string, l
   "firstnamelastname": (f, l) => `${f}${l}`,
 };
 
+const USER_TEMPLATES = [
+  {
+    id: "default",
+    name: "Standard Employee Template",
+    data: {
+      jobTitle: "Systems Engineer",
+      department: "Engineering",
+      targetOu: "OU=Engineering,OU=Employees",
+      adGroupDn: "CN=Dev-Group,CN=Users",
+      createInAd: true,
+      createInM365: false,
+      m365License: "Microsoft 365 E5",
+      createWithoutLicense: false
+    }
+  },
+  {
+    id: "engineering",
+    name: "Engineering Department Template",
+    data: {
+      jobTitle: "Senior Systems Architect",
+      department: "Engineering",
+      targetOu: "OU=Engineering,OU=Employees",
+      adGroupDn: "CN=Dev-Group,CN=Users",
+      createInAd: true,
+      createInM365: true,
+      m365License: "Microsoft 365 E5",
+      createWithoutLicense: false
+    }
+  },
+  {
+    id: "sales",
+    name: "Global Sales Template",
+    data: {
+      jobTitle: "Sales Specialist",
+      department: "Sales",
+      targetOu: "OU=Sales,OU=Employees",
+      adGroupDn: "CN=Sales-Group,CN=Users",
+      createInAd: true,
+      createInM365: true,
+      m365License: "Microsoft 365 E3",
+      createWithoutLicense: false
+    }
+  },
+  {
+    id: "hr",
+    name: "Human Resources Template",
+    data: {
+      jobTitle: "HR Business Partner",
+      department: "Human Resources",
+      targetOu: "OU=HR,OU=Employees",
+      adGroupDn: "CN=HR-Group,CN=Users",
+      createInAd: true,
+      createInM365: true,
+      m365License: "Office 365 F3",
+      createWithoutLicense: false
+    }
+  }
+];
+
+const parseList = (item: any): any[] => {
+  if (Array.isArray(item)) return item;
+  return item ? [item] : [];
+};
+
+const getActiveDomain = (adSettingsList: any[], m365SettingsList: any[], adId: string, m365Id: string) => {
+  return adSettingsList.find(a => a.id === adId)?.domainName || 
+         m365SettingsList.find(m => m.id === m365Id)?.microsoftDomain || 
+         "company.local";
+};
+
+const computeEmailByTemplate = (fName: string, lName: string, template: string, activeDomain: string, initials?: string) => {
+  const f = fName.toLowerCase().replace(/\s+/g, "");
+  const l = lName.toLowerCase().replace(/\s+/g, "");
+  if (!f && !l) return "";
+
+  const computer = TEMPLATE_COMPUTERS[template] || TEMPLATE_COMPUTERS["firstname.lastname"];
+  const prefix = computer(f, l, f.charAt(0), l.charAt(0), initials || "");
+  return `${prefix}@${activeDomain}`;
+};
+
 export default function UserManagementPage() {
   const router = useRouter();
 
@@ -96,6 +176,142 @@ export default function UserManagementPage() {
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [emailTemplate, setEmailTemplate] = useState("firstname.lastname");
 
+  // Custom User Creation Templates workspace states
+  const [showTemplatesWorkspace, setShowTemplatesWorkspace] = useState(false);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [activeTemplateTab, setActiveTemplateTab] = useState("General");
+  
+  const [customTemplates, setCustomTemplates] = useState<any[]>([
+    {
+      id: "tpl-1",
+      name: "Mobile User Creation",
+      createdBy: String.raw`Petrus Directory Authority\admin`,
+      createdOn: "2016-07-28 22:59:27",
+      lastModified: "2016-07-28 22:59:27",
+      category: "Default",
+      description: "Default Template to create user with mobile application.",
+      domainName: "All Domains",
+      data: {
+        jobTitle: "Mobile Engineer",
+        department: "Engineering",
+        office: "San Francisco HQ",
+        createInAd: true,
+        createInM365: true,
+        targetOu: "OU=Mobile,OU=Employees",
+        adGroupDn: "CN=Mobile-Users,CN=Users",
+        m365License: "Microsoft 365 E5",
+        createWithoutLicense: false
+      }
+    },
+    {
+      id: "tpl-2",
+      name: "Mailbox Enabled Template",
+      createdBy: String.raw`Petrus Directory Authority\admin`,
+      createdOn: "2013-10-29 18:30:00",
+      lastModified: "2013-10-29 19:30:00",
+      category: "Default",
+      description: "Domain users with mail box",
+      domainName: "All Domains",
+      data: {
+        jobTitle: "Staff Associate",
+        department: "Operations",
+        office: "New York HQ",
+        createInAd: true,
+        createInM365: true,
+        targetOu: "OU=Operations,OU=Employees",
+        adGroupDn: "CN=Domain Users,CN=Users",
+        m365License: "Microsoft 365 E3",
+        createWithoutLicense: false
+      }
+    },
+    {
+      id: "tpl-3",
+      name: "User Creation with basic Attributes",
+      createdBy: String.raw`Petrus Directory Authority\admin`,
+      createdOn: "2013-10-29 18:30:00",
+      lastModified: "2013-10-29 19:30:00",
+      category: "test",
+      description: "Template to create user with essential attributes",
+      domainName: "All Domains",
+      data: {
+        jobTitle: "Business Analyst",
+        department: "Product Management",
+        office: "Austin Branch",
+        createInAd: true,
+        createInM365: false,
+        targetOu: "OU=Product,OU=Employees",
+        adGroupDn: "CN=Product-Group,CN=Users",
+        m365License: "Microsoft 365 E5",
+        createWithoutLicense: false
+      }
+    }
+  ]);
+
+  const initialTemplateForm = {
+    name: "",
+    description: "",
+    domain: "petrus.io",
+    category: "Default",
+    activeDirectory: true,
+    microsoft365: false,
+    
+    // General Tab
+    firstName: "",
+    initials: "",
+    lastName: "",
+    logonNameFormat: "FirstName + LastName",
+    logonPre2000: "PETRUS\\",
+    fullNameFormat: "Same as logonname",
+    displayNameFormat: "Same as logonname",
+    employeeId: "",
+    descriptionGeneral: "",
+    office: "",
+    telephoneNumber: "",
+    emailFormat: "Same as logonname",
+    webPage: "",
+    selectContainer: "CN=Users,DC=petrus,DC=io",
+    protectFromDeletion: false,
+
+    // Account Tab
+    passwordOption: "Random",
+    customPassword: "",
+    memberOf: "Domain Users",
+    logonScript: "",
+    profilePath: "",
+    homeFolderOption: "Local",
+    homeFolderPath: "",
+    userMustChangePassword: true,
+    userCannotChangePassword: false,
+    passwordNeverExpires: false,
+    accountDisabled: false,
+    smartCardRequired: false,
+
+    // Contact Tab
+    homePhone: "",
+    pager: "",
+    mobile: "",
+    fax: "",
+    ipPhone: "",
+    notes: "",
+    title: "",
+    department: "",
+    company: "",
+    manager: "",
+    street: "",
+    poBox: "",
+    city: "",
+    stateProvince: "",
+    zipPostalCode: "",
+    country: "",
+
+    // Microsoft 365 Tab
+    m365License: "Microsoft 365 E5",
+    createWithoutLicense: false
+  };
+
+  const [templateForm, setTemplateForm] = useState(initialTemplateForm);
+
   const initialFormData = {
     email: "",
     firstName: "",
@@ -107,6 +323,7 @@ export default function UserManagementPage() {
     createInM365: false,
     adSettingsId: "",
     m365SettingsId: "",
+    selectedTemplate: "default",
     
     // Profile info
     jobTitle: "",
@@ -143,15 +360,72 @@ export default function UserManagementPage() {
     }
   }, [singleUserFormData.email]);
 
-  const parseList = (item: any): any[] => {
-    if (Array.isArray(item)) return item;
-    return item ? [item] : [];
+  const fetchTemplates = async () => {
+    try {
+      const token = localStorage.getItem("petrus_token");
+      const res = await fetch("http://localhost:3001/users/templates", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const customTpls = Array.isArray(data) ? data.filter(t => !["default", "engineering", "sales", "hr"].includes(t.id)) : [];
+        setCustomTemplates(customTpls);
+      }
+    } catch (e) {
+      console.error("Failed to load templates", e);
+    }
+  };
+
+  const saveTemplateToBackend = async (tpl: any) => {
+    // Optimistic/Local state update first
+    setCustomTemplates(prev => {
+      const idx = prev.findIndex(t => t.id === tpl.id);
+      if (idx !== -1) {
+        const copy = [...prev];
+        copy[idx] = tpl;
+        return copy;
+      }
+      return [tpl, ...prev];
+    });
+
+    try {
+      const token = localStorage.getItem("petrus_token");
+      await fetch("http://localhost:3001/users/templates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(tpl)
+      });
+      await fetchTemplates();
+    } catch (e) {
+      console.error("Failed to save template", e);
+    }
+  };
+
+  const deleteTemplateFromBackend = async (id: string) => {
+    // Optimistic / local state fallback deletion
+    setCustomTemplates(prev => prev.filter(t => t.id !== id));
+    try {
+      const token = localStorage.getItem("petrus_token");
+      await fetch(`http://localhost:3001/users/templates/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      await fetchTemplates();
+    } catch (e) {
+      console.error("Failed to delete template", e);
+    }
   };
 
   const fetchIntegrations = async () => {
     try {
       const token = localStorage.getItem("petrus_token");
       const headers = { Authorization: `Bearer ${token}` };
+
+      // Fetch dynamic templates
+      await fetchTemplates();
 
       // 1. Fetch integrations configs
       const resSettings = await fetch("http://localhost:3001/settings", { headers });
@@ -211,21 +485,6 @@ export default function UserManagementPage() {
     setSingleUserFormData(prev => ({ ...prev, password: shuffled }));
   };
 
-  const computeEmailByTemplate = (fName: string, lName: string, template: string, adId: string, m365Id: string, initials?: string) => {
-    const f = fName.toLowerCase().replace(/\s+/g, "");
-    const l = lName.toLowerCase().replace(/\s+/g, "");
-    if (!f && !l) return "";
-
-    // Get Active Domain Suffix
-    const activeDomain = adSettingsList.find(a => a.id === adId)?.domainName || 
-                         m365SettingsList.find(m => m.id === m365Id)?.microsoftDomain || 
-                         "company.local";
-
-    const computer = TEMPLATE_COMPUTERS[template] || TEMPLATE_COMPUTERS["firstname.lastname"];
-    const prefix = computer(f, l, f.charAt(0), l.charAt(0), initials || "");
-    return `${prefix}@${activeDomain}`;
-  };
-
   const checkEmailAvailability = async (emailToCheck: string) => {
     if (!emailToCheck?.includes("@")) return;
     setCheckingEmail(true);
@@ -263,8 +522,7 @@ export default function UserManagementPage() {
         fName, 
         lName, 
         emailTemplate, 
-        prev.adSettingsId, 
-        prev.m365SettingsId,
+        getActiveDomain(adSettingsList, m365SettingsList, prev.adSettingsId, prev.m365SettingsId),
         prev.initials
       );
       
@@ -285,8 +543,7 @@ export default function UserManagementPage() {
         prev.firstName, 
         prev.lastName, 
         emailTemplate, 
-        prev.adSettingsId, 
-        prev.m365SettingsId,
+        getActiveDomain(adSettingsList, m365SettingsList, prev.adSettingsId, prev.m365SettingsId),
         value
       );
       
@@ -301,11 +558,33 @@ export default function UserManagementPage() {
         prev.firstName,
         prev.lastName,
         templateId,
-        prev.adSettingsId,
-        prev.m365SettingsId,
+        getActiveDomain(adSettingsList, m365SettingsList, prev.adSettingsId, prev.m365SettingsId),
         prev.initials
       );
       return { ...prev, email: updatedEmail };
+    });
+  };
+
+  const allTemplates = [
+    ...USER_TEMPLATES,
+    ...customTemplates.map(t => ({
+      id: t.id,
+      name: t.name,
+      data: t.data
+    }))
+  ];
+
+  const handleUserTemplateChange = (templateId: string) => {
+    setSingleUserFormData(prev => {
+      const template = allTemplates.find(t => t.id === templateId);
+      if (template) {
+        return {
+          ...prev,
+          selectedTemplate: templateId,
+          ...template.data
+        };
+      }
+      return { ...prev, selectedTemplate: templateId };
     });
   };
 
@@ -323,8 +602,7 @@ export default function UserManagementPage() {
         prev.firstName,
         prev.lastName,
         emailTemplate,
-        updated.adSettingsId,
-        updated.m365SettingsId,
+        getActiveDomain(adSettingsList, m365SettingsList, updated.adSettingsId, updated.m365SettingsId),
         prev.initials
       );
       
@@ -430,8 +708,7 @@ export default function UserManagementPage() {
           updated.firstName,
           updated.lastName,
           emailTemplate,
-          globalBulkConfig.adSettingsId,
-          globalBulkConfig.m365SettingsId,
+          getActiveDomain(adSettingsList, m365SettingsList, globalBulkConfig.adSettingsId, globalBulkConfig.m365SettingsId),
           updated.initials
         );
       }
@@ -482,8 +759,7 @@ export default function UserManagementPage() {
         item.first,
         item.last,
         emailTemplate,
-        globalBulkConfig.adSettingsId,
-        globalBulkConfig.m365SettingsId,
+        getActiveDomain(adSettingsList, m365SettingsList, globalBulkConfig.adSettingsId, globalBulkConfig.m365SettingsId),
         item.initials
       );
       
@@ -539,104 +815,100 @@ export default function UserManagementPage() {
     link.setAttribute("download", "petrus_bulk_users_sample.csv");
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
   };
 
-  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const text = event.target?.result as string;
-        if (!text) return;
+    try {
+      const text = await file.text();
+      if (!text) return;
 
-        const lines = text.split(/\r?\n/);
-        if (lines.length <= 1) {
-          alert("CSV file seems to be empty or missing header rows.");
-          return;
-        }
-
-        const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
-        const parsedRows: any[] = [];
-
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (!line) continue;
-
-          const cols = line.split(",").map(c => c.trim());
-          if (cols.length < headers.length) continue;
-
-          const rowData: Record<string, string> = {};
-          headers.forEach((header, index) => {
-            rowData[header] = cols[index] || "";
-          });
-
-          // Generate complex GPO password
-          const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-          const lower = "abcdefghijklmnopqrstuvwxyz";
-          const numbers = "0123456789";
-          const symbols = "!@#$%^&*()_+=-";
-          let pass = "";
-          for (let k = 0; k < 3; k++) pass += upper.charAt(Math.floor(Math.random() * upper.length));
-          for (let k = 0; k < 3; k++) pass += lower.charAt(Math.floor(Math.random() * lower.length));
-          for (let k = 0; k < 3; k++) pass += numbers.charAt(Math.floor(Math.random() * numbers.length));
-          for (let k = 0; k < 3; k++) pass += symbols.charAt(Math.floor(Math.random() * symbols.length));
-          for (let k = 0; k < 2; k++) pass += lower.charAt(Math.floor(Math.random() * lower.length));
-          const shuffledPassword = pass.split('').sort(() => 0.5 - Math.random()).join('');
-
-          const displayInitials = rowData.initials ? ` ${rowData.initials}` : "";
-          const firstName = rowData.firstname || rowData["first name"] || "";
-          const lastName = rowData.lastname || rowData["last name"] || "";
-          const initials = rowData.initials || "";
-
-          const dName = `${firstName}${displayInitials} ${lastName}`.trim().replace(/\s+/g, " ");
-          const email = rowData.email || computeEmailByTemplate(
-            firstName,
-            lastName,
-            emailTemplate,
-            globalBulkConfig.adSettingsId,
-            globalBulkConfig.m365SettingsId,
-            initials
-          );
-
-          parsedRows.push({
-            id: `csv-${i}-${Math.random().toString(36).substring(2, 6)}`,
-            firstName,
-            initials,
-            lastName,
-            displayName: dName,
-            email: email,
-            password: shuffledPassword,
-            jobTitle: rowData.jobtitle || rowData["job title"] || "Systems Engineer",
-            department: rowData.department || departmentsList[0]?.name || "Engineering",
-            office: rowData.office || officesList[0]?.name || "Bangalore HQ",
-            officePhone: rowData.officephone || rowData["office phone"] || "",
-            faxNumber: "",
-            mobileNumber: rowData.mobilenumber || rowData["mobile number"] || "555-0199",
-            streetAddress: "100 Main St",
-            city: "Bangalore",
-            stateProvince: "KA",
-            zipPostalCode: "560001",
-            countryRegion: "India"
-          });
-        }
-
-        if (parsedRows.length === 0) {
-          alert("Could not parse any valid rows from the CSV file.");
-          return;
-        }
-
-        setBulkUsersList(parsedRows);
-        alert(`Successfully imported ${parsedRows.length} users from CSV!`);
-      } catch (err) {
-        console.error("Error reading CSV file:", err);
-        alert("Failed to parse the CSV file. Please make sure the structure is correct.");
+      const lines = text.split(/\r?\n/);
+      if (lines.length <= 1) {
+        alert("CSV file seems to be empty or missing header rows.");
+        return;
       }
-    };
-    reader.readAsText(file);
-    e.target.value = "";
+
+      const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+      const parsedRows: any[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const cols = line.split(",").map(c => c.trim());
+        if (cols.length < headers.length) continue;
+
+        const rowData: Record<string, string> = {};
+        headers.forEach((header, index) => {
+          rowData[header] = cols[index] || "";
+        });
+
+        // Generate complex GPO password
+        const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const lower = "abcdefghijklmnopqrstuvwxyz";
+        const numbers = "0123456789";
+        const symbols = "!@#$%^&*()_+=-";
+        let pass = "";
+        for (let k = 0; k < 3; k++) pass += upper.charAt(Math.floor(Math.random() * upper.length));
+        for (let k = 0; k < 3; k++) pass += lower.charAt(Math.floor(Math.random() * lower.length));
+        for (let k = 0; k < 3; k++) pass += numbers.charAt(Math.floor(Math.random() * numbers.length));
+        for (let k = 0; k < 3; k++) pass += symbols.charAt(Math.floor(Math.random() * symbols.length));
+        for (let k = 0; k < 2; k++) pass += lower.charAt(Math.floor(Math.random() * lower.length));
+        const shuffledPassword = pass.split('').sort(() => 0.5 - Math.random()).join('');
+
+        const displayInitials = rowData.initials ? ` ${rowData.initials}` : "";
+        const firstName = rowData.firstname || rowData["first name"] || "";
+        const lastName = rowData.lastname || rowData["last name"] || "";
+        const initials = rowData.initials || "";
+
+        const dName = `${firstName}${displayInitials} ${lastName}`.trim().replace(/\s+/g, " ");
+        const email = rowData.email || computeEmailByTemplate(
+          firstName,
+          lastName,
+          emailTemplate,
+          getActiveDomain(adSettingsList, m365SettingsList, globalBulkConfig.adSettingsId, globalBulkConfig.m365SettingsId),
+          initials
+        );
+
+        parsedRows.push({
+          id: `csv-${i}-${Math.random().toString(36).substring(2, 6)}`,
+          firstName,
+          initials,
+          lastName,
+          displayName: dName,
+          email: email,
+          password: shuffledPassword,
+          jobTitle: rowData.jobtitle || rowData["job title"] || "Systems Engineer",
+          department: rowData.department || departmentsList[0]?.name || "Engineering",
+          office: rowData.office || officesList[0]?.name || "Bangalore HQ",
+          officePhone: rowData.officephone || rowData["office phone"] || "",
+          faxNumber: "",
+          mobileNumber: rowData.mobilenumber || rowData["mobile number"] || "555-0199",
+          streetAddress: "100 Main St",
+          city: "Bangalore",
+          stateProvince: "KA",
+          zipPostalCode: "560001",
+          countryRegion: "India"
+        });
+      }
+
+      if (parsedRows.length === 0) {
+        alert("Could not parse any valid rows from the CSV file.");
+        return;
+      }
+
+      setBulkUsersList(parsedRows);
+      alert(`Successfully imported ${parsedRows.length} users from CSV!`);
+    } catch (err) {
+      console.error("Error reading CSV file:", err);
+      alert("Failed to parse the CSV file. Please make sure the structure is correct.");
+    } finally {
+      e.target.value = "";
+    }
   };
 
   const handleBulkCreateUserSubmit = async (e: any) => {
@@ -733,6 +1005,11 @@ export default function UserManagementPage() {
       return;
     }
 
+    if (item === "User Creation Templates") {
+      setShowTemplatesWorkspace(true);
+      return;
+    }
+
     if (item === "Create Bulk Users" || item === "Create Users") {
       const adId = adSettingsList[0]?.id || "";
       const m365Id = m365SettingsList[0]?.id || "";
@@ -743,7 +1020,9 @@ export default function UserManagementPage() {
         adSettingsId: adId,
         m365SettingsId: m365Id,
         m365License: "Microsoft 365 E5",
-        createWithoutLicense: false
+        createWithoutLicense: false,
+        targetOu: "",
+        adGroupDn: ""
       });
       
       setBulkUsersList([
@@ -903,24 +1182,25 @@ export default function UserManagementPage() {
           { name: "Bulk User Modification", active: false }
         ]}
         onItemClick={handleItemClick}
+        onPrimaryActionClick={() => handleItemClick("Create Single User")}
       />
 
       {/* Single User Creation Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-5 border-b border-white/5 flex justify-between items-center shrink-0">
+            <div className="p-5 border-b border-slate-200/50 dark:border-white/5 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-indigo-400 animate-pulse" />
-                <h2 className="text-lg font-bold text-white font-outfit">
+                <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400 animate-pulse" />
+                <h2 className="text-lg font-bold text-slate-800 dark:text-white font-outfit">
                   User Creation Wizard
                 </h2>
               </div>
               <button 
                 type="button" 
                 onClick={() => setIsModalOpen(false)} 
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1015,46 +1295,61 @@ export default function UserManagementPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* LEFT PANEL: ACCOUNT BASICS & TARGETING */}
                     <div className="space-y-6">
-                      <div className="bg-slate-950/40 p-4 border border-white/5 rounded-2xl space-y-4">
-                        <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5 pb-2 border-b border-white/5">
+                      <div className="bg-slate-50/50 dark:bg-slate-950/40 p-4 border border-slate-200/50 dark:border-white/5 rounded-2xl space-y-4">
+                        <h3 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1.5 pb-2 border-b border-slate-200/50 dark:border-white/5">
                           <Info className="h-3.5 w-3.5" /> 1. Account Basics
                         </h3>
+
+                        {/* User Creation Template Dropdown */}
+                        <div className="space-y-1.5">
+                          <label htmlFor="user-template-select" className="text-xs font-medium text-slate-600 dark:text-slate-300">User Creation Template</label>
+                          <select 
+                            id="user-template-select"
+                            value={singleUserFormData.selectedTemplate}
+                            onChange={e => handleUserTemplateChange(e.target.value)}
+                            className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                          >
+                            {allTemplates.map(t => (
+                              <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                          </select>
+                        </div>
 
                         {/* First Name, Initials & Last Name */}
                         <div className="grid grid-cols-12 gap-3">
                           <div className="col-span-5 space-y-1.5">
-                            <label htmlFor="user-first-name" className="text-xs font-medium text-slate-300">First Name</label>
+                            <label htmlFor="user-first-name" className="text-xs font-medium text-slate-600 dark:text-slate-300">First Name</label>
                             <input 
                               id="user-first-name"
                               type="text" 
                               required
                               value={singleUserFormData.firstName} 
                               onChange={e => handleNameChange("firstName", e.target.value)}
-                              className="w-full bg-slate-950/70 border border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                              className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                               placeholder="e.g. John"
                             />
                           </div>
                           <div className="col-span-2 space-y-1.5">
-                            <label htmlFor="user-initials" className="text-xs font-medium text-slate-300">Initials</label>
+                            <label htmlFor="user-initials" className="text-xs font-medium text-slate-600 dark:text-slate-300">Initials</label>
                             <input 
                               id="user-initials"
                               type="text" 
                               value={singleUserFormData.initials} 
                               onChange={e => handleInitialsChange(e.target.value)}
-                              className="w-full bg-slate-950/70 border border-slate-700/60 focus:border-indigo-500 rounded-xl px-2 py-2 text-sm text-center text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-semibold"
+                              className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-2 py-2 text-sm text-center text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-semibold"
                               placeholder="M"
                               maxLength={3}
                             />
                           </div>
                           <div className="col-span-5 space-y-1.5">
-                            <label htmlFor="user-last-name" className="text-xs font-medium text-slate-300">Last Name</label>
+                            <label htmlFor="user-last-name" className="text-xs font-medium text-slate-600 dark:text-slate-300">Last Name</label>
                             <input 
                               id="user-last-name"
                               type="text" 
                               required
                               value={singleUserFormData.lastName} 
                               onChange={e => handleNameChange("lastName", e.target.value)}
-                              className="w-full bg-slate-950/70 border border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                              className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                               placeholder="e.g. Doe"
                             />
                           </div>
@@ -1062,28 +1357,28 @@ export default function UserManagementPage() {
 
                         {/* Display Name (Strictly Calculated and Read-Only) */}
                         <div className="space-y-1.5">
-                          <label htmlFor="user-display-name" className="text-xs font-medium text-slate-300 flex items-center justify-between">
+                          <label htmlFor="user-display-name" className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center justify-between">
                             <span>Display Name</span>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">(Read Only)</span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">(Read Only)</span>
                           </label>
                           <input 
                             id="user-display-name"
                             type="text" 
                             disabled
                             value={singleUserFormData.displayName}
-                            className="w-full bg-slate-900 border border-white/5 rounded-xl px-3.5 py-2 text-sm text-slate-400 outline-none cursor-not-allowed opacity-80"
+                            className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-xl px-3.5 py-2 text-sm text-slate-500 dark:text-slate-400 outline-none cursor-not-allowed opacity-80"
                             placeholder="Automatically compiled"
                           />
                         </div>
 
                         {/* Email Format Template Selection */}
                         <div className="space-y-1.5">
-                          <label htmlFor="email-template-select" className="text-xs font-medium text-slate-300">Email Format Template</label>
+                          <label htmlFor="email-template-select" className="text-xs font-medium text-slate-600 dark:text-slate-300">Email Format Template</label>
                           <select 
                             id="email-template-select"
                             value={emailTemplate}
                             onChange={e => handleTemplateChange(e.target.value)}
-                            className="w-full bg-slate-950/70 border border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
                           >
                             {EMAIL_TEMPLATES.map(t => (
                               <option key={t.id} value={t.id}>{t.label}</option>
@@ -1093,7 +1388,7 @@ export default function UserManagementPage() {
 
                         {/* Email ID & Availability Checker */}
                         <div className="space-y-1.5">
-                          <label htmlFor="user-email" className="text-xs font-medium text-slate-300">Email Address (UPN)</label>
+                          <label htmlFor="user-email" className="text-xs font-medium text-slate-600 dark:text-slate-300">Email Address (UPN)</label>
                           <div className="relative">
                             <input 
                               id="user-email"
@@ -1104,24 +1399,24 @@ export default function UserManagementPage() {
                                 setSingleUserFormData({ ...singleUserFormData, email: e.target.value });
                                 checkEmailAvailability(e.target.value);
                               }}
-                              className="w-full bg-slate-950/70 border border-slate-700/60 focus:border-indigo-500 rounded-xl pl-3.5 pr-28 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                              className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl pl-3.5 pr-28 py-2 text-sm text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                               placeholder="e.g. john.doe@company.com"
                             />
                             
                             {/* Availability status badge inside input */}
                             <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                               {checkingEmail && (
-                                <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                                  <Loader2 className="h-3 w-3 animate-spin text-indigo-400" /> checking
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                  <Loader2 className="h-3 w-3 animate-spin text-indigo-500" /> checking
                                 </span>
                               )}
                               {!checkingEmail && emailAvailable === true && (
-                                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                                   <CheckCircle2 className="h-2.5 w-2.5" /> Available
                                 </span>
                               )}
                               {!checkingEmail && emailAvailable === false && (
-                                <span className="text-[10px] text-red-400 font-bold bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                <span className="text-[10px] text-red-600 dark:text-red-400 font-bold bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                                   <XCircle className="h-2.5 w-2.5" /> Taken
                                 </span>
                               )}
@@ -1131,9 +1426,9 @@ export default function UserManagementPage() {
 
                         {/* Automatic GPO-Based Password Generator */}
                         <div className="space-y-1.5">
-                          <label htmlFor="user-password" className="text-xs font-medium text-slate-300 flex items-center justify-between">
+                          <label htmlFor="user-password" className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center justify-between">
                             <span>Password</span>
-                            <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider flex items-center gap-0.5">
+                            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider flex items-center gap-0.5">
                               <Key className="h-2.5 w-2.5" /> AD GPO Policy Enforced
                             </span>
                           </label>
@@ -1144,13 +1439,13 @@ export default function UserManagementPage() {
                               required
                               value={singleUserFormData.password}
                               onChange={e => setSingleUserFormData({ ...singleUserFormData, password: e.target.value })}
-                              className="flex-1 bg-slate-950/70 border border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-mono"
+                              className="flex-1 bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-mono"
                               placeholder="AD complexity rule"
                             />
                             <button
                               type="button"
                               onClick={generateAdGpoPassword}
-                              className="px-3.5 bg-slate-800 border border-slate-700 text-slate-200 hover:text-white rounded-xl flex items-center gap-1 hover:bg-slate-700 transition-all font-semibold text-xs whitespace-nowrap"
+                              className="px-3.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white rounded-xl flex items-center gap-1 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all font-semibold text-xs whitespace-nowrap"
                             >
                               Generate
                             </button>
@@ -1159,70 +1454,70 @@ export default function UserManagementPage() {
                       </div>
 
                       {/* DIRECTORIES TARGETS & M365 LICENSE MANAGEMENT */}
-                      <div className="bg-slate-950/40 p-4 border border-white/5 rounded-2xl space-y-4">
-                        <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5 pb-2 border-b border-white/5">
+                      <div className="bg-slate-50/50 dark:bg-slate-950/40 p-4 border border-slate-200/50 dark:border-white/5 rounded-2xl space-y-4">
+                        <h3 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1.5 pb-2 border-b border-slate-200/50 dark:border-white/5">
                           <Server className="h-3.5 w-3.5" /> 2. Directory Connections & Licensing
                         </h3>
 
                         {/* Active Directory target switch */}
                         <div className={`p-4 rounded-xl border transition-all ${
                           singleUserFormData.createInAd 
-                            ? "bg-indigo-500/5 border-indigo-500/25" 
-                            : "bg-slate-950/20 border-white/5 hover:border-white/10"
+                            ? "bg-indigo-500/5 dark:bg-indigo-500/5 border-indigo-500/25" 
+                            : "bg-slate-50/50 dark:bg-slate-950/20 border-slate-200/50 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
                         }`}>
                           <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm font-medium text-white flex items-center gap-1.5">
-                              <Server className="h-4 w-4 text-indigo-400" /> Active Directory (AD)
+                            <span className="text-sm font-medium text-slate-800 dark:text-white flex items-center gap-1.5">
+                              <Server className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> Active Directory (AD)
                             </span>
                             <input 
                               type="checkbox"
                               checked={singleUserFormData.createInAd}
                               onChange={e => setSingleUserFormData({ ...singleUserFormData, createInAd: e.target.checked })}
-                              className="h-4.5 w-4.5 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                              className="h-4.5 w-4.5 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                             />
                           </div>
                           {singleUserFormData.createInAd && (
                             <div className="space-y-3">
                               <div className="space-y-1.5">
-                                <label htmlFor="ad-domain-select" className="text-[11px] font-semibold text-slate-400">Target AD Domain Settings</label>
+                                <label htmlFor="ad-domain-select" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Target AD Domain Settings</label>
                                 {adSettingsList.length > 0 ? (
                                   <select 
                                     id="ad-domain-select"
                                     value={singleUserFormData.adSettingsId}
                                     onChange={e => handleDomainChange("ad", e.target.value)}
-                                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-white outline-none focus:ring-1 focus:ring-indigo-500"
+                                    className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-2 text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
                                   >
                                     {adSettingsList.map(a => (
                                       <option key={a.id} value={a.id}>{a.domainName} ({a.adServerIp})</option>
                                     ))}
                                   </select>
                                 ) : (
-                                  <p className="text-[11px] text-amber-400 flex items-center gap-1">
+                                  <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
                                     <ShieldAlert className="h-3 w-3" /> No AD integrations configured.
                                   </p>
                                 )}
                               </div>
 
                               <div className="space-y-1.5">
-                                <label htmlFor="ad-target-ou" className="text-[11px] font-semibold text-slate-400">Target Organizational Unit (OU)</label>
+                                <label htmlFor="ad-target-ou" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Target Organizational Unit (OU)</label>
                                 <input 
                                   id="ad-target-ou"
                                   type="text" 
                                   value={singleUserFormData.targetOu}
                                   onChange={e => setSingleUserFormData({ ...singleUserFormData, targetOu: e.target.value })}
-                                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-white outline-none focus:ring-1 focus:ring-indigo-500"
+                                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-2 text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
                                   placeholder="e.g. CN=Users (default) or OU=Employees"
                                 />
                               </div>
 
                               <div className="space-y-1.5">
-                                <label htmlFor="ad-target-group" className="text-[11px] font-semibold text-slate-400">Target AD Security Group (CN / DN)</label>
+                                <label htmlFor="ad-target-group" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Target AD Security Group (CN / DN)</label>
                                 <input 
                                   id="ad-target-group"
                                   type="text" 
                                   value={singleUserFormData.adGroupDn}
                                   onChange={e => setSingleUserFormData({ ...singleUserFormData, adGroupDn: e.target.value })}
-                                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-white outline-none focus:ring-1 focus:ring-indigo-500"
+                                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-2 text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
                                   placeholder="e.g. CN=Domain Admins,CN=Users"
                                 />
                               </div>
@@ -1233,64 +1528,64 @@ export default function UserManagementPage() {
                         {/* Microsoft 365 / Entra ID target switch & dynamic license */}
                         <div className={`p-4 rounded-xl border transition-all ${
                           singleUserFormData.createInM365 
-                            ? "bg-sky-500/5 border-sky-500/25" 
-                            : "bg-slate-950/20 border-white/5 hover:border-white/10"
+                            ? "bg-sky-500/5 dark:bg-sky-500/5 border-sky-500/25" 
+                            : "bg-slate-50/50 dark:bg-slate-950/20 border-slate-200/50 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
                         }`}>
                           <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm font-medium text-white flex items-center gap-1.5">
-                              <Cloud className="h-4 w-4 text-sky-400" /> Microsoft 365 / O365
+                            <span className="text-sm font-medium text-slate-800 dark:text-white flex items-center gap-1.5">
+                              <Cloud className="h-4 w-4 text-sky-600 dark:text-sky-400" /> Microsoft 365 / O365
                             </span>
                             <input 
                               type="checkbox"
                               checked={singleUserFormData.createInM365}
                               onChange={e => setSingleUserFormData({ ...singleUserFormData, createInM365: e.target.checked })}
-                              className="h-4.5 w-4.5 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                              className="h-4.5 w-4.5 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                             />
                           </div>
                           {singleUserFormData.createInM365 && (
                             <div className="space-y-4 pt-1">
                               {/* Domain select */}
                               <div className="space-y-1.5">
-                                <label htmlFor="m365-tenant-select" className="text-[11px] font-semibold text-slate-400">Target Microsoft Tenant</label>
+                                <label htmlFor="m365-tenant-select" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Target Microsoft Tenant</label>
                                 {m365SettingsList.length > 0 ? (
                                   <select 
                                     id="m365-tenant-select"
                                     value={singleUserFormData.m365SettingsId}
                                     onChange={e => handleDomainChange("m365", e.target.value)}
-                                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-white outline-none focus:ring-1 focus:ring-indigo-500"
+                                    className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-2 text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
                                   >
                                     {m365SettingsList.map(m => (
                                       <option key={m.id} value={m.id}>{m.microsoftDomain || m.azureTenantId}</option>
                                     ))}
                                   </select>
                                 ) : (
-                                  <p className="text-[11px] text-amber-400 flex items-center gap-1">
+                                  <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
                                     <ShieldAlert className="h-3 w-3" /> No M365 integrations configured.
                                   </p>
                                 )}
                               </div>
 
                               {/* License Checkbox & Dropdown selection */}
-                              <div className="bg-slate-950/60 p-3 rounded-lg border border-white/5 space-y-3">
+                              <div className="bg-slate-100/80 dark:bg-slate-950/60 p-3 rounded-lg border border-slate-200/50 dark:border-white/5 space-y-3">
                                 <div className="flex items-center justify-between">
-                                  <label htmlFor="user-no-license" className="text-[11px] font-semibold text-slate-300">Create user without license</label>
+                                  <label htmlFor="user-no-license" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Create user without license</label>
                                   <input 
                                     id="user-no-license"
                                     type="checkbox"
                                     checked={singleUserFormData.createWithoutLicense}
                                     onChange={e => setSingleUserFormData({ ...singleUserFormData, createWithoutLicense: e.target.checked })}
-                                    className="h-4 w-4 rounded border-slate-800 bg-slate-950 text-sky-600 focus:ring-sky-500 cursor-pointer"
+                                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sky-600 focus:ring-sky-500 cursor-pointer"
                                   />
                                 </div>
 
                                 {!singleUserFormData.createWithoutLicense && (
                                   <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
-                                    <label htmlFor="m365-license-select" className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Available Licenses SKU</label>
+                                    <label htmlFor="m365-license-select" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Available Licenses SKU</label>
                                     <select 
                                       id="m365-license-select"
                                       value={singleUserFormData.m365License}
                                       onChange={e => setSingleUserFormData({ ...singleUserFormData, m365License: e.target.value })}
-                                      className="w-full text-xs bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-white outline-none focus:ring-1 focus:ring-sky-500"
+                                      className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1.5 text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-sky-500"
                                     >
                                       {M365_LICENSES.map(l => (
                                         <option key={l.id} value={l.id}>{l.name}</option>
@@ -1307,33 +1602,33 @@ export default function UserManagementPage() {
 
                     {/* RIGHT PANEL: ENTERPRISE PROFILE INFORMATION */}
                     <div className="space-y-6">
-                      <div className="bg-slate-950/40 p-4 border border-white/5 rounded-2xl space-y-4">
-                        <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5 pb-2 border-b border-white/5">
+                      <div className="bg-slate-50/50 dark:bg-slate-950/40 p-4 border border-slate-200/50 dark:border-white/5 rounded-2xl space-y-4">
+                        <h3 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1.5 pb-2 border-b border-slate-200/50 dark:border-white/5">
                           <Sparkles className="h-3.5 w-3.5" /> 3. Profile Information
                         </h3>
 
                         {/* Job Title & Department */}
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1.5">
-                            <label htmlFor="user-job-title" className="text-xs font-medium text-slate-300">Job Title / Designation *</label>
+                            <label htmlFor="user-job-title" className="text-xs font-medium text-slate-600 dark:text-slate-300">Job Title / Designation *</label>
                             <input 
                               id="user-job-title"
                               type="text" 
                               required
                               value={singleUserFormData.jobTitle} 
                               onChange={e => setSingleUserFormData({ ...singleUserFormData, jobTitle: e.target.value })}
-                              className="w-full bg-slate-950/70 border border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                              className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                               placeholder="e.g. Systems Engineer"
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label htmlFor="user-department" className="text-xs font-medium text-slate-300">Department</label>
+                            <label htmlFor="user-department" className="text-xs font-medium text-slate-600 dark:text-slate-300">Department</label>
                             {departmentsList.length > 0 ? (
                               <select 
                                 id="user-department"
                                 value={singleUserFormData.department}
                                 onChange={e => setSingleUserFormData({ ...singleUserFormData, department: e.target.value })}
-                                className="w-full bg-slate-950/70 border border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                                className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                               >
                                 <option value="">-- Choose Department --</option>
                                 {departmentsList.map(d => (
@@ -1346,7 +1641,7 @@ export default function UserManagementPage() {
                                 type="text"
                                 value={singleUserFormData.department} 
                                 onChange={e => setSingleUserFormData({ ...singleUserFormData, department: e.target.value })}
-                                className="w-full bg-slate-950/70 border border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                                className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                                 placeholder="e.g. Engineering"
                               />
                             )}
@@ -1355,28 +1650,28 @@ export default function UserManagementPage() {
 
                         {/* Office Selection */}
                         <div className="space-y-1.5">
-                          <label htmlFor="user-office" className="text-xs font-medium text-slate-300">Office / Location *</label>
+                          <label htmlFor="user-office" className="text-xs font-medium text-slate-600 dark:text-slate-300">Office / Location *</label>
                           {officesList.length > 0 ? (
                             <select 
                               id="user-office"
                               required
                               value={singleUserFormData.office}
                               onChange={e => setSingleUserFormData({ ...singleUserFormData, office: e.target.value })}
-                              className="w-full bg-slate-950/70 border border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                              className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                             >
                               <option value="">-- Choose Office --</option>
                               {officesList.map(o => (
                                 <option key={o.id} value={o.name}>{o.name} ({o.city || 'Headquarters'})</option>
                               ))}
                             </select>
-                          ) : (
+                           ) : (
                             <input 
                               id="user-office"
                               type="text" 
                               required
                               value={singleUserFormData.office} 
                               onChange={e => setSingleUserFormData({ ...singleUserFormData, office: e.target.value })}
-                              className="w-full bg-slate-950/70 border border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                              className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-sm text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                               placeholder="e.g. New York HQ"
                             />
                           )}
@@ -1385,75 +1680,75 @@ export default function UserManagementPage() {
                         {/* Phones & Fax */}
                         <div className="grid grid-cols-3 gap-2">
                           <div className="col-span-1 space-y-1.5">
-                            <label htmlFor="user-office-phone" className="text-[11px] font-semibold text-slate-400">Office Phone</label>
+                            <label htmlFor="user-office-phone" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Office Phone</label>
                             <input 
                               id="user-office-phone"
                               type="text" 
                               value={singleUserFormData.officePhone} 
                               onChange={e => setSingleUserFormData({ ...singleUserFormData, officePhone: e.target.value })}
-                              className="w-full bg-slate-950/70 border border-slate-700/50 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                              className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                               placeholder="Phone"
                             />
                           </div>
                           <div className="col-span-1 space-y-1.5">
-                            <label htmlFor="user-fax" className="text-[11px] font-semibold text-slate-400">Fax Number</label>
+                            <label htmlFor="user-fax" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Fax Number</label>
                             <input 
                               id="user-fax"
                               type="text" 
                               value={singleUserFormData.faxNumber} 
                               onChange={e => setSingleUserFormData({ ...singleUserFormData, faxNumber: e.target.value })}
-                              className="w-full bg-slate-950/70 border border-slate-700/50 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                              className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                               placeholder="Fax"
                             />
                           </div>
                           <div className="col-span-1 space-y-1.5">
-                            <label htmlFor="user-mobile" className="text-[11px] font-semibold text-slate-300">Mobile Phone *</label>
+                            <label htmlFor="user-mobile" className="text-[11px] font-semibold text-slate-600 dark:text-slate-350">Mobile Phone *</label>
                             <input 
                               id="user-mobile"
                               type="text" 
                               required
                               value={singleUserFormData.mobileNumber} 
                               onChange={e => setSingleUserFormData({ ...singleUserFormData, mobileNumber: e.target.value })}
-                              className="w-full bg-slate-950/70 border border-slate-700/50 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                              className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                               placeholder="Mobile"
                             />
                           </div>
                         </div>
 
                         {/* Mailing Address Section */}
-                        <div className="pt-2 border-t border-white/5 space-y-3">
+                        <div className="pt-2 border-t border-slate-200/50 dark:border-white/5 space-y-3">
                           <div className="space-y-1.5">
-                            <label htmlFor="user-street" className="text-[11px] font-semibold text-slate-400">Street Address</label>
+                            <label htmlFor="user-street" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Street Address</label>
                             <input 
                               id="user-street"
                               type="text" 
                               value={singleUserFormData.streetAddress} 
                               onChange={e => setSingleUserFormData({ ...singleUserFormData, streetAddress: e.target.value })}
-                              className="w-full bg-slate-950/70 border border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                              className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                               placeholder="e.g. 100 Main St"
                             />
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
-                              <label htmlFor="user-city" className="text-[11px] font-semibold text-slate-400">City</label>
+                              <label htmlFor="user-city" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">City</label>
                               <input 
                                 id="user-city"
                                 type="text" 
                                 value={singleUserFormData.city} 
                                 onChange={e => setSingleUserFormData({ ...singleUserFormData, city: e.target.value })}
-                                className="w-full bg-slate-950/70 border border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                                className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                                 placeholder="City"
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label htmlFor="user-state" className="text-[11px] font-semibold text-slate-400">State / Province</label>
+                              <label htmlFor="user-state" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">State / Province</label>
                               <input 
                                 id="user-state"
                                 type="text" 
                                 value={singleUserFormData.stateProvince} 
                                 onChange={e => setSingleUserFormData({ ...singleUserFormData, stateProvince: e.target.value })}
-                                className="w-full bg-slate-950/70 border border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                                className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                                 placeholder="State"
                               />
                             </div>
@@ -1461,24 +1756,24 @@ export default function UserManagementPage() {
 
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
-                              <label htmlFor="user-zip" className="text-[11px] font-semibold text-slate-400">Zip / Postal Code</label>
+                              <label htmlFor="user-zip" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Zip / Postal Code</label>
                               <input 
                                 id="user-zip"
                                 type="text" 
                                 value={singleUserFormData.zipPostalCode} 
                                 onChange={e => setSingleUserFormData({ ...singleUserFormData, zipPostalCode: e.target.value })}
-                                className="w-full bg-slate-950/70 border border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                                className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                                 placeholder="Zip"
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label htmlFor="user-country" className="text-[11px] font-semibold text-slate-400">Country / Region</label>
+                              <label htmlFor="user-country" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Country / Region</label>
                               <input 
                                 id="user-country"
                                 type="text" 
                                 value={singleUserFormData.countryRegion} 
                                 onChange={e => setSingleUserFormData({ ...singleUserFormData, countryRegion: e.target.value })}
-                                className="w-full bg-slate-950/70 border border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                                className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                                 placeholder="Country"
                               />
                             </div>
@@ -1489,11 +1784,11 @@ export default function UserManagementPage() {
                   </div>
 
                   {/* Submission buttons */}
-                  <div className="pt-4 border-t border-white/5 flex gap-3 justify-end shrink-0">
+                  <div className="pt-4 border-t border-slate-200/50 dark:border-white/5 flex gap-3 justify-end shrink-0">
                     <button 
                       type="button" 
                       onClick={() => setIsModalOpen(false)}
-                      className="px-5 py-2.5 bg-slate-800 text-slate-200 rounded-xl hover:bg-slate-700 transition-colors font-semibold text-sm"
+                      className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-semibold text-sm"
                     >
                       Cancel
                     </button>
@@ -1514,19 +1809,19 @@ export default function UserManagementPage() {
       {/* Bulk User Creation Modal */}
       {isBulkModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-7xl max-h-[96vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-7xl max-h-[96vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="p-5 border-b border-white/5 flex justify-between items-center shrink-0">
+            <div className="p-5 border-b border-slate-200/50 dark:border-white/5 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-indigo-400 animate-pulse" />
-                <h2 className="text-lg font-bold text-white font-outfit">
+                <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400 animate-pulse" />
+                <h2 className="text-lg font-bold text-slate-800 dark:text-white font-outfit">
                   Bulk User Creation Wizard
                 </h2>
               </div>
               <button 
                 type="button" 
                 onClick={() => setIsBulkModalOpen(false)} 
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1542,16 +1837,21 @@ export default function UserManagementPage() {
                       <span>⚡ PETRUS BATCH PROVISIONING SYSTEM v2.1</span>
                       <span className="text-[10px] bg-indigo-500/20 px-2 py-0.5 rounded text-indigo-300 animate-pulse">Running Batch...</span>
                     </div>
-                    {creationLogs.map((log, idx) => (
-                      <div key={idx} className={`leading-relaxed ${
-                        log.includes("[ERROR]") ? "text-red-400 font-bold" :
-                        log.includes("[SIMULATION]") ? "text-amber-400/90" :
-                        log.includes("[System] Successfully") || log.includes("completed successfully") ? "text-emerald-400 font-semibold" :
-                        "text-slate-300"
-                      }`}>
-                        {log}
-                      </div>
-                    ))}
+                    {creationLogs.map((log) => {
+                      let logClass = "text-slate-300";
+                      if (log.includes("[ERROR]")) {
+                        logClass = "text-red-400 font-bold";
+                      } else if (log.includes("[SIMULATION]")) {
+                        logClass = "text-amber-400/90";
+                      } else if (log.includes("[System] Successfully") || log.includes("completed successfully")) {
+                        logClass = "text-emerald-400 font-semibold";
+                      }
+                      return (
+                        <div key={log} className={`leading-relaxed ${logClass}`}>
+                          {log}
+                        </div>
+                      );
+                    })}
                     {isCreatingUser && (
                       <div className="flex items-center gap-2 text-indigo-400 mt-2">
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1583,26 +1883,26 @@ export default function UserManagementPage() {
               ) : (
                 <form onSubmit={handleBulkCreateUserSubmit} className="space-y-6">
                   {/* Top Bar Configs */}
-                  <div className="bg-slate-950/40 p-5 border border-white/5 rounded-2xl space-y-4">
+                  <div className="bg-slate-50/50 dark:bg-slate-950/40 p-5 border border-slate-200/50 dark:border-white/5 rounded-2xl space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       {/* Active Directory Global Toggle */}
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">1. Target AD Connection</label>
-                        <div className="flex items-center gap-3 bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5">
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">1. Target AD Connection</span>
+                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-white/5 rounded-xl px-3 py-2.5">
                           <input 
                             type="checkbox"
                             checked={globalBulkConfig.createInAd}
                             onChange={e => setGlobalBulkConfig({ ...globalBulkConfig, createInAd: e.target.checked })}
-                            className="h-4 w-4 rounded border-slate-700 bg-slate-950 text-indigo-650 focus:ring-indigo-500 cursor-pointer"
+                            className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-indigo-650 focus:ring-indigo-500 cursor-pointer"
                           />
                           <select 
                             value={globalBulkConfig.adSettingsId}
                             disabled={!globalBulkConfig.createInAd}
                             onChange={e => setGlobalBulkConfig({ ...globalBulkConfig, adSettingsId: e.target.value })}
-                            className="text-xs bg-transparent text-white outline-none flex-1 disabled:opacity-40"
+                            className="text-xs bg-transparent text-slate-800 dark:text-white outline-none flex-1 disabled:opacity-40"
                           >
                             {adSettingsList.map(a => (
-                              <option key={a.id} value={a.id} className="bg-slate-900">{a.domainName}</option>
+                              <option key={a.id} value={a.id} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">{a.domainName}</option>
                             ))}
                           </select>
                         </div>
@@ -1610,22 +1910,22 @@ export default function UserManagementPage() {
 
                       {/* M365 Global Toggle */}
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">2. Target Microsoft 365</label>
-                        <div className="flex items-center gap-3 bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5">
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">2. Target Microsoft 365</span>
+                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-white/5 rounded-xl px-3 py-2.5">
                           <input 
                             type="checkbox"
                             checked={globalBulkConfig.createInM365}
                             onChange={e => setGlobalBulkConfig({ ...globalBulkConfig, createInM365: e.target.checked })}
-                            className="h-4 w-4 rounded border-slate-700 bg-slate-950 text-indigo-650 focus:ring-indigo-500 cursor-pointer"
+                            className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-indigo-650 focus:ring-indigo-500 cursor-pointer"
                           />
                           <select 
                             value={globalBulkConfig.m365SettingsId}
                             disabled={!globalBulkConfig.createInM365}
                             onChange={e => setGlobalBulkConfig({ ...globalBulkConfig, m365SettingsId: e.target.value })}
-                            className="text-xs bg-transparent text-white outline-none flex-1 disabled:opacity-40"
+                            className="text-xs bg-transparent text-slate-800 dark:text-white outline-none flex-1 disabled:opacity-40"
                           >
                             {m365SettingsList.map(m => (
-                              <option key={m.id} value={m.id} className="bg-slate-900">{m.microsoftDomain}</option>
+                              <option key={m.id} value={m.id} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">{m.microsoftDomain}</option>
                             ))}
                           </select>
                         </div>
@@ -1633,7 +1933,7 @@ export default function UserManagementPage() {
 
                       {/* Global Email Format Template Selection */}
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">3. Email Pattern</label>
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">3. Email Pattern</span>
                         <select 
                           value={emailTemplate}
                           onChange={e => {
@@ -1646,40 +1946,39 @@ export default function UserManagementPage() {
                                 row.firstName,
                                 row.lastName,
                                 newTemplate,
-                                globalBulkConfig.adSettingsId,
-                                globalBulkConfig.m365SettingsId,
+                                getActiveDomain(adSettingsList, m365SettingsList, globalBulkConfig.adSettingsId, globalBulkConfig.m365SettingsId),
                                 row.initials
                               )
                             })));
                           }}
-                          className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-white outline-none"
+                          className="w-full text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-white/5 rounded-xl px-3 py-2.5 text-slate-800 dark:text-white outline-none"
                         >
                           {EMAIL_TEMPLATES.map(t => (
-                            <option key={t.id} value={t.id} className="bg-slate-900">{t.label.split(" (")[0]}</option>
+                            <option key={t.id} value={t.id} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">{t.label.split(" (")[0]}</option>
                           ))}
                         </select>
                       </div>
 
                       {/* M365 Licenses */}
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">4. License Option</label>
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">4. License Option</span>
                         <div className="flex items-center gap-2">
                           <select 
                             value={globalBulkConfig.m365License}
                             disabled={!globalBulkConfig.createInM365 || globalBulkConfig.createWithoutLicense}
                             onChange={e => setGlobalBulkConfig({ ...globalBulkConfig, m365License: e.target.value })}
-                            className="text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-white outline-none flex-1 disabled:opacity-40"
+                            className="text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-white/5 rounded-xl px-3 py-2.5 text-slate-800 dark:text-white outline-none flex-1 disabled:opacity-40"
                           >
                             {M365_LICENSES.map(l => (
-                              <option key={l.id} value={l.id} className="bg-slate-900">{l.id}</option>
+                              <option key={l.id} value={l.id} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">{l.id}</option>
                             ))}
                           </select>
-                          <label className="text-[10px] text-slate-400 flex items-center gap-1 shrink-0 bg-slate-900 border border-white/5 rounded-xl px-2 py-2.5 cursor-pointer">
+                          <label className="text-[10px] text-slate-600 dark:text-slate-400 flex items-center gap-1 shrink-0 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-white/5 rounded-xl px-2 py-2.5 cursor-pointer">
                             <input 
                               type="checkbox"
                               checked={globalBulkConfig.createWithoutLicense}
                               onChange={e => setGlobalBulkConfig({ ...globalBulkConfig, createWithoutLicense: e.target.checked })}
-                              className="h-3 w-3 rounded border-slate-700 bg-slate-950 text-indigo-650 cursor-pointer"
+                              className="h-3 w-3 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-indigo-650 cursor-pointer"
                             /> No License
                           </label>
                         </div>
@@ -1687,25 +1986,25 @@ export default function UserManagementPage() {
                     </div>
 
                     {globalBulkConfig.createInAd && (
-                      <div className="pt-4 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="pt-4 border-t border-slate-200/50 dark:border-white/5 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                          <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Target Organizational Unit (OU)</label>
+                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Target Organizational Unit (OU)</span>
                           <input 
                             type="text"
                             value={globalBulkConfig.targetOu}
                             onChange={e => setGlobalBulkConfig({ ...globalBulkConfig, targetOu: e.target.value })}
                             placeholder="e.g. CN=Users (default) or OU=Employees"
-                            className="w-full text-xs bg-slate-900 border border-white/5 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-white outline-none transition-all"
+                            className="w-full text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-slate-800 dark:text-white outline-none transition-all"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Target AD Security Group (CN / DN)</label>
+                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Target AD Security Group (CN / DN)</span>
                           <input 
                             type="text"
                             value={globalBulkConfig.adGroupDn}
                             onChange={e => setGlobalBulkConfig({ ...globalBulkConfig, adGroupDn: e.target.value })}
                             placeholder="e.g. CN=Domain Admins,CN=Users"
-                            className="w-full text-xs bg-slate-900 border border-white/5 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-white outline-none transition-all"
+                            className="w-full text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-slate-800 dark:text-white outline-none transition-all"
                           />
                         </div>
                       </div>
@@ -1713,15 +2012,15 @@ export default function UserManagementPage() {
                   </div>
 
                   {/* Batch Action Tools Toolbar */}
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-950/30 p-4 border border-white/5 rounded-2xl">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-50/50 dark:bg-slate-950/30 p-4 border border-slate-200/50 dark:border-white/5 rounded-2xl">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Batch Operations:</span>
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Batch Operations:</span>
                       <button
                         type="button"
                         onClick={handleLoadBulkSampleData}
-                        className="px-3.5 py-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl hover:bg-indigo-500/20 transition-all font-semibold text-xs flex items-center gap-1.5 shadow-sm"
+                        className="px-3.5 py-2 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all font-semibold text-xs flex items-center gap-1.5 shadow-sm"
                       >
-                        <Sparkles className="h-3.5 w-3.5 animate-pulse text-indigo-400" /> Load Sample Batch (5 Users)
+                        <Sparkles className="h-3.5 w-3.5 animate-pulse text-indigo-500 dark:text-indigo-400" /> Load Sample Batch (5 Users)
                       </button>
                     </div>
                     
@@ -1730,17 +2029,17 @@ export default function UserManagementPage() {
                       <button
                         type="button"
                         onClick={handleDownloadSampleCSV}
-                        className="px-3.5 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl hover:bg-emerald-500/20 transition-all font-semibold text-xs flex items-center gap-1.5 shadow-sm"
+                        className="px-3.5 py-2 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all font-semibold text-xs flex items-center gap-1.5 shadow-sm"
                       >
-                        <Download className="h-3.5 w-3.5 text-emerald-400" /> Download Sample CSV
+                        <Download className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" /> Download Sample CSV
                       </button>
 
                       {/* Import CSV */}
                       <label
                         htmlFor="bulk-csv-upload"
-                        className="px-3.5 py-2 bg-sky-500/10 border border-sky-500/20 text-sky-400 rounded-xl hover:bg-sky-500/20 transition-all font-semibold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                        className="px-3.5 py-2 bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 text-sky-650 dark:text-sky-400 rounded-xl hover:bg-sky-100 dark:hover:bg-sky-500/20 transition-all font-semibold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
                       >
-                        <Upload className="h-3.5 w-3.5 text-sky-400" /> Import CSV File
+                        <Upload className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400" /> Import CSV File
                       </label>
                       <input
                         type="file"
@@ -1754,10 +2053,10 @@ export default function UserManagementPage() {
 
 
                   {/* Bulk Table Container */}
-                  <div className="border border-white/5 rounded-2xl overflow-hidden bg-slate-950/20 max-h-[450px] overflow-y-auto">
+                  <div className="border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden bg-slate-50/50 dark:bg-slate-950/20 max-h-[450px] overflow-y-auto">
                     <table className="w-full text-left border-collapse min-w-[1000px]">
                       <thead>
-                        <tr className="bg-slate-950/70 border-b border-white/5 text-xs text-slate-400 font-bold uppercase tracking-wider">
+                        <tr className="bg-slate-100 dark:bg-slate-950/70 border-b border-slate-200 dark:border-white/5 text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                           <th className="py-3.5 px-4 w-[140px]">First Name</th>
                           <th className="py-3.5 px-2 w-[70px] text-center">Initials</th>
                           <th className="py-3.5 px-4 w-[140px]">Last Name</th>
@@ -1768,9 +2067,9 @@ export default function UserManagementPage() {
                           <th className="py-3.5 px-4 w-[40px] text-center"></th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5 text-sm text-slate-300">
+                      <tbody className="divide-y divide-slate-200 dark:divide-white/5 text-sm text-slate-700 dark:text-slate-300">
                         {bulkUsersList.map((row, idx) => (
-                          <tr key={row.id} className="hover:bg-white/[0.02] transition-colors">
+                          <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                             {/* First Name */}
                             <td className="py-2.5 px-4">
                               <input 
@@ -1778,7 +2077,7 @@ export default function UserManagementPage() {
                                 required
                                 value={row.firstName}
                                 onChange={e => handleBulkRowFieldChange(row.id, "firstName", e.target.value)}
-                                className="w-full bg-slate-950/40 border border-slate-800/80 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none"
+                                className="w-full bg-white dark:bg-slate-950/40 border border-slate-300 dark:border-slate-800/80 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
                                 placeholder="First"
                               />
                             </td>
@@ -1789,7 +2088,7 @@ export default function UserManagementPage() {
                                 type="text"
                                 value={row.initials}
                                 onChange={e => handleBulkRowFieldChange(row.id, "initials", e.target.value)}
-                                className="w-full bg-slate-950/40 border border-slate-800/80 focus:border-indigo-500 rounded-lg px-1 py-1.5 text-xs text-center text-white outline-none font-bold uppercase"
+                                className="w-full bg-white dark:bg-slate-950/40 border border-slate-300 dark:border-slate-800/80 focus:border-indigo-500 rounded-lg px-1 py-1.5 text-xs text-center text-slate-800 dark:text-white outline-none font-bold uppercase"
                                 placeholder="M"
                                 maxLength={3}
                               />
@@ -1802,7 +2101,7 @@ export default function UserManagementPage() {
                                 required
                                 value={row.lastName}
                                 onChange={e => handleBulkRowFieldChange(row.id, "lastName", e.target.value)}
-                                className="w-full bg-slate-950/40 border border-slate-800/80 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none"
+                                className="w-full bg-white dark:bg-slate-950/40 border border-slate-300 dark:border-slate-800/80 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
                                 placeholder="Last"
                               />
                             </td>
@@ -1814,7 +2113,7 @@ export default function UserManagementPage() {
                                 required
                                 value={row.email}
                                 onChange={e => handleBulkRowFieldChange(row.id, "email", e.target.value)}
-                                className="w-full bg-slate-950/80 border border-slate-800/60 text-slate-400 rounded-lg px-2.5 py-1.5 text-xs outline-none"
+                                className="w-full bg-slate-100 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-800/60 text-slate-500 dark:text-slate-400 rounded-lg px-2.5 py-1.5 text-xs outline-none"
                                 placeholder="e.g. john.doe@domain.com"
                               />
                             </td>
@@ -1827,14 +2126,14 @@ export default function UserManagementPage() {
                                   required
                                   value={row.password}
                                   onChange={e => handleBulkRowFieldChange(row.id, "password", e.target.value)}
-                                  className="w-full bg-slate-950/40 border border-slate-800/80 focus:border-indigo-500 rounded-lg px-2 py-1.5 text-[10px] text-white outline-none font-mono"
+                                  className="w-full bg-white dark:bg-slate-950/40 border border-slate-300 dark:border-slate-800/80 focus:border-indigo-500 rounded-lg px-2 py-1.5 text-[10px] text-slate-800 dark:text-white outline-none font-mono"
                                   placeholder="Auto-generated"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => handleBulkRowPasswordGenerate(row.id)}
                                   title="Regenerate complex password"
-                                  className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded hover:text-white transition-colors shrink-0"
+                                  className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded hover:text-slate-900 dark:hover:text-white transition-colors shrink-0"
                                 >
                                   <Key className="h-3 w-3" />
                                 </button>
@@ -1848,7 +2147,7 @@ export default function UserManagementPage() {
                                 required
                                 value={row.jobTitle}
                                 onChange={e => handleBulkRowFieldChange(row.id, "jobTitle", e.target.value)}
-                                className="w-full bg-slate-950/40 border border-slate-800/80 focus:border-indigo-500 rounded-lg px-2 py-1.5 text-xs text-white outline-none"
+                                className="w-full bg-white dark:bg-slate-950/40 border border-slate-300 dark:border-slate-800/80 focus:border-indigo-500 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
                                 placeholder="e.g. Analyst"
                               />
                             </td>
@@ -1859,10 +2158,10 @@ export default function UserManagementPage() {
                                 <select 
                                   value={row.office}
                                   onChange={e => handleBulkRowFieldChange(row.id, "office", e.target.value)}
-                                  className="w-full bg-slate-950/40 border border-slate-800/80 rounded-lg px-1.5 py-1.5 text-xs text-white outline-none"
+                                  className="w-full bg-white dark:bg-slate-950/40 border border-slate-300 dark:border-slate-800/80 rounded-lg px-1.5 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
                                 >
                                   {officesList.map(o => (
-                                    <option key={o.id} value={o.name}>{o.name}</option>
+                                    <option key={o.id} value={o.name} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">{o.name}</option>
                                   ))}
                                 </select>
                               ) : (
@@ -1871,7 +2170,7 @@ export default function UserManagementPage() {
                                   required
                                   value={row.office}
                                   onChange={e => handleBulkRowFieldChange(row.id, "office", e.target.value)}
-                                  className="w-full bg-slate-950/40 border border-slate-800/80 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none"
+                                  className="w-full bg-white dark:bg-slate-950/40 border border-slate-300 dark:border-slate-800/80 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
                                   placeholder="Office Location"
                                 />
                               )}
@@ -1899,18 +2198,18 @@ export default function UserManagementPage() {
                     <button
                       type="button"
                       onClick={handleAddBulkRow}
-                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl transition-all font-semibold text-xs flex items-center gap-1.5 shadow"
+                      className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white rounded-xl transition-all font-semibold text-xs flex items-center gap-1.5 shadow"
                     >
                       <Plus className="h-4 w-4" /> Add Row
                     </button>
                   </div>
 
                   {/* Submission buttons */}
-                  <div className="pt-4 border-t border-white/5 flex gap-3 justify-end shrink-0">
+                  <div className="pt-4 border-t border-slate-200/50 dark:border-white/5 flex gap-3 justify-end shrink-0">
                     <button 
                       type="button" 
                       onClick={() => setIsBulkModalOpen(false)}
-                      className="px-5 py-2.5 bg-slate-800 text-slate-200 rounded-xl hover:bg-slate-700 transition-colors font-semibold text-sm"
+                      className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-semibold text-sm"
                     >
                       Cancel
                     </button>
@@ -1925,6 +2224,912 @@ export default function UserManagementPage() {
                 </form>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Creation Templates Workspace Modal Overlay */}
+      {showTemplatesWorkspace && (
+        <div className="fixed inset-0 z-50 bg-slate-50 dark:bg-slate-950/95 overflow-y-auto flex flex-col font-outfit text-slate-800 dark:text-white animate-in fade-in duration-200">
+          {/* Top Navbar */}
+          <div className="p-4 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900/60 sticky top-0 backdrop-blur-md z-10 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <span className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
+                <Sparkles className="h-5 w-5 animate-pulse" />
+              </span>
+              <div>
+                <h1 className="text-md font-bold tracking-tight text-slate-900 dark:text-white">Petrus Enterprise Template Manager</h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Manage, map, and customize directory attributes for Active Directory and Microsoft 365 provisioning.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setShowTemplatesWorkspace(false);
+                setShowTemplateEditor(false);
+              }}
+              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-white/5 transition-all text-xs font-semibold"
+            >
+              Back to User Management
+            </button>
+          </div>
+
+          <div className="p-6 max-w-7xl mx-auto w-full flex-1 flex flex-col">
+            {/* VIEW 1: TEMPLATE LIST VIEW */}
+            {showTemplateEditor === false ? (
+              <div className="space-y-6 flex-1 flex flex-col">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-xl font-bold font-outfit text-indigo-600 dark:text-indigo-400">User Creation Templates</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Standardize account attributes, group memberships, GPO passwords, and Microsoft licenses.</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setTemplateForm(initialTemplateForm);
+                      setEditingTemplateId(null);
+                      setActiveTemplateTab("General");
+                      setShowTemplateEditor(true);
+                    }}
+                    className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all text-xs font-bold shadow-lg shadow-indigo-500/25 flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" /> Create New Template
+                  </button>
+                </div>
+
+                {/* Grid list or Table of Templates */}
+                <div className="border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900/40 backdrop-blur-md shadow-xl flex-1">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[1000px]">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-slate-950/70 border-b border-slate-200 dark:border-white/5 text-[10px] text-indigo-600 dark:text-indigo-300 font-bold uppercase tracking-wider">
+                          <th className="py-4 px-5">Template Name</th>
+                          <th className="py-4 px-4">Created By</th>
+                          <th className="py-4 px-4">Created On</th>
+                          <th className="py-4 px-4">Last Modified</th>
+                          <th className="py-4 px-4">Category</th>
+                          <th className="py-4 px-4">Target Domain</th>
+                          <th className="py-4 px-4">Description</th>
+                          <th className="py-4 px-5 text-right w-[150px]">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 dark:divide-white/5 text-xs text-slate-600 dark:text-slate-300">
+                        {customTemplates.map(t => (
+                          <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors">
+                            <td className="py-4 px-5 font-semibold text-slate-900 dark:text-white">{t.name}</td>
+                            <td className="py-4 px-4 text-slate-500 dark:text-slate-400">{t.createdBy}</td>
+                            <td className="py-4 px-4 text-slate-500 dark:text-slate-400">{t.createdOn}</td>
+                            <td className="py-4 px-4 text-slate-500 dark:text-slate-400">{t.lastModified}</td>
+                            <td className="py-4 px-4">
+                              <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md font-semibold border border-slate-200 dark:border-white/5">{t.category}</span>
+                            </td>
+                            <td className="py-4 px-4 text-indigo-600 dark:text-indigo-400 font-semibold">{t.domainName}</td>
+                            <td className="py-4 px-4 text-slate-500 dark:text-slate-400 max-w-[200px] truncate">{t.description}</td>
+                            <td className="py-4 px-5 text-right space-x-2.5">
+                              {/* Edit */}
+                              <button
+                                onClick={() => {
+                                  // Populate form with template attributes mapped from t.data or defaults
+                                  setTemplateForm({
+                                    name: t.name,
+                                    description: t.description,
+                                    domain: t.domainName === "All Domains" ? "petrus.io" : t.domainName,
+                                    category: t.category,
+                                    activeDirectory: t.data.createInAd,
+                                    microsoft365: t.data.createInM365,
+                                    
+                                    // General
+                                    firstName: "",
+                                    initials: "",
+                                    lastName: "",
+                                    logonNameFormat: "FirstName + LastName",
+                                    logonPre2000: "PETRUS\\",
+                                    fullNameFormat: "Same as logonname",
+                                    displayNameFormat: "Same as logonname",
+                                    employeeId: "",
+                                    descriptionGeneral: "",
+                                    office: t.data.office || "",
+                                    telephoneNumber: "",
+                                    emailFormat: "Same as logonname",
+                                    webPage: "",
+                                    selectContainer: t.data.targetOu || "CN=Users,DC=petrus,DC=io",
+                                    protectFromDeletion: false,
+
+                                    // Account
+                                    passwordOption: "Random",
+                                    customPassword: "",
+                                    memberOf: t.data.adGroupDn?.replace("CN=", "").split(",")[0] || "Domain Users",
+                                    logonScript: "",
+                                    profilePath: "",
+                                    homeFolderOption: "Local",
+                                    homeFolderPath: "",
+                                    userMustChangePassword: true,
+                                    userCannotChangePassword: false,
+                                    passwordNeverExpires: false,
+                                    accountDisabled: false,
+                                    smartCardRequired: false,
+
+                                    // Contact
+                                    homePhone: "",
+                                    pager: "",
+                                    mobile: "",
+                                    fax: "",
+                                    ipPhone: "",
+                                    notes: "",
+                                    title: t.data.jobTitle || "",
+                                    department: t.data.department || "",
+                                    company: "",
+                                    manager: "",
+                                    street: "",
+                                    poBox: "",
+                                    city: "",
+                                    stateProvince: "",
+                                    zipPostalCode: "",
+                                    country: "",
+
+                                    // Microsoft 365
+                                    m365License: t.data.m365License || "Microsoft 365 E5",
+                                    createWithoutLicense: t.data.createWithoutLicense || false
+                                  });
+                                  setEditingTemplateId(t.id);
+                                  setActiveTemplateTab("General");
+                                  setShowTemplateEditor(true);
+                                }}
+                                className="px-2.5 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all font-semibold"
+                              >
+                                Edit
+                              </button>
+
+                              {/* Duplicate */}
+                              <button
+                                onClick={async () => {
+                                  const dateStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+                                  const duplicate = {
+                                    ...t,
+                                    id: `tpl-${Math.random().toString(36).substring(2, 9)}`,
+                                    name: `Copy of ${t.name}`,
+                                    createdOn: dateStr,
+                                    lastModified: dateStr,
+                                  };
+                                  await saveTemplateToBackend(duplicate);
+                                  alert(`Successfully duplicated template as 'Copy of ${t.name}'!`);
+                                }}
+                                className="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all font-semibold"
+                              >
+                                Copy
+                              </button>
+
+                              {/* Delete */}
+                              <button
+                                onClick={async () => {
+                                  if (confirm(`Are you sure you want to delete template '${t.name}'?`)) {
+                                    await deleteTemplateFromBackend(t.id);
+                                  }
+                                }}
+                                className="px-2.5 py-1.5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-all font-semibold"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* VIEW 2: TEMPLATE CREATOR / EDITOR WIZARD */
+              <div className="space-y-6 flex-1 flex flex-col bg-white dark:bg-slate-900/40 p-6 border border-slate-200 dark:border-white/5 rounded-3xl backdrop-blur-md">
+                <div className="flex justify-between items-center border-b border-slate-200 dark:border-white/5 pb-4">
+                  <div>
+                    <h2 className="text-lg font-bold font-outfit text-indigo-600 dark:text-indigo-400">
+                      {editingTemplateId ? "Modify Template Properties" : "Create New User Provisioning Template"}
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Configure default properties across Active Directory and O365 fields.</p>
+                  </div>
+                  <button
+                    onClick={() => setShowTemplateEditor(false)}
+                    className="px-3.5 py-2 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-slate-100 dark:text-slate-200 rounded-xl transition-all text-xs font-semibold border border-slate-700 dark:border-white/5 shadow-sm"
+                  >
+                    View Templates
+                  </button>
+                </div>
+
+                {/* Domain & Template Basics Inputs */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50 dark:bg-slate-950/30 p-5 border border-slate-200 dark:border-white/5 rounded-2xl">
+                  <div className="space-y-1.5">
+                    <span className="block text-xs font-medium text-slate-700 dark:text-slate-300">Template Name *</span>
+                    <input
+                      type="text"
+                      required
+                      value={templateForm.name}
+                      onChange={e => setTemplateForm(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                      placeholder="e.g. Finance Staff Template"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <span className="block text-xs font-medium text-slate-700 dark:text-slate-300">Description</span>
+                    <textarea
+                      value={templateForm.description}
+                      onChange={e => setTemplateForm(prev => ({ ...prev, description: e.target.value }))}
+                      className="w-full bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3.5 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none h-9 resize-none"
+                      placeholder="Template purpose..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <span className="block text-xs font-medium text-slate-700 dark:text-slate-300">Select Domain</span>
+                      <select
+                        value={templateForm.domain}
+                        onChange={e => setTemplateForm(prev => ({ ...prev, domain: e.target.value }))}
+                        className="w-full bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                      >
+                        <option value="petrus.io">petrus.io</option>
+                        <option value="company.local">company.local</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <span className="block text-xs font-medium text-slate-700 dark:text-slate-300">Category</span>
+                      <select
+                        value={templateForm.category}
+                        onChange={e => setTemplateForm(prev => ({ ...prev, category: e.target.value }))}
+                        className="w-full bg-white dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/60 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                      >
+                        <option value="Default">Default</option>
+                        <option value="test">test</option>
+                        <option value="Location">Location</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Target Directories checkboxes */}
+                <div className="flex gap-6 items-center bg-slate-50 dark:bg-slate-950/20 p-4 border border-slate-200 dark:border-white/5 rounded-2xl text-xs font-semibold">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="active-directory-cb"
+                      checked={templateForm.activeDirectory}
+                      onChange={e => setTemplateForm(prev => ({ ...prev, activeDirectory: e.target.checked }))}
+                      className="rounded border-slate-300 dark:border-slate-700/80 bg-white dark:bg-slate-950 text-indigo-500 focus:ring-0 w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor="active-directory-cb" className="text-slate-700 dark:text-slate-200 cursor-pointer">Active Directory</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="microsoft-365-cb"
+                      checked={templateForm.microsoft365}
+                      onChange={e => setTemplateForm(prev => ({ ...prev, microsoft365: e.target.checked }))}
+                      className="rounded border-slate-300 dark:border-slate-700/80 bg-white dark:bg-slate-950 text-indigo-500 focus:ring-0 w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor="microsoft-365-cb" className="text-slate-700 dark:text-slate-200 cursor-pointer">Microsoft 365</label>
+                  </div>
+                </div>
+
+                {/* Tabs bar */}
+                <div className="flex border-b border-slate-200 dark:border-white/5 shrink-0 overflow-x-auto gap-1">
+                  {["General", "Account", "Contact", "Microsoft 365"].map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTemplateTab(tab)}
+                      className={`px-5 py-3 text-xs font-bold transition-all relative ${
+                        activeTemplateTab === tab
+                          ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500"
+                          : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Dynamic Tab Body Container */}
+                <div className="flex-1 overflow-y-auto p-2">
+                  
+                  {/* TAB 1: GENERAL */}
+                  {activeTemplateTab === "General" && (
+                    <div className="space-y-6 max-w-4xl">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div className="space-y-1.5">
+                          <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">First Name</span>
+                          <input
+                            type="text"
+                            value={templateForm.firstName}
+                            onChange={e => setTemplateForm(prev => ({ ...prev, firstName: e.target.value }))}
+                            className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500/20 outline-none"
+                            placeholder="Predefined or leave empty"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Initials</span>
+                          <input
+                            type="text"
+                            value={templateForm.initials}
+                            onChange={e => setTemplateForm(prev => ({ ...prev, initials: e.target.value }))}
+                            className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500/20 outline-none"
+                            placeholder="Predefined or leave empty"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Last Name</span>
+                          <input
+                            type="text"
+                            value={templateForm.lastName}
+                            onChange={e => setTemplateForm(prev => ({ ...prev, lastName: e.target.value }))}
+                            className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500/20 outline-none"
+                            placeholder="Predefined or leave empty"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="space-y-1.5">
+                          <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Logon Name Format *</span>
+                          <div className="flex gap-2">
+                            <select
+                              value={templateForm.logonNameFormat}
+                              onChange={e => setTemplateForm(prev => ({ ...prev, logonNameFormat: e.target.value }))}
+                              className="flex-1 bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500/20 outline-none"
+                            >
+                              <option value="FirstName + LastName">FirstName + LastName</option>
+                              <option value="LastName + FirstName">LastName + FirstName</option>
+                              <option value="FirstInitial + LastName">FirstInitial + LastName</option>
+                              <option value="FirstName + LastInitial">FirstName + LastInitial</option>
+                            </select>
+                            <span className="text-slate-400 py-1.5">@</span>
+                            <input
+                              type="text"
+                              value={templateForm.domain}
+                              onChange={e => setTemplateForm(prev => ({ ...prev, domain: e.target.value }))}
+                              className="w-[180px] bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Logon name (pre-Windows 2000)</span>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={templateForm.logonPre2000}
+                              onChange={e => setTemplateForm(prev => ({ ...prev, logonPre2000: e.target.value }))}
+                              className="w-[120px] bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none font-mono"
+                            />
+                            <select
+                              className="flex-1 bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                            >
+                              <option>Same as logonname</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="space-y-1.5">
+                          <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Full name format</span>
+                          <select
+                            value={templateForm.fullNameFormat}
+                            onChange={e => setTemplateForm(prev => ({ ...prev, fullNameFormat: e.target.value }))}
+                            className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                          >
+                            <option value="Same as logonname">Same as logonname</option>
+                            <option value="FirstName + LastName">FirstName + LastName</option>
+                          </select>
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Display name format</span>
+                          <select
+                            value={templateForm.displayNameFormat}
+                            onChange={e => setTemplateForm(prev => ({ ...prev, displayNameFormat: e.target.value }))}
+                            className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                          >
+                            <option value="Same as logonname">Same as logonname</option>
+                            <option value="FirstName + LastName">FirstName + LastName</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div className="space-y-1.5">
+                          <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Employee ID</span>
+                          <input
+                            type="text"
+                            value={templateForm.employeeId}
+                            onChange={e => setTemplateForm(prev => ({ ...prev, employeeId: e.target.value }))}
+                            className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                            placeholder="Employee ID"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Description</span>
+                          <input
+                            type="text"
+                            value={templateForm.descriptionGeneral}
+                            onChange={e => setTemplateForm(prev => ({ ...prev, descriptionGeneral: e.target.value }))}
+                            className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                            placeholder="AD Object Description"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Office</span>
+                          <select
+                            value={templateForm.office}
+                            onChange={e => setTemplateForm(prev => ({ ...prev, office: e.target.value }))}
+                            className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                          >
+                            <option value="">-- Select/specify a value --</option>
+                            <option value="San Francisco HQ">San Francisco HQ</option>
+                            <option value="New York HQ">New York HQ</option>
+                            <option value="Austin Branch">Austin Branch</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="space-y-1.5">
+                          <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Telephone number</span>
+                          <input
+                            type="text"
+                            value={templateForm.telephoneNumber}
+                            onChange={e => setTemplateForm(prev => ({ ...prev, telephoneNumber: e.target.value }))}
+                            className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                            placeholder="Office phone"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Email Format</span>
+                          <select
+                            value={templateForm.emailFormat}
+                            onChange={e => setTemplateForm(prev => ({ ...prev, emailFormat: e.target.value }))}
+                            className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                          >
+                            <option value="Same as logonname">Same as logonname</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Select Container (OU Path) *</span>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            required
+                            value={templateForm.selectContainer}
+                            onChange={e => setTemplateForm(prev => ({ ...prev, selectContainer: e.target.value }))}
+                            className="flex-1 bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none font-mono"
+                          />
+                          <button
+                            type="button"
+                            className="px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold border border-slate-200 dark:border-white/5"
+                            onClick={() => setTemplateForm(prev => ({ ...prev, selectContainer: "OU=Employees,DC=petrus,DC=io" }))}
+                          >
+                            Browse OU
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2">
+                        <input
+                          type="checkbox"
+                          id="protect-del-cb"
+                          checked={templateForm.protectFromDeletion}
+                          onChange={e => setTemplateForm(prev => ({ ...prev, protectFromDeletion: e.target.checked }))}
+                          className="rounded border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-950 text-indigo-500 w-4 h-4"
+                        />
+                        <label htmlFor="protect-del-cb" className="text-xs text-slate-600 dark:text-slate-300 cursor-pointer">Protect object from accidental deletion</label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 2: ACCOUNT */}
+                  {activeTemplateTab === "Account" && (
+                    <div className="space-y-6 max-w-4xl">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 dark:bg-slate-950/20 p-5 border border-slate-200 dark:border-white/5 rounded-2xl">
+                        {/* Left Column: Password settings */}
+                        <div className="space-y-4">
+                          <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest pb-1 border-b border-slate-200 dark:border-white/5">Password/Group/Profile</h4>
+                          
+                          <div className="space-y-3 text-xs text-slate-700 dark:text-slate-300">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                id="pwd-opt-rand"
+                                name="pwd-opt"
+                                checked={templateForm.passwordOption === "Random"}
+                                onChange={() => setTemplateForm(prev => ({ ...prev, passwordOption: "Random" }))}
+                                className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-500"
+                              />
+                              <label htmlFor="pwd-opt-rand" className="cursor-pointer">Random Password (AD GPO Compliant)</label>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="radio"
+                                id="pwd-opt-policy"
+                                name="pwd-opt"
+                                checked={templateForm.passwordOption === "Policy"}
+                                onChange={() => setTemplateForm(prev => ({ ...prev, passwordOption: "Policy" }))}
+                                className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-500"
+                              />
+                              <label htmlFor="pwd-opt-policy" className="cursor-pointer">Use Password Policy</label>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  id="pwd-opt-custom"
+                                  name="pwd-opt"
+                                  checked={templateForm.passwordOption === "Custom"}
+                                  onChange={() => setTemplateForm(prev => ({ ...prev, passwordOption: "Custom" }))}
+                                  className="bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-500"
+                                />
+                                <label htmlFor="pwd-opt-custom" className="cursor-pointer">Type a Password</label>
+                              </div>
+                              {templateForm.passwordOption === "Custom" && (
+                                <input
+                                  type="password"
+                                  value={templateForm.customPassword}
+                                  onChange={e => setTemplateForm(prev => ({ ...prev, customPassword: e.target.value }))}
+                                  className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                                  placeholder="Enter custom default password"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right Column: Group & Profile */}
+                        <div className="space-y-4">
+                          <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest pb-1 border-b border-slate-200 dark:border-white/5">AD Security Group (Member Of)</h4>
+                          <div className="space-y-1.5">
+                            <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Member of Group CN *</span>
+                            <input
+                              type="text"
+                              value={templateForm.memberOf}
+                              onChange={e => setTemplateForm(prev => ({ ...prev, memberOf: e.target.value }))}
+                              className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none font-mono"
+                              placeholder="Domain Users"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 pt-2">
+                            <div className="space-y-1.5">
+                              <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Logon script</span>
+                              <input
+                                type="text"
+                                value={templateForm.logonScript}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, logonScript: e.target.value }))}
+                                className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                                placeholder="script.bat"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Profile Path</span>
+                              <input
+                                type="text"
+                                value={templateForm.profilePath}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, profilePath: e.target.value }))}
+                                className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                                placeholder="\\server\profiles\"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Account Properties */}
+                      <div className="bg-slate-50 dark:bg-slate-950/20 p-5 border border-slate-200 dark:border-white/5 rounded-2xl space-y-4">
+                        <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest pb-1 border-b border-slate-200 dark:border-white/5">Account Properties</h4>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-700 dark:text-slate-300">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id="ac-prop-change"
+                                checked={templateForm.userMustChangePassword}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, userMustChangePassword: e.target.checked }))}
+                                className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-500 w-4 h-4"
+                              />
+                              <label htmlFor="ac-prop-change" className="cursor-pointer">User must change password at next logon</label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id="ac-prop-no-change"
+                                checked={templateForm.userCannotChangePassword}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, userCannotChangePassword: e.target.checked }))}
+                                className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-500 w-4 h-4"
+                              />
+                              <label htmlFor="ac-prop-no-change" className="cursor-pointer">User cannot change password</label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id="ac-prop-expire"
+                                checked={templateForm.passwordNeverExpires}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, passwordNeverExpires: e.target.checked }))}
+                                className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-500 w-4 h-4"
+                              />
+                              <label htmlFor="ac-prop-expire" className="cursor-pointer">Password never expires</label>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id="ac-prop-disabled"
+                                checked={templateForm.accountDisabled}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, accountDisabled: e.target.checked }))}
+                                className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-500 w-4 h-4"
+                              />
+                              <label htmlFor="ac-prop-disabled" className="cursor-pointer">Account is disabled</label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id="ac-prop-smart"
+                                checked={templateForm.smartCardRequired}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, smartCardRequired: e.target.checked }))}
+                                className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-500 w-4 h-4"
+                              />
+                              <label htmlFor="ac-prop-smart" className="cursor-pointer">Smart card is required for interactive login</label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 3: CONTACT */}
+                  {activeTemplateTab === "Contact" && (
+                    <div className="space-y-6 max-w-4xl">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 dark:bg-slate-950/20 p-5 border border-slate-200 dark:border-white/5 rounded-2xl">
+                        {/* Telephone / Organization */}
+                        <div className="space-y-4">
+                          <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest pb-1 border-b border-slate-200 dark:border-white/5">Telephone/Organization</h4>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Home Phone</span>
+                              <input
+                                type="text"
+                                value={templateForm.homePhone}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, homePhone: e.target.value }))}
+                                className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Mobile</span>
+                              <input
+                                type="text"
+                                value={templateForm.mobile}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, mobile: e.target.value }))}
+                                className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Fax</span>
+                              <input
+                                type="text"
+                                value={templateForm.fax}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, fax: e.target.value }))}
+                                className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Pager</span>
+                              <input
+                                type="text"
+                                value={templateForm.pager}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, pager: e.target.value }))}
+                                className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Designation / Title</span>
+                            <input
+                              type="text"
+                              value={templateForm.title}
+                              onChange={e => setTemplateForm(prev => ({ ...prev, title: e.target.value }))}
+                              className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                              placeholder="e.g. Sales Specialist"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Department</span>
+                              <input
+                                type="text"
+                                value={templateForm.department}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, department: e.target.value }))}
+                                className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                                placeholder="Sales"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Company</span>
+                              <input
+                                type="text"
+                                value={templateForm.company}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, company: e.target.value }))}
+                                className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                                placeholder="Petrus Corp"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Address */}
+                        <div className="space-y-4">
+                          <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest pb-1 border-b border-slate-200 dark:border-white/5">Address</h4>
+                          
+                          <div className="space-y-1.5">
+                            <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Street</span>
+                            <textarea
+                              value={templateForm.street}
+                              onChange={e => setTemplateForm(prev => ({ ...prev, street: e.target.value }))}
+                              className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1 text-xs text-slate-800 dark:text-white outline-none h-11 resize-none"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">City</span>
+                              <input
+                                type="text"
+                                value={templateForm.city}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, city: e.target.value }))}
+                                className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">State/Province</span>
+                              <input
+                                type="text"
+                                value={templateForm.stateProvince}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, stateProvince: e.target.value }))}
+                                className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Zip/Postal Code</span>
+                              <input
+                                type="text"
+                                value={templateForm.zipPostalCode}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, zipPostalCode: e.target.value }))}
+                                className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <span className="block text-[11px] font-medium text-slate-600 dark:text-slate-300">Country</span>
+                              <input
+                                type="text"
+                                value={templateForm.country}
+                                onChange={e => setTemplateForm(prev => ({ ...prev, country: e.target.value }))}
+                                className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white outline-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 4: MICROSOFT 365 */}
+                  {activeTemplateTab === "Microsoft 365" && (
+                    <div className="space-y-6 max-w-4xl bg-slate-50 dark:bg-slate-950/20 p-5 border border-slate-200 dark:border-white/5 rounded-2xl">
+                      <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest pb-1 border-b border-slate-200 dark:border-white/5">Microsoft 365 / Entra ID Licensing</h4>
+                      
+                      <div className="space-y-4 max-w-md">
+                        <div className="space-y-1.5">
+                          <span className="block text-xs font-medium text-slate-600 dark:text-slate-300">M365 Licensing SKU</span>
+                          <select
+                            value={templateForm.m365License}
+                            onChange={e => setTemplateForm(prev => ({ ...prev, m365License: e.target.value }))}
+                            className="w-full bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-white outline-none"
+                          >
+                            {M365_LICENSES.map(lic => (
+                              <option key={lic.id} value={lic.id}>{lic.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-2">
+                          <input
+                            type="checkbox"
+                            id="tpl-no-lic-cb"
+                            checked={templateForm.createWithoutLicense}
+                            onChange={e => setTemplateForm(prev => ({ ...prev, createWithoutLicense: e.target.checked }))}
+                            className="rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-indigo-500 w-4 h-4 cursor-pointer"
+                          />
+                          <label htmlFor="tpl-no-lic-cb" className="text-xs text-slate-600 dark:text-slate-300 cursor-pointer">Create user without license (assign SKU manually later)</label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+
+                {/* Footer Save / Cancel buttons */}
+                <div className="pt-4 border-t border-slate-200 dark:border-white/5 flex gap-3 justify-end shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowTemplateEditor(false)}
+                    className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition-all font-semibold text-xs border border-slate-200 dark:border-white/5"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!templateForm.name) {
+                        alert("Please enter a Template Name.");
+                        return;
+                      }
+                      
+                      const dateStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+                      
+                      const tplData = {
+                        jobTitle: templateForm.title || "Systems Engineer",
+                        department: templateForm.department || "Engineering",
+                        office: templateForm.office || "San Francisco HQ",
+                        createInAd: templateForm.activeDirectory,
+                        createInM365: templateForm.microsoft365,
+                        targetOu: templateForm.selectContainer || "CN=Users,DC=petrus,DC=io",
+                        adGroupDn: `CN=${templateForm.memberOf || 'Domain Users'},CN=Users`,
+                        m365License: templateForm.m365License,
+                        createWithoutLicense: templateForm.createWithoutLicense
+                      };
+
+                      if (editingTemplateId) {
+                        const updatedTpl = {
+                          id: editingTemplateId,
+                          name: templateForm.name,
+                          description: templateForm.description,
+                          domainName: templateForm.domain === "petrus.io" ? "All Domains" : templateForm.domain,
+                          category: templateForm.category,
+                          lastModified: dateStr,
+                          createdBy: String.raw`Petrus Directory Authority\admin`,
+                          createdOn: dateStr, // Will fall back or be preserved
+                          data: tplData
+                        };
+                        await saveTemplateToBackend(updatedTpl);
+                        alert(`Successfully modified template '${templateForm.name}'!`);
+                      } else {
+                        const newTpl = {
+                          id: `tpl-${Math.random().toString(36).substring(2, 9)}`,
+                          name: templateForm.name,
+                          createdBy: String.raw`Petrus Directory Authority\admin`,
+                          createdOn: dateStr,
+                          lastModified: dateStr,
+                          category: templateForm.category,
+                          description: templateForm.description,
+                          domainName: templateForm.domain === "petrus.io" ? "All Domains" : templateForm.domain,
+                          data: tplData
+                        };
+                        await saveTemplateToBackend(newTpl);
+                        alert(`Successfully created template '${templateForm.name}'!`);
+                      }
+
+                      setShowTemplateEditor(false);
+                    }}
+                    className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all font-semibold text-xs shadow-lg shadow-indigo-500/20"
+                  >
+                    Save Template
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

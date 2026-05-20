@@ -101,4 +101,8 @@ export class CreateSingleUserDto {
   @IsString()
   @IsOptional()
   adGroupDn?: string;
+
+  @IsString()
+  @IsOptional()
+  selectedTemplate?: string;
 }

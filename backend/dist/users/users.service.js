@@ -46,10 +46,78 @@ exports.UsersService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const ldap = __importStar(require("ldapjs"));
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
 let UsersService = class UsersService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
+    }
+    getTemplatesFilePath() {
+        return path.join(process.cwd(), 'templates.json');
+    }
+    async getTemplates() {
+        const filePath = this.getTemplatesFilePath();
+        try {
+            if (fs.existsSync(filePath)) {
+                const content = fs.readFileSync(filePath, 'utf-8');
+                return JSON.parse(content);
+            }
+        }
+        catch (err) {
+            console.error('Error reading templates file:', err);
+        }
+        const defaults = [
+            {
+                id: "default",
+                name: "Standard Employee Template",
+                createdBy: "Petrus Directory Authority\\admin",
+                createdOn: "2026-05-20 12:00:00",
+                lastModified: "2026-05-20 12:00:00",
+                category: "Default",
+                description: "Default Template to create standard domain users with common settings.",
+                domainName: "All Domains",
+                data: {
+                    jobTitle: "Systems Engineer",
+                    department: "Engineering",
+                    office: "San Francisco HQ",
+                    targetOu: "OU=Engineering,OU=Employees,DC=petrus,DC=io",
+                    adGroupDn: "CN=Dev-Group,CN=Users,DC=petrus,DC=io",
+                    createInAd: true,
+                    createInM365: false,
+                    m365License: "Microsoft 365 E5",
+                    createWithoutLicense: false
+                }
+            }
+        ];
+        this.writeTemplates(defaults);
+        return defaults;
+    }
+    writeTemplates(templates) {
+        try {
+            fs.writeFileSync(this.getTemplatesFilePath(), JSON.stringify(templates, null, 2), 'utf-8');
+        }
+        catch (err) {
+            console.error('Error writing templates file:', err);
+        }
+    }
+    async saveTemplate(template) {
+        const templates = await this.getTemplates();
+        const idx = templates.findIndex(t => t.id === template.id);
+        if (idx !== -1) {
+            templates[idx] = template;
+        }
+        else {
+            templates.push(template);
+        }
+        this.writeTemplates(templates);
+        return templates;
+    }
+    async deleteTemplate(id) {
+        const templates = await this.getTemplates();
+        const filtered = templates.filter(t => t.id !== id);
+        this.writeTemplates(filtered);
+        return filtered;
     }
     async checkAvailability(email) {
         const user = await this.prisma.user.findUnique({
@@ -58,7 +126,11 @@ let UsersService = class UsersService {
         return !user;
     }
     async createSingleUser(tenantId, dto) {
+        this.validateUserSchema(dto);
         const logs = [];
+        if (dto.selectedTemplate) {
+            logs.push(`[System] User template '${dto.selectedTemplate}' selected. Predefined template properties successfully loaded.`);
+        }
         logs.push(`[System] Initializing single user creation workflow for: ${dto.email}`);
         const isAvailable = await this.checkAvailability(dto.email);
         if (!isAvailable) {
@@ -252,6 +324,13 @@ let UsersService = class UsersService {
     }
     async provisionSingleBulkUser(tenantId, dto, logs) {
         logs.push(`\n--------------------------------------------`, `[System] Provisioning user: ${dto.firstName} ${dto.lastName} (${dto.email})`);
+        try {
+            this.validateUserSchema(dto);
+        }
+        catch (err) {
+            logs.push(`[System] [ERROR] Schema validation failed for ${dto.email}: ${err.message}. Skipping.`);
+            return false;
+        }
         const isAvailable = await this.checkAvailability(dto.email);
         if (!isAvailable) {
             logs.push(`[System] [ERROR] A user with email ${dto.email} already exists. Skipping.`);
@@ -299,6 +378,38 @@ let UsersService = class UsersService {
         }
         logs.push(`\n--------------------------------------------`, `[System] Bulk creation complete. ${createdCount} of ${users.length} users provisioned successfully.`);
         return { success: true, createdCount, logs };
+    }
+    validateUserSchema(dto) {
+        const fs = require('fs');
+        const path = require('path');
+        const schemaPath = path.join(process.cwd(), 'src/user-creation/user-attributes.schema.json');
+        if (!fs.existsSync(schemaPath)) {
+            return;
+        }
+        const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+        const requiredFields = schema.required || [];
+        for (const field of requiredFields) {
+            if (dto[field] === undefined || dto[field] === null || dto[field] === '') {
+                throw new common_1.BadRequestException(`Validation Failed: Schema attribute '${field}' is required.`);
+            }
+        }
+        for (const [key, rules] of Object.entries(schema.properties)) {
+            const value = dto[key];
+            if (value !== undefined && value !== null && value !== '') {
+                if (rules.type === 'string' && typeof value !== 'string') {
+                    throw new common_1.BadRequestException(`Validation Failed: Attribute '${key}' must be a string.`);
+                }
+                if (rules.type === 'boolean' && typeof value !== 'boolean') {
+                    throw new common_1.BadRequestException(`Validation Failed: Attribute '${key}' must be a boolean.`);
+                }
+                if (rules.minLength && typeof value === 'string' && value.length < rules.minLength) {
+                    throw new common_1.BadRequestException(`Validation Failed: Attribute '${key}' must be at least ${rules.minLength} characters.`);
+                }
+                if (rules.maxLength && typeof value === 'string' && value.length > rules.maxLength) {
+                    throw new common_1.BadRequestException(`Validation Failed: Attribute '${key}' must be at most ${rules.maxLength} characters.`);
+                }
+            }
+        }
     }
 };
 exports.UsersService = UsersService;

@@ -70,11 +70,11 @@ const INITIAL_AUDIT_LOGS: AuditLog[] = [
     status: "Success",
     objectName: "ADMPDemoTestUser1",
     actionTime: "2026-05-16 02:29:17",
-    objectDomain: "admanagerplus"
+    objectDomain: "petrus"
   },
   {
     id: "2",
-    technicianName: "ADManager Plus Admin",
+    technicianName: "Petrus Provisioning Admin",
     actionName: "Create Single User",
     actionCategory: "Create Users",
     moduleUsed: "AD Management",
@@ -82,7 +82,7 @@ const INITIAL_AUDIT_LOGS: AuditLog[] = [
     status: "Failure",
     objectName: "siva",
     actionTime: "2026-05-15 04:04:46",
-    objectDomain: "admanagerplus"
+    objectDomain: "petrus"
   },
   {
     id: "3",
@@ -94,7 +94,7 @@ const INITIAL_AUDIT_LOGS: AuditLog[] = [
     status: "Success",
     objectName: "jdoe",
     actionTime: "2026-05-14 11:20:10",
-    objectDomain: "admanagerplus"
+    objectDomain: "petrus"
   },
   {
     id: "4",
@@ -106,7 +106,7 @@ const INITIAL_AUDIT_LOGS: AuditLog[] = [
     status: "Success",
     objectName: "rjohnson",
     actionTime: "2026-05-14 10:15:30",
-    objectDomain: "admanagerplus"
+    objectDomain: "petrus"
   },
   {
     id: "5",
@@ -118,7 +118,7 @@ const INITIAL_AUDIT_LOGS: AuditLog[] = [
     status: "Success",
     objectName: "CN=SalesGroup,OU=Groups",
     actionTime: "2026-05-13 09:44:12",
-    objectDomain: "admanagerplus"
+    objectDomain: "petrus"
   },
   {
     id: "6",
@@ -130,7 +130,7 @@ const INITIAL_AUDIT_LOGS: AuditLog[] = [
     status: "Failure",
     objectName: "CN=DomainAdmin,OU=Users",
     actionTime: "2026-05-13 08:30:19",
-    objectDomain: "admanagerplus"
+    objectDomain: "petrus"
   }
 ];
 
@@ -139,7 +139,7 @@ export default function DelegationCategoryPage() {
   const rawTab = params?.tab as string;
   const tab = rawTab || "technicians";
 
-  const [domain, setDomain] = useState("ADMANPLUS");
+  const [domain, setDomain] = useState("PETRUS");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState("All");
   
@@ -164,7 +164,7 @@ export default function DelegationCategoryPage() {
 
   // Single Sign-On States
   const [ssoEnabled, setSsoEnabled] = useState(true);
-  const [ssoMetadataUrl, setSsoMetadataUrl] = useState("https://identity.admanagerplus.com/federation/metadata.xml");
+  const [ssoMetadataUrl, setSsoMetadataUrl] = useState("https://identity.petrus.io/federation/metadata.xml");
   const [ssoIssuer, setSsoIssuer] = useState("petrus-iam-saml-sp");
 
   // Allow/Restrict IPs States
@@ -183,7 +183,7 @@ export default function DelegationCategoryPage() {
     {
       id: "1",
       name: "Administratro",
-      domainName: "ADMANPLUS",
+      domainName: "PETRUS",
       description: "Built-in account for administering the computer/domain",
       delegatedRoles: "Create Users Details",
       loginName: "Administrator",
@@ -194,7 +194,7 @@ export default function DelegationCategoryPage() {
     {
       id: "2",
       name: "adminuser",
-      domainName: "ADMANPLUS",
+      domainName: "PETRUS",
       description: "Root administrator user with complete directory privileges",
       delegatedRoles: "Super Admin Details",
       loginName: "adminuser",
@@ -205,7 +205,7 @@ export default function DelegationCategoryPage() {
     {
       id: "3",
       name: "hr_assistant",
-      domainName: "ADMANPLUS",
+      domainName: "PETRUS",
       description: "Assists with onboarding and HR active directory workflows",
       delegatedRoles: "HR Specialist Details",
       loginName: "hr_assistant",
@@ -216,7 +216,7 @@ export default function DelegationCategoryPage() {
     {
       id: "4",
       name: "it_operator",
-      domainName: "ADMANPLUS",
+      domainName: "PETRUS",
       description: "IT support desk agent responsible for password resets and unlocking",
       delegatedRoles: "IT Operator Details",
       loginName: "it_operator",
@@ -227,7 +227,7 @@ export default function DelegationCategoryPage() {
     {
       id: "5",
       name: "auditor_user",
-      domainName: "ADMANPLUS",
+      domainName: "PETRUS",
       description: "Audit representative monitoring help desk activities",
       delegatedRoles: "Auditor Details",
       loginName: "auditor_user",
@@ -254,7 +254,7 @@ export default function DelegationCategoryPage() {
     {
       id: "3",
       roleName: "Modify Computers",
-      description: "Users having this role can modify computers in AD using ADManager Plus.",
+      description: "Users having this role can modify computers in AD using Petrus.",
       associatedTechnicians: "Guest"
     },
     {
@@ -863,7 +863,7 @@ export default function DelegationCategoryPage() {
                   Help Desk Audit Reports
                 </h1>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-3xl leading-relaxed">
-                  Shows the audit details of all the management actions performed by help desk technicians or admins in AD, Microsoft 365, and Exchange using ADManager Plus. <span className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">Learn more...</span>
+                  Shows the audit details of all the management actions performed by help desk technicians or admins in AD, Microsoft 365, and Exchange using Petrus. <span className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">Learn more...</span>
                 </p>
               </div>
               <div className="flex items-center space-x-4 self-end md:self-auto">
@@ -1089,7 +1089,7 @@ export default function DelegationCategoryPage() {
                 Logon Settings
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-4xl leading-relaxed">
-                Login to ADManager Plus using an authentication method other than the first factor authentication. <span className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">Learn more...</span>
+                Login to Petrus using an authentication method other than the first factor authentication. <span className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">Learn more...</span>
               </p>
             </div>
 

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Query, Body, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Param, Query, Body, UseGuards, UseInterceptors } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateSingleUserDto } from './dto/create-single-user.dto';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
@@ -13,6 +13,21 @@ import { AuditInterceptor } from '../audit/audit.interceptor';
 @UseInterceptors(AuditInterceptor)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Get('templates')
+  async getTemplates() {
+    return this.usersService.getTemplates();
+  }
+
+  @Post('templates')
+  async saveTemplate(@Body() body: any) {
+    return this.usersService.saveTemplate(body);
+  }
+
+  @Delete('templates/:id')
+  async deleteTemplate(@Param('id') id: string) {
+    return this.usersService.deleteTemplate(id);
+  }
 
   @Post('create-single')
   async createSingleUser(

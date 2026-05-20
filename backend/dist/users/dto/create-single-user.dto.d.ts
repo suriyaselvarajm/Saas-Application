@@ -24,4 +24,5 @@ export declare class CreateSingleUserDto {
     createWithoutLicense?: boolean;
     targetOu?: string;
     adGroupDn?: string;
+    selectedTemplate?: string;
 }
