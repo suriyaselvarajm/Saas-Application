@@ -11,14 +11,14 @@ vi.mock('@/components/layout/DashboardLayout', () => ({
 globalThis.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
-    json: () => Promise.resolve({ adSettings: {} }),
+    json: () => Promise.resolve({ adSettings: [] }),
   }),
 ) as any;
 
 describe('ADSettings Page', () => {
   it('renders the main heading', async () => {
     render(<ADSettings />);
-    expect(await screen.findByText(/Active Directory Integration/i)).toBeDefined();
+    expect(await screen.findByText(/Active Directory Settings/i)).toBeDefined();
   });
 
   it('contains the Save Config button', async () => {

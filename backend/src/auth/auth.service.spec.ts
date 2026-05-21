@@ -63,8 +63,8 @@ describe('AuthService', () => {
         tenantCode: 'MASTER',
         m365Settings: { azureTenantId: '1', clientId: '2', redirectUrl: '3' },
       });
-      mockPrisma.user.findFirst.mockResolvedValue({ id: 'admin', email: 'admin@petrus.io' });
-      const result = await service.login('admin@petrus.io');
+      mockPrisma.user.findFirst.mockResolvedValue({ id: 'admin', email: 'admin@petrus.io', password: 'admin' });
+      const result = await service.login('admin@petrus.io', 'admin');
       expect(result.accessToken).toContain('mock-jwt-token-for-admin');
     });
   });

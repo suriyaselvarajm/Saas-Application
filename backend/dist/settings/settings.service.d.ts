@@ -135,6 +135,11 @@ export declare class SettingsService {
         success: boolean;
         message: string;
     }>;
+    fetchAdOUs(tenantId: string, adSettingsId: string): Promise<{
+        name: string;
+        dn: string;
+        path: string;
+    }[]>;
     getOffices(tenantId: string): Promise<{
         name: string;
         country: string | null;

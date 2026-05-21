@@ -68,6 +68,11 @@ export class SettingsController {
     return this.settingsService.deleteAD(id, tenantId);
   }
 
+  @Get('ad/:id/ou')
+  fetchAdOUs(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.settingsService.fetchAdOUs(tenantId, id);
+  }
+
   @Delete('m365/:id')
   deleteM365(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.settingsService.deleteM365(id, tenantId);

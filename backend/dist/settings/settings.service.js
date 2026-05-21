@@ -166,6 +166,67 @@ let SettingsService = class SettingsService {
             client.unbind();
         }
     }
+    async fetchAdOUs(tenantId, adSettingsId) {
+        const adSettings = await this.prisma.adSettings.findFirst({
+            where: { id: adSettingsId, tenantId },
+        });
+        if (!adSettings?.bindUsername || !adSettings?.baseDn)
+            return [];
+        const { bindUsername, bindPassword, baseDn, adServerIp, port, sslEnabled } = adSettings;
+        const url = `${sslEnabled ? 'ldaps' : 'ldap'}://${adServerIp}:${port || 389}`;
+        const client = ldap.createClient({
+            url,
+            timeout: 8000,
+            connectTimeout: 8000,
+            tlsOptions: sslEnabled ? { rejectUnauthorized: false } : undefined,
+        });
+        client.on('error', (err) => console.error('OU Browse LDAP error:', err.message));
+        const parseName = (entry) => {
+            const ouVal = entry.attributes.find(a => a.type === 'ou')?.values?.[0];
+            const cnVal = entry.attributes.find(a => a.type === 'cn')?.values?.[0];
+            const dn = entry.objectName;
+            return ouVal ?? cnVal ?? dn.split(',')[0].replace(/^(ou|cn)=/i, '');
+        };
+        const parsePath = (dn) => {
+            const suffix = `,${baseDn}`;
+            return dn.endsWith(suffix) ? dn.slice(0, dn.length - suffix.length) : dn;
+        };
+        try {
+            await new Promise((resolve, reject) => {
+                client.bind(bindUsername, bindPassword ?? '', (err) => {
+                    if (err)
+                        reject(new Error(`LDAP bind failed: ${err.message}`));
+                    else
+                        resolve();
+                });
+            });
+            const results = [];
+            const filter = '(|(objectClass=organizationalUnit)(objectClass=container))';
+            await new Promise((resolve, reject) => {
+                client.search(baseDn, { scope: 'sub', filter, attributes: ['ou', 'cn'] }, (err, res) => {
+                    if (err) {
+                        reject(new Error(`LDAP search failed: ${err.message}`));
+                        return;
+                    }
+                    res.on('searchEntry', (entry) => {
+                        const dn = entry.objectName;
+                        results.push({ name: parseName(entry), dn, path: parsePath(dn) });
+                    });
+                    res.on('error', (e) => reject(new Error(`LDAP search error: ${e.message}`)));
+                    res.on('end', () => resolve());
+                });
+            });
+            results.sort((a, b) => a.dn.split(',').length - b.dn.split(',').length);
+            return results;
+        }
+        catch (err) {
+            console.error('OU fetch error:', err.message);
+            return [];
+        }
+        finally {
+            client.unbind();
+        }
+    }
     async getOffices(tenantId) {
         return this.prisma.office.findMany({ where: { tenantId } });
     }

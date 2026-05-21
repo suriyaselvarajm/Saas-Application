@@ -1,0 +1,44 @@
+[
+  {
+    "id": "default",
+    "name": "Standard Employee Template",
+    "createdBy": "Petrus Directory Authority\\admin",
+    "createdOn": "2026-05-20 12:00:00",
+    "lastModified": "2026-05-20 12:00:00",
+    "category": "Default",
+    "description": "Default Template to create standard domain users with common settings.",
+    "domainName": "All Domains",
+    "data": {
+      "jobTitle": "Systems Engineer",
+      "department": "Engineering",
+      "office": "San Francisco HQ",
+      "targetOu": "OU=Engineering,OU=Employees,DC=petrus,DC=io",
+      "adGroupDn": "CN=Dev-Group,CN=Users,DC=petrus,DC=io",
+      "createInAd": true,
+      "createInM365": false,
+      "m365License": "Microsoft 365 E5",
+      "createWithoutLicense": false
+    }
+  },
+  {
+    "id": "tpl-ttwckrl",
+    "name": "Test On-Boarding",
+    "description": "",
+    "domainName": "test.local",
+    "category": "Default",
+    "lastModified": "2026-05-21 09:02:50",
+    "createdBy": "Petrus Directory Authority\\admin",
+    "createdOn": "2026-05-21 09:02:50",
+    "data": {
+      "jobTitle": "Systems Engineer",
+      "department": "Engineering",
+      "office": "San Francisco HQ",
+      "createInAd": true,
+      "createInM365": true,
+      "targetOu": "CN=Users,DC=petrus,DC=io",
+      "adGroupDn": "CN=Domain Users,CN=Users",
+      "m365License": "Microsoft 365 E5",
+      "createWithoutLicense": false
+    }
+  }
+]

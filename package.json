@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "test:cov": "cd backend && npm run test:cov && cd ../frontend && npm run test:cov",
+    "sonar": "node sonar-run.js"
+  },
   "devDependencies": {
     "sonarqube-scanner": "^4.3.6"
   }

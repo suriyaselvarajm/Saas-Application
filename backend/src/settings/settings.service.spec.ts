@@ -10,10 +10,12 @@ describe('SettingsService', () => {
 
   const mockPrisma = {
     m365Settings: {
-      upsert: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
     },
     adSettings: {
-      upsert: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
     },
     tenant: {
       findUnique: jest.fn(),
@@ -39,20 +41,20 @@ describe('SettingsService', () => {
   });
 
   describe('updateM365', () => {
-    it('should upsert M365 settings', async () => {
+    it('should create M365 settings if no id is provided', async () => {
       const dto = { azureTenantId: 'test', clientId: 'test' } as any;
       await service.updateM365('tenant-1', dto);
-      expect(mockPrisma.m365Settings.upsert).toHaveBeenCalled();
+      expect(mockPrisma.m365Settings.create).toHaveBeenCalled();
     });
   });
 
   describe('updateAD', () => {
-    it('should upsert AD settings', async () => {
+    it('should create AD settings if no id is provided', async () => {
       // NOSONAR - test IP address
       const testIp = '192.0.2.1'; // RFC5737 TEST-NET, safe for tests
       const dto = { adServerIp: testIp, domainName: 'test.com' } as any;
       await service.updateAD('tenant-1', dto);
-      expect(mockPrisma.adSettings.upsert).toHaveBeenCalled();
+      expect(mockPrisma.adSettings.create).toHaveBeenCalled();
     });
   });
 

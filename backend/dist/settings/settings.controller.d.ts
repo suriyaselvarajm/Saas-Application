@@ -130,6 +130,11 @@ export declare class SettingsController {
         message: string;
     }>;
     deleteAD(tenantId: string, id: string): Promise<import("@prisma/client").Prisma.BatchPayload>;
+    fetchAdOUs(tenantId: string, id: string): Promise<{
+        name: string;
+        dn: string;
+        path: string;
+    }[]>;
     deleteM365(tenantId: string, id: string): Promise<import("@prisma/client").Prisma.BatchPayload>;
     getOffices(tenantId: string): Promise<{
         name: string;

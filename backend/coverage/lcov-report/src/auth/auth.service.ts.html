@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">32.72% </span>
+                <span class="strong">35.18% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>18/55</span>
+                <span class='fraction'>19/54</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">20.93% </span>
+                <span class="strong">22.22% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>9/43</span>
+                <span class='fraction'>8/36</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">31.37% </span>
+                <span class="strong">34% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>16/51</span>
+                <span class='fraction'>17/50</span>
             </div>
         
             
@@ -329,9 +329,7 @@
 <a name='L264'></a><a href='#L264'>264</a>
 <a name='L265'></a><a href='#L265'>265</a>
 <a name='L266'></a><a href='#L266'>266</a>
-<a name='L267'></a><a href='#L267'>267</a>
-<a name='L268'></a><a href='#L268'>268</a>
-<a name='L269'></a><a href='#L269'>269</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L267'></a><a href='#L267'>267</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -347,8 +345,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -392,7 +388,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -427,8 +422,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -464,16 +457,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -614,32 +610,30 @@ export class AuthService {
         include: { m365Settings: true },
       });
 &nbsp;
-      <span class="missing-if-branch" title="if path not taken" >I</span>if (!masterTenant) {
-<span class="cstat-no" title="statement not covered" >        masterTenant = await this.prisma.tenant.create({</span>
-          data: {
-            name: 'Petrus Platform Admin',
-            companyName: 'Petrus IAM',
-            domainName: 'petrus.io',
-            tenantCode: 'MASTER',
-            m365Settings: {
-              create: {
-                azureTenantId: 'petrus-master-azure-id',
-                clientId: 'petrus-master-client-id',
-                redirectUrl: 'http://localhost:3000/auth/callback',
-              },
-            },
+      masterTenant ??= await this.prisma.tenant.create({
+        data: {
+          name: 'Petrus Platform Admin',
+          companyName: 'Petrus IAM',
+          domainName: 'petrus.io',
+          tenantCode: 'MASTER',
+          m365Settings: {
+            create: [{
+              azureTenantId: 'petrus-master-azure-id',
+              clientId: 'petrus-master-client-id',
+              redirectUrl: 'http://localhost:3000/auth/callback',
+            }],
           },
-          include: { m365Settings: true },
-        });
-      }
+        },
+        include: { m365Settings: true },
+      });
 &nbsp;
       return {
         tenantId: masterTenant.id,
         tenantCode: masterTenant.tenantCode,
         name: masterTenant.name,
-        azureTenantId: masterTenant.m365Settings!.azureTenantId,
-        clientId: masterTenant.m365Settings!.clientId,
-        redirectUrl: masterTenant.m365Settings!.redirectUrl,
+        azureTenantId: masterTenant.m365Settings?.[0]?.azureTenantId,
+        clientId: masterTenant.m365Settings?.[0]?.clientId,
+        redirectUrl: masterTenant.m365Settings?.[0]?.redirectUrl,
       };
     }
 &nbsp;
@@ -657,9 +651,8 @@ export class AuthService {
     }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    if (</span>
-      !tenant.m365Settings ||
-      !tenant.m365Settings.clientId ||
-      !tenant.m365Settings.azureTenantId
+      !tenant.m365Settings?.[0]?.clientId ||
+      !tenant.m365Settings?.[0]?.azureTenantId
     ) {
 <span class="cstat-no" title="statement not covered" >      throw new HttpException(</span>
         'SSO is not configured for this tenant',
@@ -671,10 +664,10 @@ export class AuthService {
       tenantId: tenant.id,
       tenantCode: tenant.tenantCode,
       name: tenant.name,
-      azureTenantId: tenant.m365Settings.azureTenantId,
-      clientId: tenant.m365Settings.clientId,
+      azureTenantId: tenant.m365Settings[0].azureTenantId,
+      clientId: tenant.m365Settings[0].clientId,
       redirectUrl:
-        tenant.m365Settings.redirectUrl ||
+        tenant.m365Settings[0].redirectUrl ||
         'http://localhost:3000/auth/callback',
     };
   }
@@ -694,18 +687,16 @@ export class AuthService {
     });
 &nbsp;
     // Auto-provision if it's the first time admin logs in (for demo purposes)
-<span class="cstat-no" title="statement not covered" >    if (!user) {</span>
-<span class="cstat-no" title="statement not covered" >      user = await this.prisma.user.create({</span>
-        data: {
-          email: mockEmail,
-          name:
-            config.tenantCode === 'MASTER'
-              ? 'Platform Super Admin'
-              : 'Tenant Administrator',
-          tenantId: config.tenantId,
-        },
-      });
-    }
+<span class="cstat-no" title="statement not covered" >    user ??= await this.prisma.user.create({</span>
+      data: {
+        email: mockEmail,
+        name:
+          config.tenantCode === 'MASTER'
+            ? 'Platform Super Admin'
+            : 'Tenant Administrator',
+        tenantId: config.tenantId,
+      },
+    });
 &nbsp;
     // 4. Issue Platform JWT
     const platformToken = <span class="cstat-no" title="statement not covered" >`mock-jwt-token-for-${user.id}`;</span>
@@ -731,17 +722,20 @@ export class AuthService {
         where: { email, tenantId: config.tenantId },
       });
 &nbsp;
-      <span class="missing-if-branch" title="if path not taken" >I</span>if (!user) {
-<span class="cstat-no" title="statement not covered" >        user = await this.prisma.user.create({</span>
-          data: {
-            email,
-            password: 'admin',
-            name: 'Platform Super Admin',
-            tenantId: config.tenantId,
-            systemRole: 'SUPER_ADMIN',
-            mustChangePassword: false,
-          },
-        });
+      user ??= await this.prisma.user.create({
+        data: {
+          email,
+          password: 'admin',
+          name: 'Platform Super Admin',
+          tenantId: config.tenantId,
+          systemRole: 'SUPER_ADMIN',
+          mustChangePassword: false,
+        },
+      });
+&nbsp;
+      // Validate Password for Super Admin
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (user.password !== password) {
+<span class="cstat-no" title="statement not covered" >        throw new HttpException('Invalid password.', HttpStatus.UNAUTHORIZED);</span>
       }
 &nbsp;
       return {
@@ -780,7 +774,7 @@ export class AuthService {
       where: { email },
     });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    if (!user || user.tenantId !== tenant.id) {</span>
+<span class="cstat-no" title="statement not covered" >    if (user?.tenantId !== tenant.id) {</span>
 <span class="cstat-no" title="statement not covered" >      throw new HttpException(</span>
         'Unauthorized. Only registered users for this organisation can login.',
         HttpStatus.UNAUTHORIZED,
@@ -874,7 +868,7 @@ export class AuthService {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-16T17:00:54.229Z
+                at 2026-05-21T09:53:37.071Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

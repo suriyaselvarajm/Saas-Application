@@ -113,6 +113,9 @@ let AuthService = class AuthService {
                     mustChangePassword: false,
                 },
             });
+            if (user.password !== password) {
+                throw new common_1.HttpException('Invalid password.', common_1.HttpStatus.UNAUTHORIZED);
+            }
             return {
                 accessToken: `mock-jwt-token-for-${user.id}`,
                 user: {
