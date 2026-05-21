@@ -537,7 +537,12 @@ export default function UserManagementPage() {
       if (res.ok) {
         const data = await res.json();
         const customTpls = Array.isArray(data) ? data.filter(t => !["default", "engineering", "sales", "hr"].includes(t.id)) : [];
-        setCustomTemplates(customTpls);
+        setCustomTemplates(prev => {
+          const map = new Map();
+          prev.forEach(t => map.set(t.id, t));
+          customTpls.forEach((t: any) => map.set(t.id, t));
+          return Array.from(map.values());
+        });
       }
     } catch (e) {
       console.error("Failed to load templates", e);
@@ -761,22 +766,22 @@ export default function UserManagementPage() {
     setSingleUserFormData(prev => ({
       ...prev,
       selectedTemplate: templateId,
-      jobTitle:             tplData.jobTitle             || prev.jobTitle,
-      department:           tplData.department           || prev.department,
-      office:               tplData.office               || prev.office,
+      jobTitle:             tplData.jobTitle !== undefined ? tplData.jobTitle : prev.jobTitle,
+      department:           tplData.department !== undefined ? tplData.department : prev.department,
+      office:               tplData.office !== undefined ? tplData.office : prev.office,
       createInAd:           hasCreateInAd   ? tplData.createInAd   : prev.createInAd,
       createInM365:         hasCreateInM365 ? tplData.createInM365 : prev.createInM365,
-      targetOu:             tplData.targetOu             || prev.targetOu,
-      adGroupDn:            tplData.adGroupDn            || prev.adGroupDn,
-      m365License:          tplData.m365License          || prev.m365License,
+      targetOu:             tplData.targetOu !== undefined ? tplData.targetOu : prev.targetOu,
+      adGroupDn:            tplData.adGroupDn !== undefined ? tplData.adGroupDn : prev.adGroupDn,
+      m365License:          tplData.m365License !== undefined ? tplData.m365License : prev.m365License,
       createWithoutLicense: hasNoLicense ? tplData.createWithoutLicense : prev.createWithoutLicense,
       ...(customTpl ? {
-        officePhone:   customTpl.data?.telephoneNumber || prev.officePhone,
-        streetAddress: customTpl.data?.street         || prev.streetAddress,
-        city:          customTpl.data?.city           || prev.city,
-        stateProvince: customTpl.data?.stateProvince  || prev.stateProvince,
-        zipPostalCode: customTpl.data?.zipPostalCode  || prev.zipPostalCode,
-        countryRegion: customTpl.data?.country        || prev.countryRegion,
+        officePhone:   customTpl.data?.telephoneNumber !== undefined ? customTpl.data.telephoneNumber : prev.officePhone,
+        streetAddress: customTpl.data?.street !== undefined ? customTpl.data.street : prev.streetAddress,
+        city:          customTpl.data?.city !== undefined ? customTpl.data.city : prev.city,
+        stateProvince: customTpl.data?.stateProvince !== undefined ? customTpl.data.stateProvince : prev.stateProvince,
+        zipPostalCode: customTpl.data?.zipPostalCode !== undefined ? customTpl.data.zipPostalCode : prev.zipPostalCode,
+        countryRegion: customTpl.data?.country !== undefined ? customTpl.data.country : prev.countryRegion,
       } : {})
     }));
   };
