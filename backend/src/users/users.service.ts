@@ -169,8 +169,11 @@ export class UsersService {
     );
 
     const sAMAccountName = dto.email.split('@')[0];
-    const targetContainer = dto.targetOu ? dto.targetOu : 'CN=Users';
-    const userDn = `CN=${dto.displayName},${targetContainer},${ad.baseDn}`;
+    let relativeContainer = dto.targetOu ? dto.targetOu : 'CN=Users';
+    if (relativeContainer.toLowerCase().includes('dc=')) {
+      relativeContainer = relativeContainer.split(',').filter(part => !part.toLowerCase().startsWith('dc=')).join(',');
+    }
+    const userDn = `CN=${dto.displayName},${relativeContainer},${ad.baseDn}`;
 
     try {
       const client = ldap.createClient({
@@ -216,8 +219,14 @@ export class UsersService {
       if (addSuccess) {
         logs.push(`[AD] User account successfully provisioned directly in Active Directory server.`);
         
-        const groupDn = dto.adGroupDn;
+        let groupDn = dto.adGroupDn;
         if (groupDn) {
+          if (groupDn.toLowerCase().includes('dc=')) {
+            const relativeGroup = groupDn.split(',').filter(part => !part.toLowerCase().startsWith('dc=')).join(',');
+            groupDn = `${relativeGroup},${ad.baseDn}`;
+          } else {
+            groupDn = `${groupDn},${ad.baseDn}`;
+          }
           await this.addUserToAdGroup(client, userDn, groupDn, logs);
         }
 

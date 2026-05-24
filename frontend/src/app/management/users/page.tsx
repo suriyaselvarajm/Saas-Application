@@ -61,64 +61,7 @@ const TEMPLATE_COMPUTERS: Record<string, (f: string, l: string, fInit: string, l
   "firstnamelastname": (f, l) => `${f}${l}`,
 };
 
-const USER_TEMPLATES = [
-  {
-    id: "default",
-    name: "Standard Employee Template",
-    data: {
-      jobTitle: "Systems Engineer",
-      department: "Engineering",
-      targetOu: "OU=Engineering,OU=Employees",
-      adGroupDn: "CN=Dev-Group,CN=Users",
-      createInAd: true,
-      createInM365: false,
-      m365License: "Microsoft 365 E5",
-      createWithoutLicense: false
-    }
-  },
-  {
-    id: "engineering",
-    name: "Engineering Department Template",
-    data: {
-      jobTitle: "Senior Systems Architect",
-      department: "Engineering",
-      targetOu: "OU=Engineering,OU=Employees",
-      adGroupDn: "CN=Dev-Group,CN=Users",
-      createInAd: true,
-      createInM365: true,
-      m365License: "Microsoft 365 E5",
-      createWithoutLicense: false
-    }
-  },
-  {
-    id: "sales",
-    name: "Global Sales Template",
-    data: {
-      jobTitle: "Sales Specialist",
-      department: "Sales",
-      targetOu: "OU=Sales,OU=Employees",
-      adGroupDn: "CN=Sales-Group,CN=Users",
-      createInAd: true,
-      createInM365: true,
-      m365License: "Microsoft 365 E3",
-      createWithoutLicense: false
-    }
-  },
-  {
-    id: "hr",
-    name: "Human Resources Template",
-    data: {
-      jobTitle: "HR Business Partner",
-      department: "Human Resources",
-      targetOu: "OU=HR,OU=Employees",
-      adGroupDn: "CN=HR-Group,CN=Users",
-      createInAd: true,
-      createInM365: true,
-      m365License: "Office 365 F3",
-      createWithoutLicense: false
-    }
-  }
-];
+
 
 const parseList = (item: any): any[] => {
   if (Array.isArray(item)) return item;
@@ -536,7 +479,7 @@ export default function UserManagementPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        const customTpls = Array.isArray(data) ? data.filter(t => !["default", "engineering", "sales", "hr"].includes(t.id)) : [];
+        const customTpls = Array.isArray(data) ? data : [];
         setCustomTemplates(prev => {
           const map = new Map();
           prev.forEach(t => map.set(t.id, t));
@@ -744,7 +687,6 @@ export default function UserManagementPage() {
   };
 
   const allTemplates = [
-    ...USER_TEMPLATES,
     ...customTemplates.map(t => ({
       id: t.id,
       name: t.name,
@@ -760,28 +702,25 @@ export default function UserManagementPage() {
     }
     const customTpl = customTemplates.find(t => t.id === templateId);
     const tplData = template.data || {};
-    const hasCreateInAd = tplData.createInAd !== undefined;
-    const hasCreateInM365 = tplData.createInM365 !== undefined;
-    const hasNoLicense = tplData.createWithoutLicense !== undefined;
     setSingleUserFormData(prev => ({
       ...prev,
       selectedTemplate: templateId,
-      jobTitle:             tplData.jobTitle !== undefined ? tplData.jobTitle : prev.jobTitle,
-      department:           tplData.department !== undefined ? tplData.department : prev.department,
-      office:               tplData.office !== undefined ? tplData.office : prev.office,
-      createInAd:           hasCreateInAd   ? tplData.createInAd   : prev.createInAd,
-      createInM365:         hasCreateInM365 ? tplData.createInM365 : prev.createInM365,
-      targetOu:             tplData.targetOu !== undefined ? tplData.targetOu : prev.targetOu,
-      adGroupDn:            tplData.adGroupDn !== undefined ? tplData.adGroupDn : prev.adGroupDn,
-      m365License:          tplData.m365License !== undefined ? tplData.m365License : prev.m365License,
-      createWithoutLicense: hasNoLicense ? tplData.createWithoutLicense : prev.createWithoutLicense,
+      jobTitle:             tplData.jobTitle ?? prev.jobTitle,
+      department:           tplData.department ?? prev.department,
+      office:               tplData.office ?? prev.office,
+      createInAd:           tplData.createInAd ?? prev.createInAd,
+      createInM365:         tplData.createInM365 ?? prev.createInM365,
+      targetOu:             tplData.targetOu ?? prev.targetOu,
+      adGroupDn:            tplData.adGroupDn ?? prev.adGroupDn,
+      m365License:          tplData.m365License ?? prev.m365License,
+      createWithoutLicense: tplData.createWithoutLicense ?? prev.createWithoutLicense,
       ...(customTpl ? {
-        officePhone:   customTpl.data?.telephoneNumber !== undefined ? customTpl.data.telephoneNumber : prev.officePhone,
-        streetAddress: customTpl.data?.street !== undefined ? customTpl.data.street : prev.streetAddress,
-        city:          customTpl.data?.city !== undefined ? customTpl.data.city : prev.city,
-        stateProvince: customTpl.data?.stateProvince !== undefined ? customTpl.data.stateProvince : prev.stateProvince,
-        zipPostalCode: customTpl.data?.zipPostalCode !== undefined ? customTpl.data.zipPostalCode : prev.zipPostalCode,
-        countryRegion: customTpl.data?.country !== undefined ? customTpl.data.country : prev.countryRegion,
+        officePhone:   customTpl.data?.telephoneNumber ?? prev.officePhone,
+        streetAddress: customTpl.data?.street ?? prev.streetAddress,
+        city:          customTpl.data?.city ?? prev.city,
+        stateProvince: customTpl.data?.stateProvince ?? prev.stateProvince,
+        zipPostalCode: customTpl.data?.zipPostalCode ?? prev.zipPostalCode,
+        countryRegion: customTpl.data?.country ?? prev.countryRegion,
       } : {})
     }));
   };
@@ -808,6 +747,31 @@ export default function UserManagementPage() {
     });
   };
 
+  const filterSingleUserPayload = (formData: any, enabledAttrs: string[]) => {
+    const payload = { ...formData };
+    const mappings: Record<string, string> = {
+      initials: "initials",
+      title: "jobTitle",
+      department: "department",
+      office: "office",
+      telephoneNumber: "officePhone",
+      fax: "faxNumber",
+      mobile: "mobileNumber",
+      street: "streetAddress",
+      city: "city",
+      stateProvince: "stateProvince",
+      zipPostalCode: "zipPostalCode",
+      country: "countryRegion",
+      m365License: "m365License"
+    };
+    for (const [attrKey, payloadKey] of Object.entries(mappings)) {
+      if (!enabledAttrs.includes(attrKey)) {
+        payload[payloadKey] = "";
+      }
+    }
+    return payload;
+  };
+
   const handleCreateUserSubmit = async (e: any) => {
     e.preventDefault();
     if (!singleUserFormData.createInAd && !singleUserFormData.createInM365) {
@@ -825,6 +789,21 @@ export default function UserManagementPage() {
     setCreationSuccessStatus(null);
     setShowTerminal(true);
     
+    const activeTemplate = allTemplates.find(t => t.id === singleUserFormData.selectedTemplate);
+    const activeEnabledAttributes = activeTemplate?.data?.enabledAttributes || [
+      "firstName", "lastName", "initials", "logonNameFormat", "logonPre2000",
+      "fullNameFormat", "displayNameFormat", "employeeId", "office", "telephoneNumber",
+      "emailFormat", "selectContainer", "protectFromDeletion",
+      "passwordOption", "memberOf", "logonScript", "profilePath",
+      "userMustChangePassword", "userCannotChangePassword", "passwordNeverExpires",
+      "accountDisabled", "smartCardRequired",
+      "homePhone", "mobile", "fax", "title", "department", "company",
+      "street", "city", "stateProvince", "zipPostalCode", "country",
+      "m365License"
+    ];
+
+    const payload = filterSingleUserPayload(singleUserFormData, activeEnabledAttributes);
+
     try {
       const token = localStorage.getItem("petrus_token");
       const res = await fetch("http://localhost:3001/users/create-single", {
@@ -833,7 +812,7 @@ export default function UserManagementPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(singleUserFormData),
+        body: JSON.stringify(payload),
       });
       
       const data = await res.json();
@@ -1134,25 +1113,97 @@ export default function UserManagementPage() {
     }
   };
 
+  const setupSingleUserCreation = () => {
+    const adId = adSettingsList[0]?.id || "";
+    const m365Id = m365SettingsList[0]?.id || "";
+    
+    const defaultTplId = customTemplates.length > 0 ? customTemplates[0].id : "";
+    
+    const newForm = {
+      ...initialFormData,
+      password: buildGpoPassword(),
+      adSettingsId: adId,
+      m365SettingsId: m365Id,
+      office: officesList[0]?.name || "",
+      department: departmentsList[0]?.name || "",
+      selectedTemplate: defaultTplId
+    };
+    
+    if (defaultTplId) {
+      const tplData = customTemplates[0].data || {};
+      newForm.jobTitle = tplData.jobTitle ?? newForm.jobTitle;
+      newForm.department = tplData.department ?? newForm.department;
+      newForm.office = tplData.office ?? newForm.office;
+      newForm.createInAd = tplData.createInAd ?? newForm.createInAd;
+      newForm.createInM365 = tplData.createInM365 ?? newForm.createInM365;
+      newForm.targetOu = tplData.targetOu ?? newForm.targetOu;
+      newForm.adGroupDn = tplData.adGroupDn ?? newForm.adGroupDn;
+      newForm.m365License = tplData.m365License ?? newForm.m365License;
+      newForm.createWithoutLicense = tplData.createWithoutLicense ?? newForm.createWithoutLicense;
+      newForm.officePhone = customTemplates[0].data?.telephoneNumber ?? newForm.officePhone;
+      newForm.streetAddress = customTemplates[0].data?.street ?? newForm.streetAddress;
+      newForm.city = customTemplates[0].data?.city ?? newForm.city;
+      newForm.stateProvince = customTemplates[0].data?.stateProvince ?? newForm.stateProvince;
+      newForm.zipPostalCode = customTemplates[0].data?.zipPostalCode ?? newForm.zipPostalCode;
+      newForm.countryRegion = customTemplates[0].data?.country ?? newForm.countryRegion;
+    }
+    
+    setSingleUserFormData(newForm);
+    setEmailTemplate("firstname.lastname");
+    setEmailAvailable(null);
+    setShowTerminal(false);
+    setCreationLogs([]);
+    setCreationSuccessStatus(null);
+    setIsModalOpen(true);
+  };
+
+  const setupBulkUserCreation = () => {
+    const adId = adSettingsList[0]?.id || "";
+    const m365Id = m365SettingsList[0]?.id || "";
+    
+    setGlobalBulkConfig({
+      createInAd: true,
+      createInM365: false,
+      adSettingsId: adId,
+      m365SettingsId: m365Id,
+      m365License: "Microsoft 365 E5",
+      createWithoutLicense: false,
+      targetOu: "",
+      adGroupDn: ""
+    });
+    
+    setBulkUsersList([
+      {
+        id: Math.random().toString(36).substring(2, 9),
+        firstName: "",
+        initials: "",
+        lastName: "",
+        displayName: "",
+        email: "",
+        password: buildGpoPassword(),
+        jobTitle: "Systems Engineer",
+        department: departmentsList[0]?.name || "",
+        office: officesList[0]?.name || "",
+        officePhone: "",
+        faxNumber: "",
+        mobileNumber: "",
+        streetAddress: "",
+        city: "",
+        stateProvince: "",
+        zipPostalCode: "",
+        countryRegion: ""
+      }
+    ]);
+    
+    setShowTerminal(false);
+    setCreationLogs([]);
+    setCreationSuccessStatus(null);
+    setIsBulkModalOpen(true);
+  };
+
   const handleItemClick = (item: string) => {
     if (item === "Create Single User") {
-      const adId = adSettingsList[0]?.id || "";
-      const m365Id = m365SettingsList[0]?.id || "";
-      
-      setSingleUserFormData({
-        ...initialFormData,
-        password: buildGpoPassword(),
-        adSettingsId: adId,
-        m365SettingsId: m365Id,
-        office: officesList[0]?.name || "",
-        department: departmentsList[0]?.name || ""
-      });
-      setEmailTemplate("firstname.lastname");
-      setEmailAvailable(null);
-      setShowTerminal(false);
-      setCreationLogs([]);
-      setCreationSuccessStatus(null);
-      setIsModalOpen(true);
+      setupSingleUserCreation();
       return;
     }
 
@@ -1162,47 +1213,7 @@ export default function UserManagementPage() {
     }
 
     if (item === "Create Bulk Users" || item === "Create Users") {
-      const adId = adSettingsList[0]?.id || "";
-      const m365Id = m365SettingsList[0]?.id || "";
-      
-      setGlobalBulkConfig({
-        createInAd: true,
-        createInM365: false,
-        adSettingsId: adId,
-        m365SettingsId: m365Id,
-        m365License: "Microsoft 365 E5",
-        createWithoutLicense: false,
-        targetOu: "",
-        adGroupDn: ""
-      });
-      
-      setBulkUsersList([
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          firstName: "",
-          initials: "",
-          lastName: "",
-          displayName: "",
-          email: "",
-          password: buildGpoPassword(),
-          jobTitle: "Systems Engineer",
-          department: departmentsList[0]?.name || "",
-          office: officesList[0]?.name || "",
-          officePhone: "",
-          faxNumber: "",
-          mobileNumber: "",
-          streetAddress: "",
-          city: "",
-          stateProvince: "",
-          zipPostalCode: "",
-          countryRegion: ""
-        }
-      ]);
-      
-      setShowTerminal(false);
-      setCreationLogs([]);
-      setCreationSuccessStatus(null);
-      setIsBulkModalOpen(true);
+      setupBulkUserCreation();
       return;
     }
 
@@ -1237,6 +1248,31 @@ export default function UserManagementPage() {
     } else {
       alert(`${item} functionality is coming soon.`);
     }
+  };
+
+  const renderAttributeRow = (attr: any) => {
+    const isEnabled = enabledAttributes.includes(attr.key);
+    return (
+      <div key={attr.key} className={`flex items-center justify-between px-4 py-2.5 transition-colors ${
+        isEnabled ? 'bg-white dark:bg-slate-900/60' : 'bg-slate-50/50 dark:bg-slate-950/30 opacity-60'
+      }`}>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className={`w-2 h-2 rounded-full shrink-0 ${
+            isEnabled ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-700'
+          }`} />
+          <span className="text-[11px] text-slate-700 dark:text-slate-300 truncate">{attr.label}</span>
+          {attr.required && <span className="text-[9px] text-red-500 font-bold shrink-0">REQ</span>}
+        </div>
+        <button
+          type="button"
+          disabled={attr.required}
+          onClick={() => handleAttributeToggle(attr.key, attr.required, isEnabled)}
+          className={`shrink-0 ml-2 text-[10px] px-2.5 py-1 rounded-lg font-bold transition-all ${getAttrBtnClass(attr.required, isEnabled)}`}
+        >
+          {getAttrBtnLabel(attr.required, isEnabled)}
+        </button>
+      </div>
+    );
   };
 
   const sections = [
@@ -1287,36 +1323,6 @@ export default function UserManagementPage() {
           name: "Other Attributes",
           color: "text-emerald-600 dark:text-emerald-400",
           items: ["Contact Attributes", "Address/Organization Attributes", "Naming Attributes", "User Workstations", "Inheritable Permissions"]
-        }
-      ]
-    },
-    {
-      title: "Exchange Tasks",
-      groups: [
-        {
-          name: "Exchange Tasks",
-          color: "text-emerald-600 dark:text-emerald-400",
-          items: ["Exchange Features", "Set Mailbox Rights", "Modify SMTP Address", "Exchange Offline Address Book", "Exchange Policies"]
-        },
-        {
-          name: "Exchange Mailbox Tasks",
-          color: "text-emerald-600 dark:text-emerald-400",
-          items: ["Create/Archive User Mailbox", "Disable/Delete User Mailbox", "Migrate Mailbox", "Mailbox conversion", "Auto reply", "Enable Remote Mailbox"]
-        },
-        {
-          name: "Exchange Limits",
-          color: "text-emerald-600 dark:text-emerald-400",
-          items: ["Naming Attributes", "Delivery Options", "Storage Limits", "Delivery Restrictions"]
-        }
-      ]
-    },
-    {
-      title: "Terminal Services",
-      groups: [
-        {
-          name: "Terminal Services",
-          color: "text-emerald-600 dark:text-emerald-400",
-          items: ["Dial-in or VPN Properties", "Move/Delete TS HomeFolders", "Terminal Services Profile", "Terminal Services Remote Control", "Terminal Services Session", "Terminal Services Environment"]
         }
       ]
     }
@@ -1440,7 +1446,21 @@ export default function UserManagementPage() {
                     </button>
                   </div>
                 </div>
-              ) : (
+              ) : (() => {
+                const activeTemplate = allTemplates.find(t => t.id === singleUserFormData.selectedTemplate);
+                const activeEnabledAttributes = activeTemplate?.data?.enabledAttributes || [
+                  "firstName", "lastName", "initials", "logonNameFormat", "logonPre2000",
+                  "fullNameFormat", "displayNameFormat", "employeeId", "office", "telephoneNumber",
+                  "emailFormat", "selectContainer", "protectFromDeletion",
+                  "passwordOption", "memberOf", "logonScript", "profilePath",
+                  "userMustChangePassword", "userCannotChangePassword", "passwordNeverExpires",
+                  "accountDisabled", "smartCardRequired",
+                  "homePhone", "mobile", "fax", "title", "department", "company",
+                  "street", "city", "stateProvince", "zipPostalCode", "country",
+                  "m365License"
+                ];
+
+                return (
                 <form onSubmit={handleCreateUserSubmit} className="space-y-6">
                   {/* Grid Layout for Forms */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1480,6 +1500,7 @@ export default function UserManagementPage() {
                               placeholder="e.g. John"
                             />
                           </div>
+                          {activeEnabledAttributes.includes("initials") && (
                           <div className="col-span-2 space-y-1.5">
                             <label htmlFor="user-initials" className="text-xs font-medium text-slate-600 dark:text-slate-300">Initials</label>
                             <input 
@@ -1492,6 +1513,7 @@ export default function UserManagementPage() {
                               maxLength={3}
                             />
                           </div>
+                          )}
                           <div className="col-span-5 space-y-1.5">
                             <label htmlFor="user-last-name" className="text-xs font-medium text-slate-600 dark:text-slate-300">Last Name</label>
                             <input 
@@ -1522,6 +1544,8 @@ export default function UserManagementPage() {
                           />
                         </div>
 
+                        {activeEnabledAttributes.includes("emailFormat") && (
+                        <>
                         {/* Email Format Template Selection */}
                         <div className="space-y-1.5">
                           <label htmlFor="email-template-select" className="text-xs font-medium text-slate-600 dark:text-slate-300">Email Format Template</label>
@@ -1574,8 +1598,11 @@ export default function UserManagementPage() {
                             </div>
                           </div>
                         </div>
+                        </>
+                        )}
 
                         {/* Automatic GPO-Based Password Generator */}
+                        {activeEnabledAttributes.includes("passwordOption") && (
                         <div className="space-y-1.5">
                           <label htmlFor="user-password" className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center justify-between">
                             <span>Password</span>
@@ -1602,6 +1629,7 @@ export default function UserManagementPage() {
                             </button>
                           </div>
                         </div>
+                        )}
                       </div>
 
                       {/* DIRECTORIES TARGETS & M365 LICENSE MANAGEMENT */}
@@ -1720,6 +1748,7 @@ export default function UserManagementPage() {
                               <div className="bg-slate-100/80 dark:bg-slate-950/60 p-3 rounded-lg border border-slate-200/50 dark:border-white/5 space-y-3">
                                 <div className="flex items-center justify-between">
                                   <label htmlFor="user-no-license" className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Create user without license</label>
+                                  {activeEnabledAttributes.includes("createWithoutLicense") && (
                                   <input 
                                     id="user-no-license"
                                     type="checkbox"
@@ -1727,9 +1756,10 @@ export default function UserManagementPage() {
                                     onChange={e => setSingleUserFormData({ ...singleUserFormData, createWithoutLicense: e.target.checked })}
                                     className="h-4 w-4 rounded border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sky-600 focus:ring-sky-500 cursor-pointer"
                                   />
+                                  )}
                                 </div>
 
-                                {!singleUserFormData.createWithoutLicense && (
+                                {!singleUserFormData.createWithoutLicense && activeEnabledAttributes.includes("m365License") && (
                                   <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
                                     <label htmlFor="m365-license-select" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Available Licenses SKU</label>
                                     <select 
@@ -1760,6 +1790,7 @@ export default function UserManagementPage() {
 
                         {/* Job Title & Department */}
                         <div className="grid grid-cols-2 gap-3">
+                          {activeEnabledAttributes.includes("title") && (
                           <div className="space-y-1.5">
                             <label htmlFor="user-job-title" className="text-xs font-medium text-slate-600 dark:text-slate-300">Job Title / Designation *</label>
                             <input 
@@ -1772,6 +1803,8 @@ export default function UserManagementPage() {
                               placeholder="e.g. Systems Engineer"
                             />
                           </div>
+                          )}
+                          {activeEnabledAttributes.includes("department") && (
                           <div className="space-y-1.5">
                             <label htmlFor="user-department" className="text-xs font-medium text-slate-600 dark:text-slate-300">Department</label>
                             {departmentsList.length > 0 ? (
@@ -1797,9 +1830,11 @@ export default function UserManagementPage() {
                               />
                             )}
                           </div>
+                          )}
                         </div>
 
                         {/* Office Selection */}
+                        {activeEnabledAttributes.includes("office") && (
                         <div className="space-y-1.5">
                           <label htmlFor="user-office" className="text-xs font-medium text-slate-600 dark:text-slate-300">Office / Location *</label>
                           {officesList.length > 0 ? (
@@ -1827,9 +1862,11 @@ export default function UserManagementPage() {
                             />
                           )}
                         </div>
+                        )}
 
                         {/* Phones & Fax */}
                         <div className="grid grid-cols-3 gap-2">
+                          {activeEnabledAttributes.includes("telephoneNumber") && (
                           <div className="col-span-1 space-y-1.5">
                             <label htmlFor="user-office-phone" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Office Phone</label>
                             <input 
@@ -1841,6 +1878,8 @@ export default function UserManagementPage() {
                               placeholder="Phone"
                             />
                           </div>
+                          )}
+                          {activeEnabledAttributes.includes("fax") && (
                           <div className="col-span-1 space-y-1.5">
                             <label htmlFor="user-fax" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Fax Number</label>
                             <input 
@@ -1852,6 +1891,8 @@ export default function UserManagementPage() {
                               placeholder="Fax"
                             />
                           </div>
+                          )}
+                          {activeEnabledAttributes.includes("mobile") && (
                           <div className="col-span-1 space-y-1.5">
                             <label htmlFor="user-mobile" className="text-[11px] font-semibold text-slate-600 dark:text-slate-350">Mobile Phone *</label>
                             <input 
@@ -1864,10 +1905,12 @@ export default function UserManagementPage() {
                               placeholder="Mobile"
                             />
                           </div>
+                          )}
                         </div>
 
                         {/* Mailing Address Section */}
                         <div className="pt-2 border-t border-slate-200/50 dark:border-white/5 space-y-3">
+                          {activeEnabledAttributes.includes("street") && (
                           <div className="space-y-1.5">
                             <label htmlFor="user-street" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Street Address</label>
                             <input 
@@ -1879,8 +1922,10 @@ export default function UserManagementPage() {
                               placeholder="e.g. 100 Main St"
                             />
                           </div>
+                          )}
 
                           <div className="grid grid-cols-2 gap-3">
+                            {activeEnabledAttributes.includes("city") && (
                             <div className="space-y-1.5">
                               <label htmlFor="user-city" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">City</label>
                               <input 
@@ -1892,6 +1937,8 @@ export default function UserManagementPage() {
                                 placeholder="City"
                               />
                             </div>
+                            )}
+                            {activeEnabledAttributes.includes("stateProvince") && (
                             <div className="space-y-1.5">
                               <label htmlFor="user-state" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">State / Province</label>
                               <input 
@@ -1903,9 +1950,11 @@ export default function UserManagementPage() {
                                 placeholder="State"
                               />
                             </div>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
+                            {activeEnabledAttributes.includes("zipPostalCode") && (
                             <div className="space-y-1.5">
                               <label htmlFor="user-zip" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Zip / Postal Code</label>
                               <input 
@@ -1917,6 +1966,8 @@ export default function UserManagementPage() {
                                 placeholder="Zip"
                               />
                             </div>
+                            )}
+                            {activeEnabledAttributes.includes("country") && (
                             <div className="space-y-1.5">
                               <label htmlFor="user-country" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Country / Region</label>
                               <input 
@@ -1928,6 +1979,7 @@ export default function UserManagementPage() {
                                 placeholder="Country"
                               />
                             </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1952,7 +2004,8 @@ export default function UserManagementPage() {
                     </button>
                   </div>
                 </form>
-              )}
+              );
+              })()}
             </div>
           </div>
         </div>
@@ -2416,6 +2469,17 @@ export default function UserManagementPage() {
                   <button
                     onClick={() => {
                       setTemplateForm({ ...getInitialTemplateFormWithDomain(adSettingsList, m365SettingsList) });
+                      setEnabledAttributes([
+                        "firstName", "lastName", "initials", "logonNameFormat", "logonPre2000",
+                        "fullNameFormat", "displayNameFormat", "employeeId", "office", "telephoneNumber",
+                        "emailFormat", "selectContainer", "protectFromDeletion",
+                        "passwordOption", "memberOf", "logonScript", "profilePath",
+                        "userMustChangePassword", "userCannotChangePassword", "passwordNeverExpires",
+                        "accountDisabled", "smartCardRequired",
+                        "homePhone", "mobile", "fax", "title", "department", "company",
+                        "street", "city", "stateProvince", "zipPostalCode", "country",
+                        "m365License"
+                      ]);
                       setEditingTemplateId(null);
                       setActiveTemplateTab("General");
                       setShowTemplateEditor(true);
@@ -2478,17 +2542,17 @@ export default function UserManagementPage() {
                                     displayNameFormat: "Same as logonname",
                                     employeeId: "",
                                     descriptionGeneral: "",
-                                    office: t.data.office || "",
+                                    office: t.data.office ?? "",
                                     telephoneNumber: "",
                                     emailFormat: "Same as logonname",
                                     webPage: "",
-                                    selectContainer: t.data.targetOu || "CN=Users,DC=petrus,DC=io",
+                                    selectContainer: t.data.targetOu ?? "CN=Users,DC=petrus,DC=io",
                                     protectFromDeletion: false,
 
                                     // Account
                                     passwordOption: "Random",
                                     customPassword: "",
-                                    memberOf: t.data.adGroupDn?.replace("CN=", "").split(",")[0] || "Domain Users",
+                                    memberOf: t.data.adGroupDn?.replace("CN=", "").split(",")[0] ?? "Domain Users",
                                     logonScript: "",
                                     profilePath: "",
                                     homeFolderOption: "Local",
@@ -2506,8 +2570,8 @@ export default function UserManagementPage() {
                                     fax: "",
                                     ipPhone: "",
                                     notes: "",
-                                    title: t.data.jobTitle || "",
-                                    department: t.data.department || "",
+                                    title: t.data.jobTitle ?? "",
+                                    department: t.data.department ?? "",
                                     company: "",
                                     manager: "",
                                     street: "",
@@ -2521,6 +2585,21 @@ export default function UserManagementPage() {
                                     m365License: t.data.m365License || "Microsoft 365 E5",
                                     createWithoutLicense: t.data.createWithoutLicense || false
                                   });
+                                  if (t.data.enabledAttributes) {
+                                    setEnabledAttributes(t.data.enabledAttributes);
+                                  } else {
+                                    setEnabledAttributes([
+                                      "firstName", "lastName", "initials", "logonNameFormat", "logonPre2000",
+                                      "fullNameFormat", "displayNameFormat", "employeeId", "office", "telephoneNumber",
+                                      "emailFormat", "selectContainer", "protectFromDeletion",
+                                      "passwordOption", "memberOf", "logonScript", "profilePath",
+                                      "userMustChangePassword", "userCannotChangePassword", "passwordNeverExpires",
+                                      "accountDisabled", "smartCardRequired",
+                                      "homePhone", "mobile", "fax", "title", "department", "company",
+                                      "street", "city", "stateProvince", "zipPostalCode", "country",
+                                      "m365License"
+                                    ]);
+                                  }
                                   setEditingTemplateId(t.id);
                                   setActiveTemplateTab("General");
                                   setShowTemplateEditor(true);
@@ -3386,30 +3465,7 @@ export default function UserManagementPage() {
                                   {cat}
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 divide-y divide-slate-100 dark:divide-white/5">
-                                  {items.map((attr, idx) => {
-                                    const isEnabled = enabledAttributes.includes(attr.key);
-                                    return (
-                                      <div key={attr.key} className={`flex items-center justify-between px-4 py-2.5 transition-colors ${
-                                        isEnabled ? 'bg-white dark:bg-slate-900/60' : 'bg-slate-50/50 dark:bg-slate-950/30 opacity-60'
-                                      }`}>
-                                        <div className="flex items-center gap-2.5 min-w-0">
-                                          <div className={`w-2 h-2 rounded-full shrink-0 ${
-                                            isEnabled ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-700'
-                                          }`} />
-                                          <span className="text-[11px] text-slate-700 dark:text-slate-300 truncate">{attr.label}</span>
-                                          {attr.required && <span className="text-[9px] text-red-500 font-bold shrink-0">REQ</span>}
-                                        </div>
-                                        <button
-                                          type="button"
-                                          disabled={attr.required}
-                                          onClick={() => handleAttributeToggle(attr.key, attr.required, isEnabled)}
-                                          className={`shrink-0 ml-2 text-[10px] px-2.5 py-1 rounded-lg font-bold transition-all ${getAttrBtnClass(attr.required, isEnabled)}`}
-                                        >
-                                          {getAttrBtnLabel(attr.required, isEnabled)}
-                                        </button>
-                                      </div>
-                                    );
-                                  })}
+                                  {items.map(renderAttributeRow)}
                                 </div>
                               </div>
                             );
@@ -3441,15 +3497,16 @@ export default function UserManagementPage() {
                       const dateStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
                       
                       const tplData = {
-                        jobTitle: templateForm.title || "Systems Engineer",
-                        department: templateForm.department || "Engineering",
-                        office: templateForm.office || "San Francisco HQ",
+                        jobTitle: templateForm.title ?? "Systems Engineer",
+                        department: templateForm.department ?? "Engineering",
+                        office: templateForm.office ?? "San Francisco HQ",
                         createInAd: templateForm.activeDirectory,
                         createInM365: templateForm.microsoft365,
-                        targetOu: templateForm.selectContainer || "CN=Users,DC=petrus,DC=io",
-                        adGroupDn: `CN=${templateForm.memberOf || 'Domain Users'},CN=Users`,
+                        targetOu: templateForm.selectContainer ?? "CN=Users,DC=petrus,DC=io",
+                        adGroupDn: templateForm.memberOf ? `CN=${templateForm.memberOf},CN=Users` : "CN=Domain Users,CN=Users",
                         m365License: templateForm.m365License,
-                        createWithoutLicense: templateForm.createWithoutLicense
+                        createWithoutLicense: templateForm.createWithoutLicense,
+                        enabledAttributes: enabledAttributes
                       };
 
                       if (editingTemplateId) {

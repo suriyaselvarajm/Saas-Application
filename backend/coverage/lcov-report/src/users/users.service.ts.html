@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/188</span>
+                <span class='fraction'>0/196</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/127</span>
+                <span class='fraction'>0/131</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/25</span>
+                <span class='fraction'>0/27</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/182</span>
+                <span class='fraction'>0/188</span>
             </div>
         
             
@@ -549,7 +549,16 @@
 <a name='L484'></a><a href='#L484'>484</a>
 <a name='L485'></a><a href='#L485'>485</a>
 <a name='L486'></a><a href='#L486'>486</a>
-<a name='L487'></a><a href='#L487'>487</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L487'></a><a href='#L487'>487</a>
+<a name='L488'></a><a href='#L488'>488</a>
+<a name='L489'></a><a href='#L489'>489</a>
+<a name='L490'></a><a href='#L490'>490</a>
+<a name='L491'></a><a href='#L491'>491</a>
+<a name='L492'></a><a href='#L492'>492</a>
+<a name='L493'></a><a href='#L493'>493</a>
+<a name='L494'></a><a href='#L494'>494</a>
+<a name='L495'></a><a href='#L495'>495</a>
+<a name='L496'></a><a href='#L496'>496</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -722,6 +731,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -767,8 +779,14 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1206,8 +1224,11 @@ export <span class="cstat-no" title="statement not covered" >class <span class="
     );
 &nbsp;
     const sAMAccountName = <span class="cstat-no" title="statement not covered" >dto.email.split('@')[0];</span>
-    const targetContainer = <span class="cstat-no" title="statement not covered" >dto.targetOu ? dto.targetOu : 'CN=Users';</span>
-    const userDn = <span class="cstat-no" title="statement not covered" >`CN=${dto.displayName},${targetContainer},${ad.baseDn}`;</span>
+    let relativeContainer = <span class="cstat-no" title="statement not covered" >dto.targetOu ? dto.targetOu : 'CN=Users';</span>
+<span class="cstat-no" title="statement not covered" >    if (relativeContainer.toLowerCase().includes('dc=')) {</span>
+<span class="cstat-no" title="statement not covered" >      relativeContainer = relativeContainer.split(',').filter(<span class="fstat-no" title="function not covered" >part </span>=&gt; <span class="cstat-no" title="statement not covered" >!part.toLowerCase().startsWith('dc='))</span>.join(',');</span>
+    }
+    const userDn = <span class="cstat-no" title="statement not covered" >`CN=${dto.displayName},${relativeContainer},${ad.baseDn}`;</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    try {</span>
       const client = <span class="cstat-no" title="statement not covered" >ldap.createClient({</span>
@@ -1253,8 +1274,14 @@ export <span class="cstat-no" title="statement not covered" >class <span class="
 <span class="cstat-no" title="statement not covered" >      if (addSuccess) {</span>
 <span class="cstat-no" title="statement not covered" >        logs.push(`[AD] User account successfully provisioned directly in Active Directory server.`);</span>
         
-        const groupDn = <span class="cstat-no" title="statement not covered" >dto.adGroupDn;</span>
+        let groupDn = <span class="cstat-no" title="statement not covered" >dto.adGroupDn;</span>
 <span class="cstat-no" title="statement not covered" >        if (groupDn) {</span>
+<span class="cstat-no" title="statement not covered" >          if (groupDn.toLowerCase().includes('dc=')) {</span>
+            const relativeGroup = <span class="cstat-no" title="statement not covered" >groupDn.split(',').filter(<span class="fstat-no" title="function not covered" >part </span>=&gt; <span class="cstat-no" title="statement not covered" >!part.toLowerCase().startsWith('dc='))</span>.join(',');</span>
+<span class="cstat-no" title="statement not covered" >            groupDn = `${relativeGroup},${ad.baseDn}`;</span>
+          } else {
+<span class="cstat-no" title="statement not covered" >            groupDn = `${groupDn},${ad.baseDn}`;</span>
+          }
 <span class="cstat-no" title="statement not covered" >          await this.addUserToAdGroup(client, userDn, groupDn, logs);</span>
         }
 &nbsp;
@@ -1528,7 +1555,7 @@ export <span class="cstat-no" title="statement not covered" >class <span class="
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-21T10:39:24.355Z
+                at 2026-05-23T18:02:26.532Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
