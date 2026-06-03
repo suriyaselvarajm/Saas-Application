@@ -1,0 +1,15 @@
+{
+  "attributes": [
+    { "name": "Full Name", "type": "string", "required": true },
+    { "name": "Email", "type": "email", "required": true },
+    { "name": "Phone", "type": "string", "required": false },
+    { "name": "Department", "type": "string", "required": false },
+    { "name": "Role", "type": "string", "required": true },
+    { "name": "Manager", "type": "string", "required": false },
+    { "name": "Username", "type": "string", "required": true },
+    { "name": "Password", "type": "password", "required": true },
+    { "name": "Group Memberships", "type": "array", "required": false },
+    { "name": "Licenses", "type": "array", "required": false },
+    { "name": "MFA Settings", "type": "object", "required": false }
+  ]
+}

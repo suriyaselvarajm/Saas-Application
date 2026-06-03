@@ -136,6 +136,11 @@ export class AuthService {
         },
       });
 
+      // Validate Password for Super Admin
+      if (user.password !== password) {
+        throw new HttpException('Invalid password.', HttpStatus.UNAUTHORIZED);
+      }
+
       return {
         accessToken: `mock-jwt-token-for-${user.id}`,
         user: {

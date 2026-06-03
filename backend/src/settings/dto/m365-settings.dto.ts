@@ -2,6 +2,10 @@ import { IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class M365SettingsDto {
   @IsString()
+  @IsOptional()
+  id?: string;
+
+  @IsString()
   @IsNotEmpty()
   azureTenantId: string;
 
@@ -20,4 +24,16 @@ export class M365SettingsDto {
   @IsString()
   @IsOptional()
   microsoftDomain?: string;
+
+  @IsString()
+  @IsOptional()
+  tenantId?: string;
+
+  @IsString()
+  @IsOptional()
+  createdAt?: string;
+
+  @IsString()
+  @IsOptional()
+  updatedAt?: string;
 }

@@ -28,6 +28,7 @@ export default function ADSettings() {
     bindPassword: "",
     sslEnabled: false,
     ldapPath: "",
+    userCreationBaseOu: "",
   };
   const [formData, setFormData] = useState(initialFormState);
 
@@ -373,6 +374,25 @@ export default function ADSettings() {
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 transition-all outline-none"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="ad-user-creation-base-ou" className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                    User Creation Base OU (Optional)
+                    <span className="text-slate-400" title="Restricts the OU dropdown in the user creation wizard to only show folders inside this specific OU.">
+                      <HelpCircle className="h-3.5 w-3.5" />
+                    </span>
+                  </label>
+                  <input
+                    id="ad-user-creation-base-ou"
+                    type="text"
+                    value={formData.userCreationBaseOu || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, userCreationBaseOu: e.target.value })
+                    }
+                    placeholder="e.g. OU=Employees,DC=company,DC=com"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-500 transition-all outline-none"
+                  />
                 </div>
 
                 <div className="space-y-2">

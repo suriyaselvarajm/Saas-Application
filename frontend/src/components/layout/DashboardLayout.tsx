@@ -17,7 +17,8 @@ import {
   Key,
   MapPin,
   Briefcase,
-  ShieldCheck
+  ShieldCheck,
+  Loader2
 } from "lucide-react";
 import { ThemeToggle } from "../ui/ThemeToggle";
 import SearchOverlay from "./SearchOverlay";
@@ -25,12 +26,15 @@ import SearchOverlay from "./SearchOverlay";
 interface UserData {
   name: string;
   email: string;
+  systemRole?: string;
+  isSuperAdmin?: boolean;
 }
 
 export default function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -40,9 +44,18 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
   const isM365 = pathname?.startsWith('/m365');
   const isDelegation = pathname?.startsWith('/delegation');
   const isDashboard = pathname === '/dashboard';
-  const showSidebar = isManagement || isReports || isM365 || isDelegation;
+  const isTenants = pathname?.startsWith('/tenants');
+  const showSidebar = isManagement || isReports || isM365 || isDelegation || isTenants;
 
   useEffect(() => {
+    const token = localStorage.getItem("petrus_token");
+    if (!token) {
+      setIsAuthenticated(false);
+      router.push("/login");
+      return;
+    }
+    setIsAuthenticated(true);
+
     const userStr = localStorage.getItem("petrus_user");
     if (userStr) {
       try {
@@ -51,13 +64,30 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
         console.error("Error parsing user data", e);
       }
     }
-  }, []);
+  }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem("petrus_token");
     localStorage.removeItem("petrus_user");
     router.push("/login");
   };
+
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-[#020617] flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+          <span className="text-sm font-semibold tracking-wider text-slate-500 uppercase animate-pulse">
+            Verifying Session...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated === false) {
+    return null;
+  }
 
   return (
     <div className="flex h-screen bg-slate-100 dark:bg-[#020617] font-inter">
@@ -86,6 +116,18 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
               >
                 Home
               </Link>
+              {userData?.systemRole === "SUPER_ADMIN" && (
+                <Link 
+                  href="/tenants" 
+                  className={`px-4 h-full flex items-center text-xs font-medium transition-colors whitespace-nowrap border-b-2 ${
+                    isTenants 
+                    ? "text-indigo-600 dark:text-indigo-400 border-indigo-600 dark:border-indigo-400" 
+                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white border-transparent"
+                  }`}
+                >
+                  Tenants
+                </Link>
+              )}
               <Link 
                 href="/management/users" 
                 className={`px-4 h-full flex items-center text-xs font-medium transition-colors whitespace-nowrap border-b-2 ${
@@ -116,7 +158,6 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
               >
                 Microsoft 365
               </Link>
-              <button className="px-4 h-full text-xs font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white border-b-2 border-transparent transition-colors whitespace-nowrap">Governance</button>
               <Link 
                 href="/delegation" 
                 className={`px-4 h-full flex items-center text-xs font-medium transition-colors whitespace-nowrap border-b-2 ${

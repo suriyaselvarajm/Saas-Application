@@ -1,16 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import { 
-  Search, 
-  ChevronDown, 
-  Settings,
-  Download
-} from "lucide-react";
+import ManagementConsoleLayout from "@/components/layout/ManagementConsoleLayout";
 import { ScheduleReportModal } from "@/components/modals/ScheduleReportModal";
+import { Download } from "lucide-react";
 
 interface M365ReportGroup {
   name: string;
@@ -296,35 +290,12 @@ const m365ReportsData: Record<string, M365CategoryData> = {
   }
 };
 
-// Styling Standards for complete visual consistency across dashboards
-const HEADING_STYLE = "text-[13px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-3.5";
-const ITEM_BUTTON_STYLE = "text-[13px] text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-normal transition-colors text-left flex items-start w-full leading-tight py-0.5";
-const BULLET_STYLE = "w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mr-2.5 mt-1.5 shrink-0";
-
 export default function M365ReportsPage() {
   const params = useParams();
-  const [domain, setDomain] = useState("admanagerplus.com");
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
 
   const category = (params?.category as string) || "users";
   const data = m365ReportsData[category] || m365ReportsData.users;
-
-  useEffect(() => {
-    const userStr = localStorage.getItem("petrus_user");
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        if (user.tenantName) {
-          setDomain(user.tenantName.toLowerCase() + ".com");
-        } else if (user.email) {
-          const emailDomain = user.email.split('@')[1];
-          if (emailDomain) setDomain(emailDomain);
-        }
-      } catch (e) {
-        console.error("Error parsing user for domain display", e);
-      }
-    }
-  }, []);
 
   const subHeaderOptions = [
     { name: "User", path: "/m365/reports/users" },
@@ -335,104 +306,38 @@ export default function M365ReportsPage() {
     { name: "Security", path: "/m365/reports/security" }
   ];
 
+  const sections = [
+    {
+      title: `Microsoft 365 ${data.title}`,
+      groups: data.groups.map(g => ({
+        name: g.name,
+        color: "text-emerald-600 dark:text-emerald-400",
+        items: g.items
+      }))
+    }
+  ];
+
+  const tabs = subHeaderOptions.map(opt => ({
+    name: opt.name,
+    path: opt.path,
+    active: category === opt.path.split("/").pop()
+  }));
+
   return (
-    <DashboardLayout>
-      <div className="space-y-6 pb-20">
-        
-        {/* Horizontal Subheader Menu Bar exactly like the screenshot */}
-        <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 -mx-8 px-8 py-2.5 flex items-center justify-between z-10 transition-colors">
-          <div className="flex items-center space-x-6">
-            {subHeaderOptions.map((opt) => {
-              const isActive = category === opt.path.split("/").pop();
-              return (
-                <Link
-                  key={opt.name}
-                  href={opt.path}
-                  className={`text-xs font-semibold flex items-center gap-1 py-1 px-2.5 rounded-lg transition-all ${
-                    isActive
-                      ? "bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-white/5"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  {opt.name}
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Top Header / Action Bar */}
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-3">
-            <div className="flex items-center space-x-6 flex-1">
-              <div className="flex items-center space-x-3 bg-slate-100 dark:bg-slate-900/50 px-3 py-1.5 rounded-lg border border-transparent focus-within:border-indigo-500/50 transition-all w-64 group/search">
-                <Search className="h-4 w-4 text-slate-400 group-focus-within/search:text-indigo-500 transition-colors" />
-                <input 
-                  type="text" 
-                  placeholder={`Search Microsoft 365 ${data.title}...`}
-                  className="bg-transparent border-none outline-none text-xs text-slate-700 dark:text-slate-300 placeholder:text-slate-500 w-full"
-                />
-              </div>
-              <div className="h-6 w-px bg-slate-200 dark:bg-white/10"></div>
-              <button className="flex items-center space-x-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-lg transition-all group">
-                <span>{domain}</span>
-                <ChevronDown className="h-3 w-3 text-slate-400 group-hover:text-slate-600" />
-              </button>
-              <div className="h-6 w-px bg-slate-200 dark:bg-white/10"></div>
-              <nav className="flex space-x-4">
-                <button className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 pb-0.5">
-                  Microsoft 365 {data.title}
-                </button>
-              </nav>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button 
-                onClick={() => setIsScheduleOpen(true)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-all shadow-lg shadow-indigo-600/20"
-              >
-                <Download className="h-3.5 w-3.5" /> Schedule Reports
-              </button>
-              <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
-                <Settings className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Sections Grid */}
-        <div className="space-y-12 pt-4">
-          <div className="space-y-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-white/10 pb-2 flex items-center gap-3">
-              {data.title}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10">
-              {data.groups.map((group) => (
-                <div key={group.name} className="space-y-4">
-                  <h3 className={HEADING_STYLE}>
-                    {group.name}
-                  </h3>
-                  <div className="space-y-3">
-                    {group.items.map((item) => (
-                      <button key={item} className={ITEM_BUTTON_STYLE}>
-                        <span className={BULLET_STYLE}></span>
-                        <span>{item}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <ManagementConsoleLayout
+      sections={sections}
+      searchPlaceholder={`Search Microsoft 365 ${data.title}...`}
+      primaryActionLabel="Schedule Reports"
+      primaryActionIcon={<Download className="h-4 w-4" />}
+      onPrimaryActionClick={() => setIsScheduleOpen(true)}
+      tabs={tabs}
+    >
       <ScheduleReportModal 
         isOpen={isScheduleOpen} 
         onClose={() => setIsScheduleOpen(false)} 
         reportCategory={`Microsoft 365 - ${data.title}`}
         reportOptions={data.groups.flatMap(g => g.items)}
       />
-    </DashboardLayout>
+    </ManagementConsoleLayout>
   );
 }

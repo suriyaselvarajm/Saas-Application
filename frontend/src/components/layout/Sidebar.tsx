@@ -132,6 +132,20 @@ export default function Sidebar() {
   const isDelegation = pathname?.startsWith('/delegation');
 
   const renderSidebarContent = () => {
+    if (pathname?.startsWith('/tenants')) {
+      return (
+        <li key="Tenant Management">
+          <Link
+            href="/tenants"
+            className="group flex gap-x-3 rounded-md px-3 py-2 text-sm font-medium leading-6 transition-all text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-400/10 font-semibold"
+          >
+            <Building2 className="h-5 w-5 shrink-0" aria-hidden="true" />
+            Tenant Management
+          </Link>
+        </li>
+      );
+    }
+
     if (isM365) {
       const groups = isM365Reports ? [
         {
@@ -262,9 +276,15 @@ export default function Sidebar() {
 
     // Standard AD rendering
     const activeTopLevel = navigation.find(
-      (item) => pathname?.startsWith(item.href) && item.children
+      (item) => (pathname?.startsWith(item.href) || (item.href === "/management" && pathname?.startsWith("/tenants"))) && item.children
     );
-    const itemsToRender = activeTopLevel?.children || [];
+    const itemsToRender = (activeTopLevel?.children || []).filter(item => {
+      if ('allowedRoles' in item) {
+        const roles = item.allowedRoles as Role[];
+        return user && roles.includes(user.systemRole);
+      }
+      return true;
+    });
 
     return itemsToRender.map((item) => {
       const isActive = pathname === item.href;

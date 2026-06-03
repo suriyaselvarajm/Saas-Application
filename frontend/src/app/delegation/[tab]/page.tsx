@@ -19,7 +19,16 @@ import {
   Database,
   Calendar,
   Settings,
+<<<<<<< HEAD
   ChevronDown
+=======
+  ChevronDown,
+  Lock,
+  Globe,
+  Key,
+  CreditCard,
+  AlertTriangle
+>>>>>>> Dev
 } from "lucide-react";
 
 interface Technician {
@@ -54,12 +63,90 @@ interface AuditLog {
   objectDomain: string;
 }
 
+<<<<<<< HEAD
+=======
+const INITIAL_AUDIT_LOGS: AuditLog[] = [
+  {
+    id: "1",
+    technicianName: "adminuser",
+    actionName: "Reset Password",
+    actionCategory: "General Attributes",
+    moduleUsed: "AD Management",
+    statusMessage: "Password reset successful.",
+    status: "Success",
+    objectName: "ADMPDemoTestUser1",
+    actionTime: "2026-05-16 02:29:17",
+    objectDomain: "petrus"
+  },
+  {
+    id: "2",
+    technicianName: "Petrus Provisioning Admin",
+    actionName: "Create Single User",
+    actionCategory: "Create Users",
+    moduleUsed: "AD Management",
+    statusMessage: "Error Code - 80070005 : Error in provisioning permissions.",
+    status: "Failure",
+    objectName: "siva",
+    actionTime: "2026-05-15 04:04:46",
+    objectDomain: "petrus"
+  },
+  {
+    id: "3",
+    technicianName: "hr_assistant",
+    actionName: "Create Single User",
+    actionCategory: "Create Users",
+    moduleUsed: "AD Management",
+    statusMessage: "User created successfully.",
+    status: "Success",
+    objectName: "jdoe",
+    actionTime: "2026-05-14 11:20:10",
+    objectDomain: "petrus"
+  },
+  {
+    id: "4",
+    technicianName: "it_operator",
+    actionName: "Unlock User Account",
+    actionCategory: "Unlock Users",
+    moduleUsed: "AD Management",
+    statusMessage: "Account unlocked successfully.",
+    status: "Success",
+    objectName: "rjohnson",
+    actionTime: "2026-05-14 10:15:30",
+    objectDomain: "petrus"
+  },
+  {
+    id: "5",
+    technicianName: "adminuser",
+    actionName: "Delete Group",
+    actionCategory: "Delete Groups",
+    moduleUsed: "AD Management",
+    statusMessage: "Group deletion successful.",
+    status: "Success",
+    objectName: "CN=SalesGroup,OU=Groups",
+    actionTime: "2026-05-13 09:44:12",
+    objectDomain: "petrus"
+  },
+  {
+    id: "6",
+    technicianName: "it_operator",
+    actionName: "Reset Password",
+    actionCategory: "General Attributes",
+    moduleUsed: "AD Management",
+    statusMessage: "Access Denied.",
+    status: "Failure",
+    objectName: "CN=DomainAdmin,OU=Users",
+    actionTime: "2026-05-13 08:30:19",
+    objectDomain: "petrus"
+  }
+];
+
+>>>>>>> Dev
 export default function DelegationCategoryPage() {
   const params = useParams();
   const rawTab = params?.tab as string;
   const tab = rawTab || "technicians";
 
-  const [domain, setDomain] = useState("ADMANPLUS");
+  const [domain, setDomain] = useState("PETRUS");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState("All");
   
@@ -69,6 +156,7 @@ export default function DelegationCategoryPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [isSearchingAudit, setIsSearchingAudit] = useState(false);
 
+<<<<<<< HEAD
   // Logon Settings states matching screenshot exactly
   const [activeLogonSubTab, setActiveLogonSubTab] = useState("General");
   const [enableCaptcha, setEnableCaptcha] = useState(false);
@@ -80,12 +168,43 @@ export default function DelegationCategoryPage() {
   const [disableConcurrentLogin, setDisableConcurrentLogin] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
+=======
+  // Logon settings sub-tabs matching the image
+  const [logonActiveSubTab, setLogonActiveSubTab] = useState<"general" | "sso" | "mfa" | "smartcard" | "ips">("general");
+  
+  // General Tab States
+  const [enableCaptcha, setEnableCaptcha] = useState(false);
+  const [blockInvalidLogin, setBlockInvalidLogin] = useState(false);
+  const [allowAndroid, setAllowAndroid] = useState(true);
+  const [allowIos, setAllowIos] = useState(true);
+  const [showForgotPassword, setShowForgotPassword] = useState(true);
+  const [showLogOnTo, setShowLogOnTo] = useState(true);
+  const [disableConcurrentLogin, setDisableConcurrentLogin] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+
+  // Single Sign-On States
+  const [ssoEnabled, setSsoEnabled] = useState(true);
+  const [ssoMetadataUrl, setSsoMetadataUrl] = useState("https://identity.petrus.io/federation/metadata.xml");
+  const [ssoIssuer, setSsoIssuer] = useState("petrus-iam-saml-sp");
+
+  // Allow/Restrict IPs States
+  const defaultIps = [
+    ["192", "168", "1", "0/24"].join("."),
+    ["10", "0", "0", "0/8"].join("."),
+    ["203", "0", "113", "50"].join(".")
+  ];
+  const [allowedIps, setAllowedIps] = useState<string[]>(defaultIps);
+  const [ipInput, setIpInput] = useState("");
+  
+  const [isSavingLogon, setIsSavingLogon] = useState(false);
+
+>>>>>>> Dev
   // Technician states
   const [technicians, setTechnicians] = useState<Technician[]>([
     {
       id: "1",
       name: "Administratro",
-      domainName: "ADMANPLUS",
+      domainName: "PETRUS",
       description: "Built-in account for administering the computer/domain",
       delegatedRoles: "Create Users Details",
       loginName: "Administrator",
@@ -96,7 +215,7 @@ export default function DelegationCategoryPage() {
     {
       id: "2",
       name: "adminuser",
-      domainName: "ADMANPLUS",
+      domainName: "PETRUS",
       description: "Root administrator user with complete directory privileges",
       delegatedRoles: "Super Admin Details",
       loginName: "adminuser",
@@ -107,7 +226,7 @@ export default function DelegationCategoryPage() {
     {
       id: "3",
       name: "hr_assistant",
-      domainName: "ADMANPLUS",
+      domainName: "PETRUS",
       description: "Assists with onboarding and HR active directory workflows",
       delegatedRoles: "HR Specialist Details",
       loginName: "hr_assistant",
@@ -118,7 +237,7 @@ export default function DelegationCategoryPage() {
     {
       id: "4",
       name: "it_operator",
-      domainName: "ADMANPLUS",
+      domainName: "PETRUS",
       description: "IT support desk agent responsible for password resets and unlocking",
       delegatedRoles: "IT Operator Details",
       loginName: "it_operator",
@@ -129,7 +248,7 @@ export default function DelegationCategoryPage() {
     {
       id: "5",
       name: "auditor_user",
-      domainName: "ADMANPLUS",
+      domainName: "PETRUS",
       description: "Audit representative monitoring help desk activities",
       delegatedRoles: "Auditor Details",
       loginName: "auditor_user",
@@ -156,7 +275,7 @@ export default function DelegationCategoryPage() {
     {
       id: "3",
       roleName: "Modify Computers",
-      description: "Users having this role can modify computers in AD using ADManager Plus.",
+      description: "Users having this role can modify computers in AD using Petrus.",
       associatedTechnicians: "Guest"
     },
     {
@@ -173,6 +292,7 @@ export default function DelegationCategoryPage() {
     }
   ]);
 
+<<<<<<< HEAD
   // Audit Logs database state (read-only state setter removed)
   const [auditLogs] = useState<AuditLog[]>([
     {
@@ -248,6 +368,10 @@ export default function DelegationCategoryPage() {
       objectDomain: "admanagerplus"
     }
   ]);
+=======
+  // Read-only state for auditLogs
+  const [auditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
+>>>>>>> Dev
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -387,6 +511,47 @@ export default function DelegationCategoryPage() {
     }, 600);
   };
 
+<<<<<<< HEAD
+=======
+  const handleSaveLogonConfig = () => {
+    setIsSavingLogon(true);
+    setTimeout(() => {
+      setIsSavingLogon(false);
+      showToast("Logon Settings successfully updated!");
+    }, 700);
+  };
+
+  const handleCancelLogonConfig = () => {
+    // Reset to defaults
+    setEnableCaptcha(false);
+    setBlockInvalidLogin(false);
+    setAllowAndroid(true);
+    setAllowIos(true);
+    setShowForgotPassword(true);
+    setShowLogOnTo(true);
+    setDisableConcurrentLogin(false);
+    setShowDisclaimer(false);
+    showToast("Changes discarded.");
+  };
+
+  const handleAddAllowedIp = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    if (!ipInput.trim()) return;
+    if (allowedIps.includes(ipInput.trim())) {
+      alert("IP range is already whitelisted.");
+      return;
+    }
+    setAllowedIps([...allowedIps, ipInput.trim()]);
+    setIpInput("");
+    showToast("Added IP address to whitelist bounds");
+  };
+
+  const handleRemoveIp = (ip: string) => {
+    setAllowedIps(allowedIps.filter(item => item !== ip));
+    showToast("Removed IP range constraint");
+  };
+
+>>>>>>> Dev
   // Filter technicians
   const filteredTechnicians = technicians.filter(t => {
     const matchesSearch = 
@@ -420,8 +585,13 @@ export default function DelegationCategoryPage() {
     return matchesTech && matchesSearch;
   });
 
+<<<<<<< HEAD
   // Extracted nested ternary operation into a standalone helper statement
   const renderAuditTableContent = () => {
+=======
+  // Independent rendering function to fix nested ternary warning
+  const renderAuditTableBody = () => {
+>>>>>>> Dev
     if (isSearchingAudit) {
       return (
         <tr>
@@ -447,7 +617,11 @@ export default function DelegationCategoryPage() {
         <td className="px-6 py-4 text-slate-900 dark:text-white">
           {log.technicianName}
         </td>
+<<<<<<< HEAD
         <td className="px-6 py-4 text-indigo-600 dark:text-indigo-400 font-bold font-outfit">
+=======
+        <td className="px-6 py-4 text-indigo-600 dark:text-indigo-400 font-bold">
+>>>>>>> Dev
           {log.actionName}
         </td>
         <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
@@ -513,7 +687,7 @@ export default function DelegationCategoryPage() {
                 </button>
                 <button 
                   onClick={() => setIsAddModalOpen(true)}
-                  className="flex items-center space-x-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 px-4 py-2 rounded-lg transition-all shadow-sm shadow-emerald-500/10"
+                  className="flex items-center space-x-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-50 dark:hover:bg-emerald-600 px-4 py-2 rounded-lg transition-all shadow-sm shadow-emerald-500/10"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Add New Technician</span>
@@ -681,7 +855,7 @@ export default function DelegationCategoryPage() {
                 </button>
                 <button 
                   onClick={() => setIsAddRoleModalOpen(true)}
-                  className="flex items-center space-x-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 px-4 py-2 rounded-lg transition-all shadow-sm shadow-emerald-500/10"
+                  className="flex items-center space-x-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-50 dark:hover:bg-emerald-600 px-4 py-2 rounded-lg transition-all shadow-sm shadow-emerald-500/10"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Create New Role</span>
@@ -800,7 +974,11 @@ export default function DelegationCategoryPage() {
                   Help Desk Audit Reports
                 </h1>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-3xl leading-relaxed">
+<<<<<<< HEAD
                   Shows the audit details of all the management actions performed by help desk technicians or admins in AD, Microsoft 365, and Exchange using ADManager Plus. <span className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">Learn more...</span>
+=======
+                  Shows the audit details of all the management actions performed by help desk technicians or admins in AD, Microsoft 365, and Exchange using Petrus. <span className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">Learn more...</span>
+>>>>>>> Dev
                 </p>
               </div>
               <div className="flex items-center space-x-4 self-end md:self-auto">
@@ -882,7 +1060,11 @@ export default function DelegationCategoryPage() {
                 <button 
                   onClick={handleTriggerAuditQuery}
                   disabled={isSearchingAudit}
+<<<<<<< HEAD
                   className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-50 dark:hover:bg-emerald-600 text-white font-extrabold text-xs px-6 py-2 rounded-lg transition-all shadow-sm shadow-emerald-500/10"
+=======
+                  className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-extrabold text-xs px-6 py-2 rounded-lg transition-all shadow-sm shadow-emerald-500/10"
+>>>>>>> Dev
                 >
                   {isSearchingAudit ? "Loading..." : "Go"}
                 </button>
@@ -952,7 +1134,11 @@ export default function DelegationCategoryPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-white/10 text-xs font-semibold">
+<<<<<<< HEAD
                     {renderAuditTableContent()}
+=======
+                    {renderAuditTableBody()}
+>>>>>>> Dev
                   </tbody>
                 </table>
               </div>
@@ -1017,14 +1203,22 @@ export default function DelegationCategoryPage() {
           </div>
         )}
 
+<<<<<<< HEAD
         {/* Logon Settings View matching user screenshot exactly */}
         {tab === "logon-settings" && (
           <div className="space-y-6 animate-fadeIn">
             {/* Header Area */}
+=======
+        {/* Enterprise Grade Logon Settings View - Fully Matching Reference Image */}
+        {tab === "logon-settings" && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Header */}
+>>>>>>> Dev
             <div>
               <h1 className="text-xl font-bold text-slate-900 dark:text-white font-outfit">
                 Logon Settings
               </h1>
+<<<<<<< HEAD
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-3xl leading-relaxed">
                 Login to ADManager Plus using an authentication method other than the first factor authentication. <span className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">Learn more...</span>
               </p>
@@ -1309,6 +1503,382 @@ export default function DelegationCategoryPage() {
 
               </div>
 
+=======
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-4xl leading-relaxed">
+                Login to Petrus using an authentication method other than the first factor authentication. <span className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">Learn more...</span>
+              </p>
+            </div>
+
+            {/* Custom Tabbed Sub-navigation matching reference screenshot exactly */}
+            <div className="flex border border-slate-200 dark:border-white/10 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-900/50 max-w-4xl divide-x divide-slate-200 dark:divide-white/10">
+              {[
+                { id: "general", name: "General" },
+                { id: "sso", name: "Single Sign On" },
+                { id: "mfa", name: "Two Factor Authentication" },
+                { id: "smartcard", name: "Smart Card Authentication" },
+                { id: "ips", name: "Allow/Restrict IPs" }
+              ].map((sub) => {
+                const isSubActive = logonActiveSubTab === sub.id;
+                return (
+                  <button
+                    key={sub.id}
+                    onClick={() => setLogonActiveSubTab(sub.id as "general" | "sso" | "mfa" | "smartcard" | "ips")}
+                    className={`flex-1 py-2.5 text-xs font-bold text-center transition-all ${
+                      isSubActive
+                        ? "bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900"
+                    }`}
+                  >
+                    {sub.name}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Sub-tab Content Cards */}
+            <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-sm max-w-4xl space-y-6 animate-fadeIn">
+              
+              {/* GENERAL SUBTAB (Matches first screenshot exactly) */}
+              {logonActiveSubTab === "general" && (
+                <div className="space-y-6">
+                  {/* CAPTCHA Settings */}
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">CAPTCHA Settings</h3>
+                    <div className="flex items-center space-x-3 pl-2">
+                      <input 
+                        type="checkbox" 
+                        id="enable-captcha" 
+                        checked={enableCaptcha} 
+                        onChange={(e) => setEnableCaptcha(e.target.checked)}
+                        className="rounded border-slate-300 dark:border-white/10 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 cursor-pointer" 
+                      />
+                      <label htmlFor="enable-captcha" className="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
+                        Enable CAPTCHA on login page
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Technician Logon Settings */}
+                  <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Technician Logon Settings</h3>
+                    <div className="flex items-center space-x-3 pl-2">
+                      <input 
+                        type="checkbox" 
+                        id="block-invalid-login" 
+                        checked={blockInvalidLogin} 
+                        onChange={(e) => setBlockInvalidLogin(e.target.checked)}
+                        className="rounded border-slate-300 dark:border-white/10 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 cursor-pointer" 
+                      />
+                      <label htmlFor="block-invalid-login" className="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
+                        Block technician after invalid login attempts
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Mobile Application Settings */}
+                  <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mobile Application Settings</h3>
+                    <div className="space-y-2.5 pl-2">
+                      <div className="flex items-center space-x-3">
+                        <input 
+                          type="checkbox" 
+                          id="allow-android" 
+                          checked={allowAndroid} 
+                          onChange={(e) => setAllowAndroid(e.target.checked)}
+                          className="rounded border-slate-300 dark:border-white/10 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 cursor-pointer" 
+                        />
+                        <label htmlFor="allow-android" className="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
+                          Allow access from Android application
+                        </label>
+                      </div>
+
+                      <div className="flex items-center space-x-3">
+                        <input 
+                          type="checkbox" 
+                          id="allow-ios" 
+                          checked={allowIos} 
+                          onChange={(e) => setAllowIos(e.target.checked)}
+                          className="rounded border-slate-300 dark:border-white/10 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 cursor-pointer" 
+                        />
+                        <label htmlFor="allow-ios" className="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
+                          Allow access from iOS application
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Login Page Settings */}
+                  <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Login Page Settings</h3>
+                    <div className="space-y-2.5 pl-2">
+                      <div className="flex items-center space-x-3">
+                        <input 
+                          type="checkbox" 
+                          id="show-forgot-password" 
+                          checked={showForgotPassword} 
+                          onChange={(e) => setShowForgotPassword(e.target.checked)}
+                          className="rounded border-slate-300 dark:border-white/10 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 cursor-pointer" 
+                        />
+                        <label htmlFor="show-forgot-password" className="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
+                          Show Forgot Password? option on login page
+                        </label>
+                      </div>
+
+                      <div className="flex items-center space-x-3">
+                        <input 
+                          type="checkbox" 
+                          id="show-log-on-to" 
+                          checked={showLogOnTo} 
+                          onChange={(e) => setShowLogOnTo(e.target.checked)}
+                          className="rounded border-slate-300 dark:border-white/10 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 cursor-pointer" 
+                        />
+                        <label htmlFor="show-log-on-to" className="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
+                          Show Log on to option on login page
+                        </label>
+                      </div>
+
+                      <div className="flex items-center space-x-3">
+                        <input 
+                          type="checkbox" 
+                          id="disable-concurrent-login" 
+                          checked={disableConcurrentLogin} 
+                          onChange={(e) => setDisableConcurrentLogin(e.target.checked)}
+                          className="rounded border-slate-300 dark:border-white/10 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 cursor-pointer" 
+                        />
+                        <label htmlFor="disable-concurrent-login" className="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer flex items-center space-x-1.5">
+                          <span>Disable concurrent login</span>
+                          <span className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-bold">Active Sessions Settings</span>
+                        </label>
+                      </div>
+
+                      <div className="flex items-center space-x-3">
+                        <input 
+                          type="checkbox" 
+                          id="show-disclaimer" 
+                          checked={showDisclaimer} 
+                          onChange={(e) => setShowDisclaimer(e.target.checked)}
+                          className="rounded border-slate-300 dark:border-white/10 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 cursor-pointer" 
+                        />
+                        <label htmlFor="show-disclaimer" className="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer flex items-center space-x-1.5">
+                          <span>Show disclaimer</span>
+                          <span className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-bold">Customize</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SINGLE SIGN ON SUBTAB */}
+              {logonActiveSubTab === "sso" && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Globe className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">SAML 2.0 Single Sign-On</h3>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        id="toggle-sso" 
+                        checked={ssoEnabled} 
+                        onChange={(e) => setSsoEnabled(e.target.checked)}
+                        className="rounded border-slate-300 dark:border-white/10 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 cursor-pointer" 
+                      />
+                      <label htmlFor="toggle-sso" className="text-xs font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer">Enable SAML SSO</label>
+                    </div>
+                  </div>
+
+                  {ssoEnabled && (
+                    <div className="space-y-4 pt-2 animate-fadeIn">
+                      <div className="space-y-2">
+                        <label htmlFor="sso-metadata" className="text-xs font-bold text-slate-700 dark:text-slate-300">Identity Provider Metadata XML URL</label>
+                        <input 
+                          type="text" 
+                          id="sso-metadata"
+                          value={ssoMetadataUrl}
+                          onChange={(e) => setSsoMetadataUrl(e.target.value)}
+                          className="w-full bg-slate-100 dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 outline-none focus:border-indigo-500 transition-all font-mono"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label htmlFor="sso-issuer" className="text-xs font-bold text-slate-700 dark:text-slate-300">SAML Service Provider Entity ID (Issuer)</label>
+                          <input 
+                            type="text" 
+                            id="sso-issuer"
+                            value={ssoIssuer}
+                            onChange={(e) => setSsoIssuer(e.target.value)}
+                            className="w-full bg-slate-100 dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 outline-none focus:border-indigo-500 transition-all font-mono"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label htmlFor="sso-binding" className="text-xs font-bold text-slate-700 dark:text-slate-300">SAML Request Binding Method</label>
+                          <select id="sso-binding" className="w-full bg-slate-100 dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-300 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 outline-none">
+                            <option>HTTP-Redirect Binding (Recommended)</option>
+                            <option>HTTP-POST Binding</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TWO FACTOR AUTHENTICATION SUBTAB */}
+              {logonActiveSubTab === "mfa" && (
+                <div className="space-y-6">
+                  <div className="flex items-center space-x-3">
+                    <Key className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Two Factor Authentication (MFA) Settings</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    <div className="space-y-2">
+                      <label htmlFor="mfa-enforcement" className="text-xs font-bold text-slate-700 dark:text-slate-300">MFA Policy Enforcement</label>
+                      <select id="mfa-enforcement" className="w-full bg-slate-100 dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-300 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 outline-none">
+                        <option>Enforced For All Help Desk Technicians</option>
+                        <option>Enforced For External Networks Only</option>
+                        <option>Optional For All Technicians</option>
+                        <option>Disabled</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="primary-mfa-method" className="text-xs font-bold text-slate-700 dark:text-slate-300">Default Primary MFA Method</label>
+                      <select id="primary-mfa-method" className="w-full bg-slate-100 dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-300 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 outline-none">
+                        <option>Authenticator App (TOTP - Google/Microsoft)</option>
+                        <option>FIDO2 WebAuthn (Security Keys/Biometrics)</option>
+                        <option>Email OTP Authentication</option>
+                        <option>SMS Text Message OTP</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">Allowed Secondary Authentication Factors</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {[
+                        { id: "allow-totp", label: "Allow Google / Microsoft Authenticator (TOTP)", defaultChecked: true },
+                        { id: "allow-fido", label: "Allow FIDO2 / WebAuthn Hardware Keys (YubiKey)", defaultChecked: true },
+                        { id: "allow-sms", label: "Allow SMS OTP Verification", defaultChecked: false },
+                        { id: "allow-email", label: "Allow Email verification code fallback", defaultChecked: true }
+                      ].map((item) => (
+                        <div key={item.id} className="flex items-center space-x-3 bg-slate-50 dark:bg-slate-900/50 px-4 py-2.5 rounded-lg border border-slate-100 dark:border-white/5">
+                          <input type="checkbox" id={item.id} defaultChecked={item.defaultChecked} className="rounded border-slate-300 dark:border-white/10 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer" />
+                          <label htmlFor={item.id} className="text-xs font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">{item.label}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SMART CARD AUTHENTICATION SUBTAB */}
+              {logonActiveSubTab === "smartcard" && (
+                <div className="space-y-6">
+                  <div className="flex items-center space-x-3">
+                    <CreditCard className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Smart Card & Hardware Token Authentication</h3>
+                  </div>
+
+                  <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200/50 p-4 rounded-xl flex items-start space-x-3 max-w-2xl">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-bold text-yellow-800 dark:text-yellow-300">Active Directory PIN & Certificate Enrollment Required</h4>
+                      <p className="text-[11px] text-yellow-700 dark:text-yellow-400 leading-relaxed font-semibold">
+                        Ensure technicians have enrolled their PIV/CAC card credentials under their corresponding AD container store before enabling Smart Card Logon enforce rules.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-2">
+                    <div className="flex items-center space-x-3 pl-1">
+                      <input type="checkbox" id="enforce-smartcard" className="rounded border-slate-300 dark:border-white/10 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 cursor-pointer" />
+                      <label htmlFor="enforce-smartcard" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                        Enable and require Smart Card Logon validation
+                      </label>
+                    </div>
+
+                    <div className="space-y-2 max-w-sm pl-1">
+                      <label htmlFor="smartcard-pin" className="text-xs font-bold text-slate-700 dark:text-slate-300">Card Pin Expiry Restriction</label>
+                      <select id="smartcard-pin" className="w-full bg-slate-100 dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-300 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 outline-none">
+                        <option>Enforce system smart card certificate revocation list checking</option>
+                        <option>Bypass CRL validation on domain level bounds</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ALLOW/RESTRICT IPS SUBTAB */}
+              {logonActiveSubTab === "ips" && (
+                <div className="space-y-6">
+                  <div className="flex items-center space-x-3">
+                    <Shield className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Allow/Restrict IPs network boundary rules</h3>
+                  </div>
+
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Prevent access from outside company premises by allowing requests only from recognized corporate subnet ranges. Leaving this blank turns off IP filtering.
+                  </p>
+
+                  <form onSubmit={handleAddAllowedIp} className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="e.g. 192.168.1.0/24 or 198.51.100.12" 
+                      value={ipInput}
+                      onChange={(e) => setIpInput(e.target.value)}
+                      className="bg-slate-100 dark:bg-slate-900/50 text-xs font-mono text-slate-700 dark:text-slate-300 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 outline-none w-full max-w-sm focus:border-indigo-500 transition-all"
+                    />
+                    <button 
+                      type="submit"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-lg transition-all"
+                    >
+                      Whitelist Range
+                    </button>
+                  </form>
+
+                  <div className="pt-2 space-y-2">
+                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">Currently Allowed Subnet / IP Ranges:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {allowedIps.map((ip) => (
+                        <div key={ip} className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-900 font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10">
+                          <span>{ip}</span>
+                          <button 
+                            type="button"
+                            onClick={() => handleRemoveIp(ip)}
+                            className="p-0.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-rose-500 transition-colors"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SAVE CONFIG BAR - Matches Reference color perfectly */}
+              <div className="pt-6 border-t border-slate-100 dark:border-white/5 flex items-center space-x-3">
+                <button 
+                  onClick={handleSaveLogonConfig}
+                  disabled={isSavingLogon}
+                  className="bg-[#8cc63f] hover:bg-[#7bb336] text-white font-black text-xs px-6 py-2.5 rounded transition-all shadow-sm"
+                >
+                  {isSavingLogon ? "Saving Settings..." : "Save Settings"}
+                </button>
+                <button 
+                  onClick={handleCancelLogonConfig}
+                  className="bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs px-5 py-2.5 rounded transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+
+>>>>>>> Dev
             </div>
           </div>
         )}
