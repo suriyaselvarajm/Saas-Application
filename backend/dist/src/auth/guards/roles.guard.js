@@ -1,0 +1,81 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RolesGuard = void 0;
+const common_1 = require("@nestjs/common");
+const core_1 = require("@nestjs/core");
+const client_1 = require("@prisma/client");
+const roles_decorator_1 = require("../decorators/roles.decorator");
+const prisma_service_1 = require("../../prisma/prisma.service");
+let RolesGuard = class RolesGuard {
+    reflector;
+    prisma;
+    constructor(reflector, prisma) {
+        this.reflector = reflector;
+        this.prisma = prisma;
+    }
+    roleHierarchy = [
+        client_1.SystemRole.SUPER_ADMIN,
+        client_1.SystemRole.TENANT_ADMIN,
+        client_1.SystemRole.HR_ADMIN,
+        client_1.SystemRole.IT_ADMIN,
+        client_1.SystemRole.EMPLOYEE,
+    ];
+    async canActivate(context) {
+        const requiredRoles = this.reflector.getAllAndOverride(roles_decorator_1.ROLES_KEY, [context.getHandler(), context.getClass()]);
+        if (!requiredRoles || requiredRoles.length === 0) {
+            return true;
+        }
+        const request = context.switchToHttp().getRequest();
+        let user = request.user;
+        if (!user) {
+            const authHeader = request.headers.authorization;
+            if (authHeader?.startsWith('Bearer mock-jwt-token-for-')) {
+                const userId = authHeader.replace('Bearer mock-jwt-token-for-', '');
+                try {
+                    const dbUser = await this.prisma.user.findUnique({
+                        where: { id: userId },
+                    });
+                    if (dbUser) {
+                        user = {
+                            id: dbUser.id,
+                            systemRole: dbUser.systemRole,
+                            tenantId: dbUser.tenantId,
+                        };
+                        request.user = user;
+                    }
+                }
+                catch (e) {
+                    console.error("Failed to fetch user in RolesGuard", e);
+                }
+            }
+        }
+        if (!user?.systemRole) {
+            throw new common_1.ForbiddenException('User role not found in request. Please login again.');
+        }
+        const userRoleIndex = this.roleHierarchy.indexOf(user.systemRole);
+        const hasPermission = requiredRoles.some((requiredRole) => {
+            const requiredRoleIndex = this.roleHierarchy.indexOf(requiredRole);
+            return userRoleIndex <= requiredRoleIndex;
+        });
+        if (!hasPermission) {
+            throw new common_1.ForbiddenException('You do not have the required role to access this resource');
+        }
+        return true;
+    }
+};
+exports.RolesGuard = RolesGuard;
+exports.RolesGuard = RolesGuard = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [core_1.Reflector,
+        prisma_service_1.PrismaService])
+], RolesGuard);
+//# sourceMappingURL=roles.guard.js.map

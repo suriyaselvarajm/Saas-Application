@@ -2,7 +2,24 @@
 
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { MapPin, Plus, MoreVertical, Globe, X, Loader2, Edit2, Trash2 } from "lucide-react";
+import { MapPin, Plus, Globe, X, Loader2, Edit2, Trash2 } from "lucide-react";
+
+const COUNTRIES_LIST = [
+  "India",
+  "United States",
+  "United Kingdom",
+  "Canada",
+  "Australia",
+  "Singapore",
+  "Germany",
+  "France",
+  "Japan",
+  "United Arab Emirates",
+  "Netherlands",
+  "Switzerland",
+  "South Africa",
+  "Brazil"
+];
 
 export default function OfficeSettings() {
   const [offices, setOffices] = useState<any[]>([]);
@@ -10,12 +27,14 @@ export default function OfficeSettings() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showCountrySuggestions, setShowCountrySuggestions] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
     address: "",
     city: "",
     state: "",
+    zipCode: "",
     country: "India",
     isDefault: false
   });
@@ -44,7 +63,7 @@ export default function OfficeSettings() {
 
   const handleOpenAddModal = () => {
     setEditingId(null);
-    setFormData({ name: "", address: "", city: "", state: "", country: "India", isDefault: false });
+    setFormData({ name: "", address: "", city: "", state: "", zipCode: "", country: "India", isDefault: false });
     setIsModalOpen(true);
   };
 
@@ -55,6 +74,7 @@ export default function OfficeSettings() {
       address: office.address || "",
       city: office.city || "",
       state: office.state || "",
+      zipCode: office.zipCode || "",
       country: office.country || "India",
       isDefault: office.isDefault || false
     });
@@ -75,7 +95,7 @@ export default function OfficeSettings() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setSubmitting(true);
     const url = editingId ? `http://localhost:3001/settings/offices/${editingId}` : "http://localhost:3001/settings/offices";
@@ -147,7 +167,7 @@ export default function OfficeSettings() {
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{office.name}</h3>
                 <div className="space-y-1 text-sm text-slate-600 dark:text-slate-400 mb-6">
                   <p>{office.address}</p>
-                  <p>{office.city}, {office.state}</p>
+                  <p>{office.city}, {office.state} {office.zipCode}</p>
                   <p className="flex items-center gap-1 mt-2 text-slate-500 italic">
                     <Globe className="h-3 w-3" /> {office.country}
                   </p>
@@ -175,16 +195,18 @@ export default function OfficeSettings() {
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Office Name</label>
+                  <label htmlFor="office-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Office Name</label>
                   <input 
+                    id="office-name"
                     type="text" required
                     value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Address</label>
+                  <label htmlFor="office-address" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Address</label>
                   <input 
+                    id="office-address"
                     type="text"
                     value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
@@ -192,20 +214,77 @@ export default function OfficeSettings() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">City</label>
+                    <label htmlFor="office-city" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">City</label>
                     <input 
+                      id="office-city"
                       type="text"
                       value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})}
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">State</label>
+                    <label htmlFor="office-state" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">State</label>
                     <input 
+                      id="office-state"
                       type="text"
                       value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})}
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="office-zip" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Zip/Pin Code</label>
+                    <input 
+                      id="office-zip"
+                      type="text"
+                      value={formData.zipCode} onChange={e => setFormData({...formData, zipCode: e.target.value})}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="office-country" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Country</label>
+                    <input 
+                      id="office-country"
+                      type="text"
+                      placeholder="Type or select country..."
+                      value={formData.country} 
+                      onFocus={() => setShowCountrySuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowCountrySuggestions(false), 250)}
+                      onChange={e => {
+                        setFormData({...formData, country: e.target.value});
+                        setShowCountrySuggestions(true);
+                      }}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    {showCountrySuggestions && (
+                      <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl shadow-2xl z-50 py-1.5 scrollbar-thin">
+                        {COUNTRIES_LIST.filter(c =>
+                          c.toLowerCase().includes((formData.country || "").toLowerCase())
+                        ).length > 0 ? (
+                          COUNTRIES_LIST.filter(c =>
+                            c.toLowerCase().includes((formData.country || "").toLowerCase())
+                          ).map(c => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, country: c }));
+                                setShowCountrySuggestions(false);
+                              }}
+                              className="w-full text-left px-4 py-2.5 text-xs text-slate-800 dark:text-slate-200 hover:bg-indigo-600 hover:text-white transition-colors block"
+                            >
+                              {c}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-4 py-2.5 text-xs text-slate-400 dark:text-slate-500 italic">
+                            No matching countries
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -214,7 +293,7 @@ export default function OfficeSettings() {
                     checked={formData.isDefault} onChange={e => setFormData({...formData, isDefault: e.target.checked})}
                     className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
-                  <label className="text-sm text-slate-700 dark:text-slate-300">Set as Default Office</label>
+                  <label htmlFor="office-default" className="text-sm text-slate-700 dark:text-slate-300">Set as Default Office</label>
                 </div>
                 <div className="pt-4 flex gap-3">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">

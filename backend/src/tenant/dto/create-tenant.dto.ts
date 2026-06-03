@@ -1,4 +1,10 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { SubscriptionType } from '@prisma/client';
 
 export class CreateTenantDto {
@@ -35,8 +41,12 @@ export class CreateTenantDto {
   currency?: string;
 
   @IsEmail()
-  @IsOptional()
-  contactEmail?: string;
+  @IsNotEmpty()
+  adminEmail: string;
+
+  @IsString()
+  @IsNotEmpty()
+  initialPassword: string;
 
   @IsString()
   @IsOptional()

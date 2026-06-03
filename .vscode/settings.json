@@ -1,0 +1,7 @@
+{
+  "css.lint.unknownAtRules": "ignore",
+  "sonarlint.connectedMode.project": {
+    "connectionId": "http-localhost-9000",
+    "projectKey": "saas-application"
+  }
+}

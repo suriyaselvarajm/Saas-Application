@@ -1,4 +1,10 @@
-import { IsArray, IsBoolean, IsInt, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class AuthSettingsDto {
   @IsBoolean()
@@ -46,4 +52,16 @@ export class AuthSettingsDto {
   @IsInt()
   @IsOptional()
   expiryDays?: number;
+
+  @IsString()
+  @IsOptional()
+  tenantId?: string;
+
+  @IsString()
+  @IsOptional()
+  createdAt?: string;
+
+  @IsString()
+  @IsOptional()
+  updatedAt?: string;
 }

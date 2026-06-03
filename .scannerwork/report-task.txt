@@ -1,0 +1,6 @@
+projectKey=Saas-Appl
+serverUrl=http://localhost:9000
+serverVersion=26.1.0.118079
+dashboardUrl=http://localhost:9000/dashboard?id=Saas-Appl
+ceTaskId=4fade6fa-86e8-4095-a30f-a22965b1bc1a
+ceTaskUrl=http://localhost:9000/api/ce/task?id=4fade6fa-86e8-4095-a30f-a22965b1bc1a

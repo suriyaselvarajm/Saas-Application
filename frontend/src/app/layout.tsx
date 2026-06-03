@@ -29,7 +29,10 @@ export default function RootLayout({
       className={`${inter.variable} ${outfit.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-slate-50 dark:bg-[#020817] text-slate-900 dark:text-slate-200">
+      <body
+        className="min-h-full flex flex-col bg-slate-50 dark:bg-[#020817] text-slate-900 dark:text-slate-200"
+        suppressHydrationWarning
+      >
         <ThemeProvider>
           {children}
         </ThemeProvider>

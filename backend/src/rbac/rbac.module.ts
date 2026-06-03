@@ -4,6 +4,6 @@ import { RbacController } from './rbac.controller';
 
 @Module({
   providers: [RbacService],
-  controllers: [RbacController]
+  controllers: [RbacController],
 })
 export class RbacModule {}

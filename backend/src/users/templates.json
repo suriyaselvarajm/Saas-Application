@@ -1,0 +1,86 @@
+[
+  {
+    "id": "default",
+    "name": "Standard Employee Template",
+    "createdBy": "Petrus Directory Authority\\admin",
+    "createdOn": "2026-05-20 12:00:00",
+    "lastModified": "2026-05-20 12:00:00",
+    "category": "Default",
+    "description": "Default Template to create standard domain users with common settings.",
+    "domainName": "All Domains",
+    "data": {
+      "jobTitle": "Systems Engineer",
+      "department": "Engineering",
+      "office": "San Francisco HQ",
+      "targetOu": "OU=Engineering,OU=Employees,DC=petrus,DC=io",
+      "adGroupDn": "CN=Dev-Group,CN=Users,DC=petrus,DC=io",
+      "createInAd": true,
+      "createInM365": false,
+      "m365License": "Microsoft 365 E5",
+      "createWithoutLicense": false
+    }
+  },
+  {
+    "id": "engineering",
+    "name": "Engineering Department Template",
+    "createdBy": "Petrus Directory Authority\\admin",
+    "createdOn": "2026-05-20 12:00:00",
+    "lastModified": "2026-05-20 12:00:00",
+    "category": "Default",
+    "description": "Predefined template with both AD and O365 settings activated for Engineering.",
+    "domainName": "All Domains",
+    "data": {
+      "jobTitle": "Senior Systems Architect",
+      "department": "Engineering",
+      "office": "San Francisco HQ",
+      "targetOu": "OU=Engineering,OU=Employees,DC=petrus,DC=io",
+      "adGroupDn": "CN=Dev-Group,CN=Users,DC=petrus,DC=io",
+      "createInAd": true,
+      "createInM365": true,
+      "m365License": "Microsoft 365 E5",
+      "createWithoutLicense": false
+    }
+  },
+  {
+    "id": "sales",
+    "name": "Global Sales Template",
+    "createdBy": "Petrus Directory Authority\\admin",
+    "createdOn": "2026-05-20 12:00:00",
+    "lastModified": "2026-05-20 12:00:00",
+    "category": "Default",
+    "description": "Standard Sales team template with M365 E3 license assignments.",
+    "domainName": "All Domains",
+    "data": {
+      "jobTitle": "Sales Specialist",
+      "department": "Sales",
+      "office": "New York HQ",
+      "targetOu": "OU=Sales,OU=Employees,DC=petrus,DC=io",
+      "adGroupDn": "CN=Sales-Group,CN=Users,DC=petrus,DC=io",
+      "createInAd": true,
+      "createInM365": true,
+      "m365License": "Microsoft 365 E3",
+      "createWithoutLicense": false
+    }
+  },
+  {
+    "id": "hr",
+    "name": "Human Resources Template",
+    "createdBy": "Petrus Directory Authority\\admin",
+    "createdOn": "2026-05-20 12:00:00",
+    "lastModified": "2026-05-20 12:00:00",
+    "category": "Default",
+    "description": "Predefined template for HR personnel with Office 365 licensing.",
+    "domainName": "All Domains",
+    "data": {
+      "jobTitle": "HR Business Partner",
+      "department": "Human Resources",
+      "office": "San Francisco HQ",
+      "targetOu": "OU=HR,OU=Employees,DC=petrus,DC=io",
+      "adGroupDn": "CN=HR-Group,CN=Users,DC=petrus,DC=io",
+      "createInAd": true,
+      "createInM365": true,
+      "m365License": "Office 365 F3",
+      "createWithoutLicense": false
+    }
+  }
+]

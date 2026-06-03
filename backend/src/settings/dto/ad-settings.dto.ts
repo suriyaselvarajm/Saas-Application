@@ -1,6 +1,16 @@
-import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class AdSettingsDto {
+  @IsString()
+  @IsOptional()
+  id?: string;
+
   @IsString()
   @IsNotEmpty()
   adServerIp: string;
@@ -10,12 +20,16 @@ export class AdSettingsDto {
   domainName: string;
 
   @IsString()
-  @IsNotEmpty()
-  ldapPath: string;
+  @IsOptional()
+  ldapPath?: string;
 
   @IsString()
   @IsNotEmpty()
   baseDn: string;
+
+  @IsString()
+  @IsOptional()
+  userCreationBaseOu?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -32,4 +46,16 @@ export class AdSettingsDto {
   @IsInt()
   @IsOptional()
   port?: number;
+
+  @IsString()
+  @IsOptional()
+  tenantId?: string;
+
+  @IsString()
+  @IsOptional()
+  createdAt?: string;
+
+  @IsString()
+  @IsOptional()
+  updatedAt?: string;
 }

@@ -9,9 +9,20 @@ import { RbacModule } from './rbac/rbac.module';
 import { SmtpModule } from './smtp/smtp.module';
 import { EmailTemplateModule } from './email-template/email-template.module';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
-  imports: [PrismaModule, TenantModule, SettingsModule, AuditModule, RbacModule, SmtpModule, EmailTemplateModule, AuthModule],
+  imports: [
+    PrismaModule,
+    TenantModule,
+    SettingsModule,
+    AuditModule,
+    RbacModule,
+    SmtpModule,
+    EmailTemplateModule,
+    AuthModule,
+    UsersModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

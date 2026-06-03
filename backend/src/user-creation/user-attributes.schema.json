@@ -1,0 +1,169 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ManageEngineUserAttributes",
+  "type": "object",
+  "properties": {
+    "firstName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "User's first name"
+    },
+    "initials": {
+      "type": "string",
+      "maxLength": 3,
+      "description": "Middle initials"
+    },
+    "lastName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "User's last name"
+    },
+    "middleName": {
+      "type": "string",
+      "description": "User's middle name"
+    },
+    "displayName": {
+      "type": "string",
+      "description": "Display name in directory"
+    },
+    "employeeID": {
+      "type": "string",
+      "description": "Unique corporate employee identifier"
+    },
+    "employeeType": {
+      "type": "string",
+      "enum": ["FULL_TIME", "PART_TIME", "CONTRACTOR", "INTERN", "TEMPORARY"],
+      "description": "Employment type"
+    },
+    "description": {
+      "type": "string",
+      "description": "Account description"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "User Principal Name (UPN) / Primary SMTP email"
+    },
+    "password": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Active Directory / Entra ID compliant password"
+    },
+    "officePhone": {
+      "type": "string",
+      "description": "Office phone number"
+    },
+    "homePhone": {
+      "type": "string",
+      "description": "Home phone number"
+    },
+    "mobileNumber": {
+      "type": "string",
+      "description": "Mobile cellular number"
+    },
+    "faxNumber": {
+      "type": "string",
+      "description": "Facsimile number"
+    },
+    "streetAddress": {
+      "type": "string",
+      "description": "Street mailing address"
+    },
+    "city": {
+      "type": "string",
+      "description": "City of residence/office"
+    },
+    "stateProvince": {
+      "type": "string",
+      "description": "State or province"
+    },
+    "zipPostalCode": {
+      "type": "string",
+      "description": "ZIP or postal code"
+    },
+    "countryRegion": {
+      "type": "string",
+      "description": "Country or region name"
+    },
+    "jobTitle": {
+      "type": "string",
+      "description": "Designation/job title"
+    },
+    "department": {
+      "type": "string",
+      "description": "Company department"
+    },
+    "office": {
+      "type": "string",
+      "description": "Physical office location"
+    },
+    "company": {
+      "type": "string",
+      "description": "Company name"
+    },
+    "manager": {
+      "type": "string",
+      "description": "Manager's UPN/Email"
+    },
+    "businessUnit": {
+      "type": "string",
+      "description": "Business division unit"
+    },
+    "costCenter": {
+      "type": "string",
+      "description": "Cost center for accounting"
+    },
+    "division": {
+      "type": "string",
+      "description": "Corporate division"
+    },
+    "createInAd": {
+      "type": "boolean",
+      "description": "Provision into Active Directory"
+    },
+    "createInM365": {
+      "type": "boolean",
+      "description": "Provision into Microsoft 365"
+    },
+    "adSettingsId": {
+      "type": "string",
+      "description": "Identifier of AD settings config"
+    },
+    "m365SettingsId": {
+      "type": "string",
+      "description": "Identifier of M365 settings config"
+    },
+    "targetOu": {
+      "type": "string",
+      "description": "AD Target Organizational Unit DN"
+    },
+    "adGroupDn": {
+      "type": "string",
+      "description": "AD Target Security Group DN"
+    },
+    "m365License": {
+      "type": "string",
+      "description": "M365 License plan SKU to assign"
+    },
+    "createWithoutLicense": {
+      "type": "boolean",
+      "description": "Create M365 user without license"
+    },
+    "mustChangePassword": {
+      "type": "boolean",
+      "description": "Force password change on first logon"
+    },
+    "selectedTemplate": {
+      "type": "string",
+      "description": "User creation template ID"
+    }
+  },
+  "required": [
+    "firstName",
+    "lastName",
+    "email",
+    "password",
+    "jobTitle",
+    "office"
+  ]
+}
