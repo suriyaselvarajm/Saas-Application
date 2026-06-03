@@ -46,8 +46,8 @@ exports.UsersService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const ldap = __importStar(require("ldapjs"));
-const fs = __importStar(require("fs"));
-const path = __importStar(require("path"));
+const fs = __importStar(require("node:fs"));
+const path = __importStar(require("node:path"));
 let UsersService = class UsersService {
     prisma;
     constructor(prisma) {
@@ -71,7 +71,7 @@ let UsersService = class UsersService {
             {
                 id: "default",
                 name: "Standard Employee Template",
-                createdBy: "Petrus Directory Authority\\admin",
+                createdBy: String.raw `Petrus Directory Authority\admin`,
                 createdOn: "2026-05-20 12:00:00",
                 lastModified: "2026-05-20 12:00:00",
                 category: "Default",
@@ -236,6 +236,19 @@ let UsersService = class UsersService {
                     }
                     await this.addUserToAdGroup(client, userDn, groupDn, logs);
                 }
+                if (dto.adGroupDns && Array.isArray(dto.adGroupDns)) {
+                    for (const gDn of dto.adGroupDns) {
+                        let processedGroupDn = gDn;
+                        if (processedGroupDn.toLowerCase().includes('dc=')) {
+                            const relativeGroup = processedGroupDn.split(',').filter(part => !part.toLowerCase().startsWith('dc=')).join(',');
+                            processedGroupDn = `${relativeGroup},${ad.baseDn}`;
+                        }
+                        else {
+                            processedGroupDn = `${processedGroupDn},${ad.baseDn}`;
+                        }
+                        await this.addUserToAdGroup(client, userDn, processedGroupDn, logs);
+                    }
+                }
                 client.unbind();
                 return true;
             }
@@ -252,10 +265,15 @@ let UsersService = class UsersService {
         if (dto.adGroupDn) {
             logs.push(`[AD] [SIMULATION] Successfully added simulated user ${userDn} to security group ${dto.adGroupDn}.`);
         }
+        if (dto.adGroupDns && Array.isArray(dto.adGroupDns)) {
+            for (const gDn of dto.adGroupDns) {
+                logs.push(`[AD] [SIMULATION] Successfully added simulated user ${userDn} to security group ${gDn}.`);
+            }
+        }
         return true;
     }
     buildAdUserEntry(dto, sAMAccountName, isSecure) {
-        const userAccountControlValue = (isSecure && dto.password) ? '512' : '514';
+        const userAccountControlValue = '512';
         const entry = {
             cn: dto.displayName,
             objectClass: ['top', 'person', 'organizationalPerson', 'user'],
@@ -268,6 +286,7 @@ let UsersService = class UsersService {
         };
         const optionalFields = {
             initials: dto.initials,
+            mail: dto.email,
             title: dto.jobTitle,
             department: dto.department,
             physicalDeliveryOfficeName: dto.office,
@@ -390,8 +409,8 @@ let UsersService = class UsersService {
         return { success: true, createdCount, logs };
     }
     validateUserSchema(dto) {
-        const fs = require('fs');
-        const path = require('path');
+        const fs = require('node:fs');
+        const path = require('node:path');
         const schemaPath = path.join(process.cwd(), 'src/user-creation/user-attributes.schema.json');
         if (!fs.existsSync(schemaPath)) {
             return;

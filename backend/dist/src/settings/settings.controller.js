@@ -60,6 +60,12 @@ let SettingsController = class SettingsController {
     fetchAdOUs(tenantId, id) {
         return this.settingsService.fetchAdOUs(tenantId, id);
     }
+    fetchAdGroups(tenantId, id) {
+        return this.settingsService.fetchAdGroups(tenantId, id);
+    }
+    fetchAdUsers(tenantId, id) {
+        return this.settingsService.fetchAdUsers(tenantId, id);
+    }
     deleteM365(tenantId, id) {
         return this.settingsService.deleteM365(id, tenantId);
     }
@@ -149,6 +155,22 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], SettingsController.prototype, "fetchAdOUs", null);
+__decorate([
+    (0, common_1.Get)('ad/:id/groups'),
+    __param(0, (0, tenant_id_decorator_1.TenantId)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], SettingsController.prototype, "fetchAdGroups", null);
+__decorate([
+    (0, common_1.Get)('ad/:id/users'),
+    __param(0, (0, tenant_id_decorator_1.TenantId)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], SettingsController.prototype, "fetchAdUsers", null);
 __decorate([
     (0, common_1.Delete)('m365/:id'),
     __param(0, (0, tenant_id_decorator_1.TenantId)()),

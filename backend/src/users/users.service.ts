@@ -2,8 +2,8 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSingleUserDto } from './dto/create-single-user.dto';
 import * as ldap from 'ldapjs';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 @Injectable()
 export class UsersService {
@@ -28,7 +28,7 @@ export class UsersService {
       {
         id: "default",
         name: "Standard Employee Template",
-        createdBy: "Petrus Directory Authority\\admin",
+        createdBy: String.raw`Petrus Directory Authority\admin`,
         createdOn: "2026-05-20 12:00:00",
         lastModified: "2026-05-20 12:00:00",
         category: "Default",
@@ -230,6 +230,19 @@ export class UsersService {
           await this.addUserToAdGroup(client, userDn, groupDn, logs);
         }
 
+        if (dto.adGroupDns && Array.isArray(dto.adGroupDns)) {
+          for (const gDn of dto.adGroupDns) {
+            let processedGroupDn = gDn;
+            if (processedGroupDn.toLowerCase().includes('dc=')) {
+              const relativeGroup = processedGroupDn.split(',').filter(part => !part.toLowerCase().startsWith('dc=')).join(',');
+              processedGroupDn = `${relativeGroup},${ad.baseDn}`;
+            } else {
+              processedGroupDn = `${processedGroupDn},${ad.baseDn}`;
+            }
+            await this.addUserToAdGroup(client, userDn, processedGroupDn, logs);
+          }
+        }
+
         client.unbind();
         return true;
       }
@@ -262,6 +275,11 @@ export class UsersService {
     if (dto.adGroupDn) {
       logs.push(`[AD] [SIMULATION] Successfully added simulated user ${userDn} to security group ${dto.adGroupDn}.`);
     }
+    if (dto.adGroupDns && Array.isArray(dto.adGroupDns)) {
+      for (const gDn of dto.adGroupDns) {
+        logs.push(`[AD] [SIMULATION] Successfully added simulated user ${userDn} to security group ${gDn}.`);
+      }
+    }
     return true;
   }
 
@@ -270,7 +288,7 @@ export class UsersService {
     sAMAccountName: string,
     isSecure: boolean,
   ): any {
-    const userAccountControlValue = (isSecure && dto.password) ? '512' : '514';
+    const userAccountControlValue = '512';
 
     const entry: any = {
       cn: dto.displayName,
@@ -285,6 +303,7 @@ export class UsersService {
 
     const optionalFields: Record<string, string | undefined> = {
       initials: dto.initials,
+      mail: dto.email,
       title: dto.jobTitle,
       department: dto.department,
       physicalDeliveryOfficeName: dto.office,
@@ -455,8 +474,8 @@ export class UsersService {
   }
 
   validateUserSchema(dto: any) {
-    const fs = require('fs');
-    const path = require('path');
+    const fs = require('node:fs');
+    const path = require('node:path');
     const schemaPath = path.join(process.cwd(), 'src/user-creation/user-attributes.schema.json');
     
     if (!fs.existsSync(schemaPath)) {

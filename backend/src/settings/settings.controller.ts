@@ -73,6 +73,16 @@ export class SettingsController {
     return this.settingsService.fetchAdOUs(tenantId, id);
   }
 
+  @Get('ad/:id/groups')
+  fetchAdGroups(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.settingsService.fetchAdGroups(tenantId, id);
+  }
+
+  @Get('ad/:id/users')
+  fetchAdUsers(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.settingsService.fetchAdUsers(tenantId, id);
+  }
+
   @Delete('m365/:id')
   deleteM365(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.settingsService.deleteM365(id, tenantId);

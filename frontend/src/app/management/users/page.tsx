@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ManagementConsoleLayout from "@/components/layout/ManagementConsoleLayout";
 import { 
@@ -19,7 +19,8 @@ import {
   Plus,
   Trash2,
   Download,
-  Upload
+  Upload,
+  FolderTree
 } from "lucide-react";
 
 const PATH_MAP: Record<string, string> = {
@@ -243,7 +244,11 @@ const buildGpoPassword = (): string => {
   const lower = 'abcdefghijklmnopqrstuvwxyz';
   const numbers = '0123456789';
   const symbols = '!@#$%^&*()_+=-';
-  const pick = (pool: string) => pool.charAt(Math.floor(Math.random() * pool.length));
+  const pick = (pool: string) => {
+    const randomArray = new Uint32Array(1);
+    crypto.getRandomValues(randomArray);
+    return pool.charAt(randomArray[0] % pool.length);
+  };
   const raw = [
     ...Array.from({ length: 3 }, () => pick(upper)),
     ...Array.from({ length: 3 }, () => pick(lower)),
@@ -251,7 +256,12 @@ const buildGpoPassword = (): string => {
     ...Array.from({ length: 3 }, () => pick(symbols)),
     ...Array.from({ length: 2 }, () => pick(lower)),
   ];
-  raw.sort(() => 0.5 - Math.random());
+  for (let i = raw.length - 1; i > 0; i--) {
+    const randomArray = new Uint32Array(1);
+    crypto.getRandomValues(randomArray);
+    const j = randomArray[0] % (i + 1);
+    [raw[i], raw[j]] = [raw[j], raw[i]];
+  }
   return raw.join('');
 };
 
@@ -265,12 +275,139 @@ const getAttrBtnLabel = (required: boolean | undefined, enabled: boolean): strin
   return enabled ? 'Remove' : 'Add';
 };
 
+
+type JobModalProps = { isOpen: boolean, onClose: () => void, successStatus: boolean | null, message?: string };
+const JobCompletionModal = ({ isOpen, onClose, successStatus, message }: JobModalProps) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex flex-col items-center text-center space-y-4">
+          <div className={`h-16 w-16 rounded-full flex items-center justify-center ${successStatus ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+            {successStatus ? <CheckCircle2 className="h-8 w-8 text-emerald-600 dark:text-emerald-400" /> : <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />}
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+              {successStatus ? 'Job Completed Successfully' : 'Job Failed'}
+            </h3>
+            <p className="text-sm text-slate-500 mt-2">
+              {message || (successStatus ? 'The operation was executed successfully.' : 'There were errors during the operation.')}
+            </p>
+          </div>
+          <button onClick={onClose} className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-2.5 font-medium transition-colors">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+type ManagerSelectProps = { value: string, onChange: (val: string) => void, options: { name: string, dn: string }[] };
+const ManagerSelect = ({ value, onChange, options }: ManagerSelectProps) => {
+  const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+  const filtered = options.filter(o => o.name.toLowerCase().includes(search.toLowerCase()));
+  const selected = options.find(o => o.dn === value);
+
+  return (
+    <div className="relative">
+      <div 
+        className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white cursor-pointer flex justify-between items-center"
+        onClick={() => setOpen(!open)}
+      >
+        <span>{selected ? selected.name : "Select Manager"}</span>
+      </div>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+            <input 
+              type="text" 
+              placeholder="Search..." 
+              className="w-full p-2 text-xs border-b border-slate-200 dark:border-slate-700 bg-transparent text-slate-800 dark:text-white outline-none"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onClick={e => e.stopPropagation()}
+            />
+            {filtered.map(opt => (
+              <div 
+                key={opt.dn} 
+                className="px-3 py-2 text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-300"
+                onClick={() => { onChange(opt.dn); setOpen(false); setSearch(""); }}
+              >
+                {opt.name}
+              </div>
+            ))}
+            {filtered.length === 0 && <div className="px-3 py-2 text-xs text-slate-500">No users found</div>}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+type AdGroupMultiSelectProps = { selectedDns: string[], onChange: (val: string[]) => void, options: { name: string, dn: string }[] };
+const AdGroupMultiSelect = ({ selectedDns, onChange, options }: AdGroupMultiSelectProps) => {
+  const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+  const filtered = options.filter(o => o.name.toLowerCase().includes(search.toLowerCase()));
+
+  const toggleSelection = (dn: string) => {
+    if (selectedDns.includes(dn)) {
+      onChange(selectedDns.filter(d => d !== dn));
+    } else {
+      onChange([...selectedDns, dn]);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <div 
+        className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-2 text-slate-800 dark:text-white cursor-pointer"
+        onClick={() => setOpen(!open)}
+      >
+        {selectedDns.length > 0 ? `${selectedDns.length} groups selected` : "-- Select Groups --"}
+      </div>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+            <input 
+              type="text" 
+              placeholder="Search groups..." 
+              className="w-full p-2 text-xs border-b border-slate-200 dark:border-slate-700 bg-transparent text-slate-800 dark:text-white outline-none"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onClick={e => e.stopPropagation()}
+            />
+            {filtered.map(opt => (
+              <div 
+                key={opt.dn} 
+                className="px-3 py-2 text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-800 dark:text-slate-300"
+                onClick={(e) => { e.stopPropagation(); toggleSelection(opt.dn); }}
+              >
+                <input type="checkbox" checked={selectedDns.includes(opt.dn)} readOnly className="rounded border-slate-300 dark:border-slate-700" />
+                {opt.name}
+              </div>
+            ))}
+            {filtered.length === 0 && <div className="px-3 py-2 text-xs text-slate-500">No groups found</div>}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 export default function UserManagementPage() {
+  const [jobModal, setJobModal] = React.useState<{isOpen: boolean, success: boolean | null, message: string}>({isOpen: false, success: null, message: ''});
+
   const router = useRouter();
 
   // Integrations settings state
   const [adSettingsList, setAdSettingsList] = useState<any[]>([]);
   const [m365SettingsList, setM365SettingsList] = useState<any[]>([]);
+  const [adUserList, setAdUserList] = useState<{ name: string; dn: string; email?: string }[]>([]);
 
   // OU Browser modal state
   const [showOuBrowser, setShowOuBrowser] = useState(false);
@@ -278,6 +415,7 @@ export default function UserManagementPage() {
   const [ouBrowserSearch, setOuBrowserSearch] = useState("");
   const [ouList, setOuList] = useState<{ name: string; dn: string; path: string }[]>([]);
   const [ouListLoading, setOuListLoading] = useState(false);
+  const [groupList, setGroupList] = useState<{ name: string; dn: string; path: string }[]>([]);
 
   const openOuBrowser = async (target: "template" | "form") => {
     setOuBrowserTarget(target);
@@ -339,7 +477,7 @@ export default function UserManagementPage() {
     m365License: "Microsoft 365 E5",
     createWithoutLicense: false,
     targetOu: "",
-    adGroupDn: ""
+    adGroupDns: [] as string[]
   });
 
   // Email check state
@@ -370,7 +508,7 @@ export default function UserManagementPage() {
         createInAd: true,
         createInM365: true,
         targetOu: "OU=Mobile,OU=Employees",
-        adGroupDn: "CN=Mobile-Users,CN=Users",
+        adGroupDns: ["CN=Mobile-Users,CN=Users"],
         m365License: "Microsoft 365 E5",
         createWithoutLicense: false
       }
@@ -391,7 +529,7 @@ export default function UserManagementPage() {
         createInAd: true,
         createInM365: true,
         targetOu: "OU=Operations,OU=Employees",
-        adGroupDn: "CN=Domain Users,CN=Users",
+        adGroupDns: ["CN=Domain Users,CN=Users"],
         m365License: "Microsoft 365 E3",
         createWithoutLicense: false
       }
@@ -412,7 +550,7 @@ export default function UserManagementPage() {
         createInAd: true,
         createInM365: false,
         targetOu: "OU=Product,OU=Employees",
-        adGroupDn: "CN=Product-Group,CN=Users",
+        adGroupDns: ["CN=Product-Group,CN=Users"],
         m365License: "Microsoft 365 E5",
         createWithoutLicense: false
       }
@@ -448,6 +586,19 @@ export default function UserManagementPage() {
     stateProvince: "",
     zipPostalCode: "",
     countryRegion: "",
+    
+    // Additional profile info
+    employeeId: "",
+    descriptionGeneral: "",
+    webPage: "",
+    homePhone: "",
+    pager: "",
+    ipPhone: "",
+    notes: "",
+    company: "",
+    manager: "",
+    poBox: "",
+
 
     // Licensing info
     m365License: "Microsoft 365 E5",
@@ -455,7 +606,7 @@ export default function UserManagementPage() {
     
     // AD placement info
     targetOu: "",
-    adGroupDn: ""
+    adGroupDns: [] as string[]
   };
   const [singleUserFormData, setSingleUserFormData] = useState(initialFormData);
 
@@ -470,6 +621,69 @@ export default function UserManagementPage() {
       setEmailAvailable(null);
     }
   }, [singleUserFormData.email]);
+
+  useEffect(() => {
+    const fetchOusForWizard = async () => {
+      const adId = singleUserFormData.adSettingsId;
+      if (!adId) return;
+      setOuListLoading(true);
+      try {
+        const token = localStorage.getItem('petrus_token');
+        const res = await fetch(`http://localhost:3001/settings/ad/${adId}/ou`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setOuList(data);
+        }
+      } catch {
+        setOuList([]);
+      } finally {
+        setOuListLoading(false);
+      }
+    };
+    fetchOusForWizard();
+  }, [singleUserFormData.adSettingsId]);
+
+  useEffect(() => {
+    const fetchGroupsForWizard = async () => {
+      const adId = singleUserFormData.adSettingsId;
+      if (!adId) return;
+      try {
+        const token = localStorage.getItem('petrus_token');
+        const res = await fetch(`http://localhost:3001/settings/ad/${adId}/groups`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setGroupList(data);
+        }
+      } catch {
+        setGroupList([]);
+      }
+    };
+    fetchGroupsForWizard();
+  }, [singleUserFormData.adSettingsId]);
+
+  useEffect(() => {
+    const fetchAdUsersForWizard = async () => {
+      const adId = singleUserFormData.adSettingsId;
+      if (!adId) return;
+      try {
+        const token = localStorage.getItem('petrus_token');
+        const res = await fetch(`http://localhost:3001/settings/ad/${adId}/users`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAdUserList(data);
+        }
+      } catch {
+        setAdUserList([]);
+      }
+    };
+    fetchAdUsersForWizard();
+  }, [singleUserFormData.adSettingsId]);
 
   const fetchTemplates = async () => {
     try {
@@ -775,12 +989,12 @@ export default function UserManagementPage() {
   const handleCreateUserSubmit = async (e: any) => {
     e.preventDefault();
     if (!singleUserFormData.createInAd && !singleUserFormData.createInM365) {
-      alert("Please select at least one target directory (Active Directory or Microsoft 365).");
+      setJobModal({isOpen: true, success: false, message: "Please select at least one target directory (Active Directory or Microsoft 365)."});
       return;
     }
 
     if (emailAvailable === false) {
-      alert("Please choose a unique email. The currently selected address is already taken.");
+      setJobModal({isOpen: true, success: false, message: "Please choose a unique email. The currently selected address is already taken."});
       return;
     }
     
@@ -841,7 +1055,7 @@ export default function UserManagementPage() {
 
   const createEmptyBulkUserRow = () => {
     return {
-      id: Math.random().toString(36).substring(2, 9),
+      id: crypto.randomUUID(),
       firstName: "",
       initials: "",
       lastName: "",
@@ -918,7 +1132,7 @@ export default function UserManagementPage() {
       );
       
       return {
-        id: `sample-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+        id: crypto.randomUUID(),
         firstName: item.first,
         initials: item.initials,
         lastName: item.last,
@@ -976,7 +1190,7 @@ export default function UserManagementPage() {
 
       const lines = text.split(/\r?\n/);
       if (lines.length <= 1) {
-        alert("CSV file seems to be empty or missing header rows.");
+        setJobModal({isOpen: true, success: false, message: "CSV file seems to be empty or missing header rows."});
         return;
       }
 
@@ -1012,7 +1226,7 @@ export default function UserManagementPage() {
         );
 
         parsedRows.push({
-          id: `csv-${i}-${Math.random().toString(36).substring(2, 6)}`,
+          id: crypto.randomUUID(),
           firstName,
           initials,
           lastName,
@@ -1034,15 +1248,15 @@ export default function UserManagementPage() {
       }
 
       if (parsedRows.length === 0) {
-        alert("Could not parse any valid rows from the CSV file.");
+        setJobModal({isOpen: true, success: false, message: "Could not parse any valid rows from the CSV file."});
         return;
       }
 
       setBulkUsersList(parsedRows);
-      alert(`Successfully imported ${parsedRows.length} users from CSV!`);
+      setJobModal({isOpen: true, success: false, message: `Successfully imported ${parsedRows.length} users from CSV!`});
     } catch (err) {
       console.error("Error reading CSV file:", err);
-      alert("Failed to parse the CSV file. Please make sure the structure is correct.");
+      setJobModal({isOpen: true, success: false, message: "Failed to parse the CSV file. Please make sure the structure is correct."});
     } finally {
       e.target.value = "";
     }
@@ -1051,13 +1265,13 @@ export default function UserManagementPage() {
   const handleBulkCreateUserSubmit = async (e: any) => {
     e.preventDefault();
     if (!globalBulkConfig.createInAd && !globalBulkConfig.createInM365) {
-      alert("Please select at least one target directory (Active Directory or Microsoft 365).");
+      setJobModal({isOpen: true, success: false, message: "Please select at least one target directory (Active Directory or Microsoft 365)."});
       return;
     }
     
     const invalidRow = bulkUsersList.find(r => !r.firstName || !r.lastName || !r.email || !r.password || !r.jobTitle || !r.office);
     if (invalidRow) {
-      alert("Please ensure all rows have First Name, Last Name, Email, Password, Job Title and Office.");
+      setJobModal({isOpen: true, success: false, message: "Please ensure all rows have First Name, Last Name, Email, Password, Job Title and Office."});
       return;
     }
 
@@ -1174,7 +1388,7 @@ export default function UserManagementPage() {
     
     setBulkUsersList([
       {
-        id: Math.random().toString(36).substring(2, 9),
+        id: crypto.randomUUID(),
         firstName: "",
         initials: "",
         lastName: "",
@@ -1246,7 +1460,7 @@ export default function UserManagementPage() {
     if (mappedPath) {
       router.push(mappedPath);
     } else {
-      alert(`${item} functionality is coming soon.`);
+      setJobModal({isOpen: true, success: false, message: `${item} functionality is coming soon.`});
     }
   };
 
@@ -1330,6 +1544,12 @@ export default function UserManagementPage() {
 
   return (
     <>
+      <JobCompletionModal 
+        isOpen={jobModal.isOpen} 
+        onClose={() => setJobModal({...jobModal, isOpen: false})} 
+        successStatus={jobModal.success} 
+        message={jobModal.message} 
+      />
       <ManagementConsoleLayout
         sections={sections}
         searchPlaceholder="Search User Tasks..."
@@ -1529,6 +1749,7 @@ export default function UserManagementPage() {
                         </div>
 
                         {/* Display Name (Strictly Calculated and Read-Only) */}
+                        {(activeEnabledAttributes.includes("displayName") || activeEnabledAttributes.includes("displayNameFormat")) && (
                         <div className="space-y-1.5">
                           <label htmlFor="user-display-name" className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center justify-between">
                             <span>Display Name</span>
@@ -1543,6 +1764,7 @@ export default function UserManagementPage() {
                             placeholder="Automatically compiled"
                           />
                         </div>
+                        )}
 
                         {activeEnabledAttributes.includes("emailFormat") && (
                         <>
@@ -1646,7 +1868,15 @@ export default function UserManagementPage() {
                         }`}>
                           <div className="flex items-center justify-between mb-3">
                             <span className="text-sm font-medium text-slate-800 dark:text-white flex items-center gap-1.5">
+                              
                               <Server className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> Active Directory (AD)
+                              {adSettingsList.length > 0 && singleUserFormData.adSettingsId && (
+                                <span className="ml-2 flex h-2 w-2 relative">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                              )}
+
                             </span>
                             <input 
                               type="checkbox"
@@ -1678,26 +1908,55 @@ export default function UserManagementPage() {
                               </div>
 
                               <div className="space-y-1.5">
-                                <label htmlFor="ad-target-ou" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Target Organizational Unit (OU)</label>
-                                <input 
+                                <div className="flex items-center justify-between">
+                                  <label htmlFor="ad-target-ou" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Target Organizational Unit (OU)</label>
+                                  <button 
+                                    type="button" 
+                                    onClick={() => openOuBrowser("form")}
+                                    className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1"
+                                  >
+                                    <FolderTree className="h-3 w-3" /> Browse Directory
+                                  </button>
+                                </div>
+                                <select 
                                   id="ad-target-ou"
-                                  type="text" 
                                   value={singleUserFormData.targetOu}
                                   onChange={e => setSingleUserFormData({ ...singleUserFormData, targetOu: e.target.value })}
                                   className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-2 text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
-                                  placeholder="e.g. CN=Users (default) or OU=Employees"
-                                />
+                                >
+                                  {ouList.length > 0 ? (
+                                    <>
+                                      <option value="">-- Select OU --</option>
+                                      {ouList.map((ou, idx) => {
+                                        const depth = Math.max(0, (ou.path.match(/=/g) || []).length - 1);
+                                        const prefix = depth > 0 ? '\u00A0\u00A0\u00A0\u00A0'.repeat(depth) + '↳ ' : '';
+                                        return <option key={ou.dn} value={ou.dn}>{prefix}{ou.name}</option>;
+                                      })}
+                                      {singleUserFormData.targetOu && !ouList.some(ou => ou.dn === singleUserFormData.targetOu) && (
+                                        <option value={singleUserFormData.targetOu}>
+                                          {singleUserFormData.targetOu.split(',')[0].replace(/^(OU=|CN=)/i, '')}
+                                        </option>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <option value={singleUserFormData.targetOu}>
+                                        {singleUserFormData.targetOu ? singleUserFormData.targetOu.split(',')[0].replace(/^(OU=|CN=)/i, '') : "-- Select OU --"}
+                                      </option>
+                                      {singleUserFormData.targetOu !== "CN=Users,DC=petrus,DC=io" && <option value="CN=Users,DC=petrus,DC=io">Users</option>}
+                                      {singleUserFormData.targetOu !== "OU=Employees,DC=petrus,DC=io" && <option value="OU=Employees,DC=petrus,DC=io">Employees</option>}
+                                      {singleUserFormData.targetOu !== "OU=Engineering,OU=Employees,DC=petrus,DC=io" && <option value="OU=Engineering,OU=Employees,DC=petrus,DC=io">Engineering</option>}
+                                    </>
+                                  )}
+                                </select>
                               </div>
 
                               <div className="space-y-1.5">
-                                <label htmlFor="ad-target-group" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Target AD Security Group (CN / DN)</label>
-                                <input 
-                                  id="ad-target-group"
-                                  type="text" 
-                                  value={singleUserFormData.adGroupDn}
-                                  onChange={e => setSingleUserFormData({ ...singleUserFormData, adGroupDn: e.target.value })}
-                                  className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-2.5 py-2 text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-indigo-500"
-                                  placeholder="e.g. CN=Domain Admins,CN=Users"
+                                <label htmlFor="ad-target-group" className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Target AD Security Group</label>
+                                <AdGroupMultiSelect 
+                                  selectedDns={singleUserFormData.adGroupDns || []} 
+                                  onChange={(val) => setSingleUserFormData({ ...singleUserFormData, adGroupDns: val })} 
+                                  options={groupList} 
                                 />
                               </div>
                             </div>
@@ -1979,6 +2238,77 @@ export default function UserManagementPage() {
                                 placeholder="Country"
                               />
                             </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Additional Attributes Section */}
+                        <div className="pt-2 border-t border-slate-200/50 dark:border-white/5 space-y-3">
+                          <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Additional Attributes</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            {activeEnabledAttributes.includes("employeeId") && (
+                              <div className="space-y-1.5">
+                                <label htmlFor="user-employeeId" className="text-[11px] font-semibold text-slate-500">Employee ID</label>
+                                <input id="user-employeeId" type="text" value={singleUserFormData.employeeId} onChange={e => setSingleUserFormData({ ...singleUserFormData, employeeId: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all" />
+                              </div>
+                            )}
+                            {activeEnabledAttributes.includes("descriptionGeneral") && (
+                              <div className="space-y-1.5">
+                                <label htmlFor="user-description" className="text-[11px] font-semibold text-slate-500">Description</label>
+                                <input id="user-description" type="text" value={singleUserFormData.descriptionGeneral} onChange={e => setSingleUserFormData({ ...singleUserFormData, descriptionGeneral: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all" />
+                              </div>
+                            )}
+                            {activeEnabledAttributes.includes("webPage") && (
+                              <div className="space-y-1.5">
+                                <label htmlFor="user-webpage" className="text-[11px] font-semibold text-slate-500">Web Page</label>
+                                <input id="user-webpage" type="text" value={singleUserFormData.webPage} onChange={e => setSingleUserFormData({ ...singleUserFormData, webPage: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all" />
+                              </div>
+                            )}
+                            {activeEnabledAttributes.includes("company") && (
+                              <div className="space-y-1.5">
+                                <label htmlFor="user-company" className="text-[11px] font-semibold text-slate-500">Company</label>
+                                <input id="user-company" type="text" value={singleUserFormData.company} onChange={e => setSingleUserFormData({ ...singleUserFormData, company: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all" />
+                              </div>
+                            )}
+                            {activeEnabledAttributes.includes("manager") && (
+                              <div className="space-y-1.5">
+                                <label htmlFor="user-manager" className="text-[11px] font-semibold text-slate-500">Manager</label>
+                                <ManagerSelect 
+                                  value={singleUserFormData.manager} 
+                                  onChange={(val) => setSingleUserFormData({ ...singleUserFormData, manager: val })} 
+                                  options={adUserList} 
+                                />
+                              </div>
+                            )}
+                            {activeEnabledAttributes.includes("poBox") && (
+                              <div className="space-y-1.5">
+                                <label htmlFor="user-pobox" className="text-[11px] font-semibold text-slate-500">PO Box</label>
+                                <input id="user-pobox" type="text" value={singleUserFormData.poBox} onChange={e => setSingleUserFormData({ ...singleUserFormData, poBox: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all" />
+                              </div>
+                            )}
+                            {activeEnabledAttributes.includes("homePhone") && (
+                              <div className="space-y-1.5">
+                                <label htmlFor="user-homephone" className="text-[11px] font-semibold text-slate-500">Home Phone</label>
+                                <input id="user-homephone" type="text" value={singleUserFormData.homePhone} onChange={e => setSingleUserFormData({ ...singleUserFormData, homePhone: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all" />
+                              </div>
+                            )}
+                            {activeEnabledAttributes.includes("pager") && (
+                              <div className="space-y-1.5">
+                                <label htmlFor="user-pager" className="text-[11px] font-semibold text-slate-500">Pager</label>
+                                <input id="user-pager" type="text" value={singleUserFormData.pager} onChange={e => setSingleUserFormData({ ...singleUserFormData, pager: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all" />
+                              </div>
+                            )}
+                            {activeEnabledAttributes.includes("ipPhone") && (
+                              <div className="space-y-1.5">
+                                <label htmlFor="user-ipphone" className="text-[11px] font-semibold text-slate-500">IP Phone</label>
+                                <input id="user-ipphone" type="text" value={singleUserFormData.ipPhone} onChange={e => setSingleUserFormData({ ...singleUserFormData, ipPhone: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all" />
+                              </div>
+                            )}
+                            {activeEnabledAttributes.includes("notes") && (
+                              <div className="space-y-1.5">
+                                <label htmlFor="user-notes" className="text-[11px] font-semibold text-slate-500">Notes</label>
+                                <input id="user-notes" type="text" value={singleUserFormData.notes} onChange={e => setSingleUserFormData({ ...singleUserFormData, notes: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700/50 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all" />
+                              </div>
                             )}
                           </div>
                         </div>
@@ -2615,13 +2945,13 @@ export default function UserManagementPage() {
                                   const dateStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
                                   const duplicate = {
                                     ...t,
-                                    id: `tpl-${Math.random().toString(36).substring(2, 9)}`,
+                                    id: crypto.randomUUID(),
                                     name: `Copy of ${t.name}`,
                                     createdOn: dateStr,
                                     lastModified: dateStr,
                                   };
                                   await saveTemplateToBackend(duplicate);
-                                  alert(`Successfully duplicated template as 'Copy of ${t.name}'!`);
+                                  setJobModal({isOpen: true, success: false, message: `Successfully duplicated template as 'Copy of ${t.name}'!`});
                                 }}
                                 className="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all font-semibold"
                               >
@@ -3490,7 +3820,7 @@ export default function UserManagementPage() {
                     type="button"
                     onClick={async () => {
                       if (!templateForm.name) {
-                        alert("Please enter a Template Name.");
+                        setJobModal({isOpen: true, success: false, message: "Please enter a Template Name."});
                         return;
                       }
                       
@@ -3522,10 +3852,10 @@ export default function UserManagementPage() {
                           data: tplData
                         };
                         await saveTemplateToBackend(updatedTpl);
-                        alert(`Successfully modified template '${templateForm.name}'!`);
+                        setJobModal({isOpen: true, success: false, message: `Successfully modified template '${templateForm.name}'!`});
                       } else {
                         const newTpl = {
-                          id: `tpl-${Math.random().toString(36).substring(2, 9)}`,
+                          id: crypto.randomUUID(),
                           name: templateForm.name,
                           createdBy: String.raw`Petrus Directory Authority\admin`,
                           createdOn: dateStr,
@@ -3536,7 +3866,7 @@ export default function UserManagementPage() {
                           data: tplData
                         };
                         await saveTemplateToBackend(newTpl);
-                        alert(`Successfully created template '${templateForm.name}'!`);
+                        setJobModal({isOpen: true, success: false, message: `Successfully created template '${templateForm.name}'!`});
                       }
 
                       setShowTemplateEditor(false);

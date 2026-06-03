@@ -26,9 +26,9 @@
     "description": "",
     "domainName": "test.local",
     "category": "Default",
-    "lastModified": "2026-05-23 17:51:58",
+    "lastModified": "2026-05-25 09:25:37",
     "createdBy": "Petrus Directory Authority\\admin",
-    "createdOn": "2026-05-23 17:51:58",
+    "createdOn": "2026-05-25 09:25:37",
     "data": {
       "jobTitle": "Systems Engineer",
       "department": "Engineering",
@@ -87,7 +87,8 @@
         "m365PostalCode",
         "m365StreetAddress",
         "m365OfficeLocation",
-        "mfaEnabled"
+        "mfaEnabled",
+        "teams"
       ]
     }
   }

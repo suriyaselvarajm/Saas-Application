@@ -17,6 +17,7 @@ class AdSettingsDto {
     domainName;
     ldapPath;
     baseDn;
+    userCreationBaseOu;
     bindUsername;
     bindPassword;
     sslEnabled;
@@ -51,6 +52,11 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], AdSettingsDto.prototype, "baseDn", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], AdSettingsDto.prototype, "userCreationBaseOu", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),

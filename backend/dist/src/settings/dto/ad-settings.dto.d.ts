@@ -4,6 +4,7 @@ export declare class AdSettingsDto {
     domainName: string;
     ldapPath?: string;
     baseDn: string;
+    userCreationBaseOu?: string;
     bindUsername: string;
     bindPassword: string;
     sslEnabled?: boolean;

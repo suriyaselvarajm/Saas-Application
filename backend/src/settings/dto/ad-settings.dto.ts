@@ -28,6 +28,10 @@ export class AdSettingsDto {
   baseDn: string;
 
   @IsString()
+  @IsOptional()
+  userCreationBaseOu?: string;
+
+  @IsString()
   @IsNotEmpty()
   bindUsername: string;
 

@@ -85,6 +85,47 @@ export class CreateSingleUserDto {
   @IsOptional()
   countryRegion?: string;
 
+  // Additional profile info
+  @IsString()
+  @IsOptional()
+  employeeId?: string;
+
+  @IsString()
+  @IsOptional()
+  descriptionGeneral?: string;
+
+  @IsString()
+  @IsOptional()
+  webPage?: string;
+
+  @IsString()
+  @IsOptional()
+  homePhone?: string;
+
+  @IsString()
+  @IsOptional()
+  pager?: string;
+
+  @IsString()
+  @IsOptional()
+  ipPhone?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @IsString()
+  @IsOptional()
+  company?: string;
+
+  @IsString()
+  @IsOptional()
+  manager?: string;
+
+  @IsString()
+  @IsOptional()
+  poBox?: string;
+
   // M365 Licensing Fields
   @IsString()
   @IsOptional()
@@ -101,6 +142,9 @@ export class CreateSingleUserDto {
   @IsString()
   @IsOptional()
   adGroupDn?: string;
+
+  @IsOptional()
+  adGroupDns?: string[];
 
   @IsString()
   @IsOptional()

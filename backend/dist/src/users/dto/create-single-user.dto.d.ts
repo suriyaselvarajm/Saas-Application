@@ -20,9 +20,20 @@ export declare class CreateSingleUserDto {
     stateProvince?: string;
     zipPostalCode?: string;
     countryRegion?: string;
+    employeeId?: string;
+    descriptionGeneral?: string;
+    webPage?: string;
+    homePhone?: string;
+    pager?: string;
+    ipPhone?: string;
+    notes?: string;
+    company?: string;
+    manager?: string;
+    poBox?: string;
     m365License?: string;
     createWithoutLicense?: boolean;
     targetOu?: string;
     adGroupDn?: string;
+    adGroupDns?: string[];
     selectedTemplate?: string;
 }

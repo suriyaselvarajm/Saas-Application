@@ -46,6 +46,11 @@ exports.SettingsService = void 0;
 const common_1 = require("@nestjs/common");
 const ldap = __importStar(require("ldapjs"));
 const prisma_service_1 = require("../prisma/prisma.service");
+function parseLdapPath(dn, baseDn) {
+    const dnStr = typeof dn === 'string' ? dn : (dn?.toString() || '');
+    const suffix = `,${baseDn}`;
+    return dnStr.endsWith(suffix) ? dnStr.slice(0, dnStr.length - suffix.length) : dnStr;
+}
 let SettingsService = class SettingsService {
     prisma;
     constructor(prisma) {
@@ -187,10 +192,6 @@ let SettingsService = class SettingsService {
             const dn = entry.objectName;
             return ouVal ?? cnVal ?? dn.split(',')[0].replace(/^(ou|cn)=/i, '');
         };
-        const parsePath = (dn) => {
-            const suffix = `,${baseDn}`;
-            return dn.endsWith(suffix) ? dn.slice(0, dn.length - suffix.length) : dn;
-        };
         try {
             await new Promise((resolve, reject) => {
                 client.bind(bindUsername, bindPassword ?? '', (err) => {
@@ -202,15 +203,16 @@ let SettingsService = class SettingsService {
             });
             const results = [];
             const filter = '(|(objectClass=organizationalUnit)(objectClass=container))';
+            const searchBase = adSettings.userCreationBaseOu || baseDn;
             await new Promise((resolve, reject) => {
-                client.search(baseDn, { scope: 'sub', filter, attributes: ['ou', 'cn'] }, (err, res) => {
+                client.search(searchBase, { scope: 'sub', filter, attributes: ['ou', 'cn'] }, (err, res) => {
                     if (err) {
                         reject(new Error(`LDAP search failed: ${err.message}`));
                         return;
                     }
                     res.on('searchEntry', (entry) => {
-                        const dn = entry.objectName;
-                        results.push({ name: parseName(entry), dn, path: parsePath(dn) });
+                        const dn = typeof entry.objectName === 'string' ? entry.objectName : (entry.objectName?.toString() || entry.dn || '');
+                        results.push({ name: parseName(entry), dn, path: parseLdapPath(dn, baseDn) });
                     });
                     res.on('error', (e) => reject(new Error(`LDAP search error: ${e.message}`)));
                     res.on('end', () => resolve());
@@ -221,6 +223,121 @@ let SettingsService = class SettingsService {
         }
         catch (err) {
             console.error('OU fetch error:', err.message);
+            return [];
+        }
+        finally {
+            client.unbind();
+        }
+    }
+    async fetchAdGroups(tenantId, adSettingsId) {
+        const adSettings = await this.prisma.adSettings.findFirst({
+            where: { id: adSettingsId, tenantId },
+        });
+        if (!adSettings?.bindUsername || !adSettings?.baseDn)
+            return [];
+        const { bindUsername, bindPassword, baseDn, adServerIp, port, sslEnabled } = adSettings;
+        const url = `${sslEnabled ? 'ldaps' : 'ldap'}://${adServerIp}:${port || 389}`;
+        const client = ldap.createClient({
+            url,
+            timeout: 8000,
+            connectTimeout: 8000,
+            tlsOptions: sslEnabled ? { rejectUnauthorized: false } : undefined,
+        });
+        client.on('error', (err) => console.error('Group Browse LDAP error:', err.message));
+        const parseName = (entry) => {
+            const cnVal = entry.attributes.find(a => a.type === 'cn')?.values?.[0];
+            const dn = entry.objectName;
+            return cnVal ?? dn.split(',')[0].replace(/^(ou|cn)=/i, '');
+        };
+        try {
+            await new Promise((resolve, reject) => {
+                client.bind(bindUsername, bindPassword ?? '', (err) => {
+                    if (err)
+                        reject(new Error(`LDAP bind failed: ${err.message}`));
+                    else
+                        resolve();
+                });
+            });
+            const results = [];
+            const filter = '(objectClass=group)';
+            const searchBase = baseDn;
+            await new Promise((resolve, reject) => {
+                client.search(searchBase, { scope: 'sub', filter, attributes: ['cn'] }, (err, res) => {
+                    if (err) {
+                        reject(new Error(`LDAP search failed: ${err.message}`));
+                        return;
+                    }
+                    res.on('searchEntry', (entry) => {
+                        const dn = typeof entry.objectName === 'string' ? entry.objectName : (entry.objectName?.toString() || entry.dn || '');
+                        results.push({ name: parseName(entry), dn, path: parseLdapPath(dn, baseDn) });
+                    });
+                    res.on('error', (e) => reject(new Error(`LDAP search error: ${e.message}`)));
+                    res.on('end', () => resolve());
+                });
+            });
+            results.sort((a, b) => a.name.localeCompare(b.name));
+            return results;
+        }
+        catch (err) {
+            console.error('Group fetch error:', err.message);
+            return [];
+        }
+        finally {
+            client.unbind();
+        }
+    }
+    async fetchAdUsers(tenantId, adSettingsId) {
+        const adSettings = await this.prisma.adSettings.findFirst({
+            where: { id: adSettingsId, tenantId },
+        });
+        if (!adSettings?.bindUsername || !adSettings?.baseDn)
+            return [];
+        const { bindUsername, bindPassword, baseDn, adServerIp, port, sslEnabled } = adSettings;
+        const url = `${sslEnabled ? 'ldaps' : 'ldap'}://${adServerIp}:${port || 389}`;
+        const client = ldap.createClient({
+            url,
+            timeout: 8000,
+            connectTimeout: 8000,
+            tlsOptions: sslEnabled ? { rejectUnauthorized: false } : undefined,
+        });
+        client.on('error', (err) => console.error('User Browse LDAP error:', err.message));
+        const parseName = (entry) => {
+            const cnVal = entry.attributes.find(a => a.type === 'cn')?.values?.[0];
+            const dn = entry.objectName;
+            return cnVal ?? dn.split(',')[0].replace(/^(ou|cn)=/i, '');
+        };
+        try {
+            await new Promise((resolve, reject) => {
+                client.bind(bindUsername, bindPassword ?? '', (err) => {
+                    if (err)
+                        reject(new Error(`LDAP bind failed: ${err.message}`));
+                    else
+                        resolve();
+                });
+            });
+            const results = [];
+            const filter = '(&(objectCategory=person)(objectClass=user))';
+            const searchBase = baseDn;
+            await new Promise((resolve, reject) => {
+                client.search(searchBase, { scope: 'sub', filter, attributes: ['cn', 'mail'] }, (err, res) => {
+                    if (err) {
+                        reject(new Error(`LDAP search failed: ${err.message}`));
+                        return;
+                    }
+                    res.on('searchEntry', (entry) => {
+                        const dn = typeof entry.objectName === 'string' ? entry.objectName : (entry.objectName?.toString() || entry.dn || '');
+                        const email = entry.attributes.find(a => a.type === 'mail')?.values?.[0];
+                        results.push({ name: parseName(entry), dn, path: parseLdapPath(dn, baseDn), email });
+                    });
+                    res.on('error', (e) => reject(new Error(`LDAP search error: ${e.message}`)));
+                    res.on('end', () => resolve());
+                });
+            });
+            results.sort((a, b) => a.name.localeCompare(b.name));
+            return results;
+        }
+        catch (err) {
+            console.error('User fetch error:', err.message);
             return [];
         }
         finally {

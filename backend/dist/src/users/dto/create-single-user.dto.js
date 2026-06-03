@@ -33,10 +33,21 @@ class CreateSingleUserDto {
     stateProvince;
     zipPostalCode;
     countryRegion;
+    employeeId;
+    descriptionGeneral;
+    webPage;
+    homePhone;
+    pager;
+    ipPhone;
+    notes;
+    company;
+    manager;
+    poBox;
     m365License;
     createWithoutLicense;
     targetOu;
     adGroupDn;
+    adGroupDns;
     selectedTemplate;
 }
 exports.CreateSingleUserDto = CreateSingleUserDto;
@@ -148,6 +159,56 @@ __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
+], CreateSingleUserDto.prototype, "employeeId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateSingleUserDto.prototype, "descriptionGeneral", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateSingleUserDto.prototype, "webPage", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateSingleUserDto.prototype, "homePhone", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateSingleUserDto.prototype, "pager", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateSingleUserDto.prototype, "ipPhone", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateSingleUserDto.prototype, "notes", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateSingleUserDto.prototype, "company", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateSingleUserDto.prototype, "manager", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateSingleUserDto.prototype, "poBox", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
 ], CreateSingleUserDto.prototype, "m365License", void 0);
 __decorate([
     (0, class_validator_1.IsBoolean)(),
@@ -164,6 +225,10 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateSingleUserDto.prototype, "adGroupDn", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Array)
+], CreateSingleUserDto.prototype, "adGroupDns", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
