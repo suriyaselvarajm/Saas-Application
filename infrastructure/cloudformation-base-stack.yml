@@ -1,0 +1,357 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SaaS Application - AWS Infrastructure Stack'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+    Description: Environment name
+  
+  VpcCIDR:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: VPC CIDR block
+  
+  PrivateSubnet1CIDR:
+    Type: String
+    Default: 10.0.1.0/24
+  
+  PrivateSubnet2CIDR:
+    Type: String
+    Default: 10.0.2.0/24
+  
+  PublicSubnet1CIDR:
+    Type: String
+    Default: 10.0.10.0/24
+  
+  PublicSubnet2CIDR:
+    Type: String
+    Default: 10.0.11.0/24
+  
+  DBMasterUsername:
+    Type: String
+    NoEcho: true
+    MinLength: 1
+    MaxLength: 16
+    Description: RDS master username
+  
+  DBMasterPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    MaxLength: 41
+    Description: RDS master password
+
+Resources:
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-vpc-${Environment}'
+
+  # Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-igw-${Environment}'
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  # Public Subnets
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: !Ref PublicSubnet1CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-public-subnet-1-${Environment}'
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: !Ref PublicSubnet2CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-public-subnet-2-${Environment}'
+
+  # Private Subnets
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-private-subnet-1-${Environment}'
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-private-subnet-2-${Environment}'
+
+  # Public Route Table
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-public-rt-${Environment}'
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
+  # Private Route Table (with NAT for outbound)
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-private-rt-${Environment}'
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet1
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet2
+
+  # RDS Security Group
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS PostgreSQL
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: !Ref VpcCIDR
+          Description: PostgreSQL from VPC
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-db-sg-${Environment}'
+
+  # RDS Subnet Group
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-db-subnet-group-${Environment}'
+
+  # RDS PostgreSQL Database
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub 'saas-postgres-${Environment}'
+      DBInstanceClass: !If [IsProd, db.t3.medium, db.t3.micro]
+      Engine: postgres
+      EngineVersion: '15.3'
+      MasterUsername: !Ref DBMasterUsername
+      MasterUserPassword: !Ref DBMasterPassword
+      AllocatedStorage: !If [IsProd, '100', '20']
+      StorageType: gp3
+      StorageEncrypted: true
+      VPCSecurityGroups:
+        - !GetAtt DBSecurityGroup.GroupId
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      MultiAZ: !If [IsProd, true, false]
+      BackupRetentionPeriod: !If [IsProd, 30, 7]
+      PreferredBackupWindow: '03:00-04:00'
+      PreferredMaintenanceWindow: 'sun:04:00-sun:05:00'
+      EnableCloudwatchLogsExports:
+        - postgresql
+      EnableIAMDatabaseAuthentication: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-postgres-${Environment}'
+
+  # ECR Repository - Backend
+  BackendECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub 'saas-backend-${Environment}'
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      LifecyclePolicy:
+        LifecyclePolicyText:
+          Version: 2012-10-17
+          Rules:
+            - RulePriority: 1
+              Description: Keep last 10 images
+              Selection:
+                TagStatus: any
+                CountType: imageCountMoreThan
+                CountNumber: 10
+              Action:
+                Type: expire
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-backend-${Environment}'
+
+  # ECR Repository - Frontend
+  FrontendECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub 'saas-frontend-${Environment}'
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      LifecyclePolicy:
+        LifecyclePolicyText:
+          Version: 2012-10-17
+          Rules:
+            - RulePriority: 1
+              Description: Keep last 10 images
+              Selection:
+                TagStatus: any
+                CountType: imageCountMoreThan
+                CountNumber: 10
+              Action:
+                Type: expire
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-frontend-${Environment}'
+
+  # ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub 'saas-cluster-${Environment}'
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-cluster-${Environment}'
+
+  # CloudWatch Log Group
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/saas-${Environment}'
+      RetentionInDays: !If [IsProd, 30, 7]
+
+  # ECS Task Execution Role
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: ECRAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
+                Resource: '*'
+        - PolicyName: CloudWatchLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !GetAtt LogGroup.Arn
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
+Outputs:
+  VPCId:
+    Value: !Ref VPC
+    Export:
+      Name: !Sub '${AWS::StackName}-VPC-ID'
+
+  ECSClusterName:
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub '${AWS::StackName}-ECS-Cluster'
+
+  DatabaseEndpoint:
+    Value: !GetAtt Database.Endpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-DB-Endpoint'
+
+  BackendRepositoryUri:
+    Value: !GetAtt BackendECRRepository.RepositoryUri
+    Export:
+      Name: !Sub '${AWS::StackName}-Backend-ECR-URI'
+
+  FrontendRepositoryUri:
+    Value: !GetAtt FrontendECRRepository.RepositoryUri
+    Export:
+      Name: !Sub '${AWS::StackName}-Frontend-ECR-URI'
+
+  LogGroupName:
+    Value: !Ref LogGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-LogGroup'
