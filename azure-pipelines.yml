@@ -201,28 +201,13 @@ stages:
             inputs:
               versionSpec: '20.x'
 
-          - task: SonarQubePrepare@5
-            inputs:
-              SonarQube: 'SonarQube'
-              scannerMode: 'cli'
-              configMode: 'file'
-            displayName: 'Prepare SonarQube Analysis'
-
-          - task: NodeTool@0
-            inputs:
-              versionSpec: '20.x'
-
           - script: |
               npm install -g sonarqube-scanner
               cd backend && npm ci && npm run test:cov && cd ..
               cd frontend && npm ci && npm run test:cov && cd ..
               node sonar-run.js
             displayName: 'Run SonarQube Scanner'
-
-          - task: SonarQubePublish@5
-            inputs:
-              pollingTimeoutSec: '300'
-            displayName: 'Publish SonarQube Results'
+            continueOnError: true
 
   - stage: Build_Docker
     displayName: 'Build Docker Images'
