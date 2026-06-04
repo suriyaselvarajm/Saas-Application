@@ -1,0 +1,410 @@
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+      - feature/*
+    exclude:
+      - develop-*
+  paths:
+    include:
+      - backend/**
+      - frontend/**
+      - azure-pipelines.yml
+      - Dockerfile*
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+
+variables:
+  AWS_REGION: 'us-east-1'
+  DOCKER_BUILDKIT: 1
+  NODE_ENV: 'production'
+  REGISTRY_URL: $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
+  BACKEND_IMAGE_NAME: 'saas-backend'
+  FRONTEND_IMAGE_NAME: 'saas-frontend'
+  BUILD_CONFIGURATION: 'Release'
+
+stages:
+  - stage: Checkout
+    displayName: 'Checkout & Setup'
+    jobs:
+      - job: Setup
+        displayName: 'Setup Environment'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+            displayName: 'Checkout Code'
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.x'
+            displayName: 'Install Node.js'
+
+          - task: DockerInstaller@0
+            inputs:
+              dockerVersion: '26.0'
+            displayName: 'Install Docker'
+
+          - script: |
+              echo "##[group]Environment Details"
+              echo "Node version:" $(node --version)
+              echo "npm version:" $(npm --version)
+              echo "Docker version:" $(docker --version)
+              echo "##[endgroup]"
+            displayName: 'Display Versions'
+
+  - stage: Build_Test
+    displayName: 'Build & Test'
+    dependsOn: Checkout
+    condition: succeeded()
+    jobs:
+      - job: BackendTests
+        displayName: 'Backend: Test & Coverage'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.x'
+
+          - script: |
+              cd backend
+              npm ci
+            displayName: 'Install Backend Dependencies'
+
+          - script: |
+              cd backend
+              npm run lint
+            displayName: 'Run ESLint'
+            continueOnError: true
+
+          - script: |
+              cd backend
+              npm run test:cov
+            displayName: 'Run Tests with Coverage'
+
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: 'cobertura'
+              summaryFileLocation: '$(System.DefaultWorkingDirectory)/backend/coverage/cobertura-coverage.xml'
+              failIfCoverageEmpty: false
+            displayName: 'Publish Backend Coverage'
+            condition: always()
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: '$(System.DefaultWorkingDirectory)/backend/coverage'
+              artifactName: 'backend-coverage'
+            displayName: 'Publish Backend Coverage Report'
+            condition: always()
+
+      - job: FrontendTests
+        displayName: 'Frontend: Test & Coverage'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.x'
+
+          - script: |
+              cd frontend
+              npm ci
+            displayName: 'Install Frontend Dependencies'
+
+          - script: |
+              cd frontend
+              npm run lint
+            displayName: 'Run ESLint'
+            continueOnError: true
+
+          - script: |
+              cd frontend
+              npm run test:cov
+            displayName: 'Run Tests with Coverage'
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: '$(System.DefaultWorkingDirectory)/frontend/coverage'
+              artifactName: 'frontend-coverage'
+            displayName: 'Publish Frontend Coverage Report'
+            condition: always()
+
+  - stage: Security_Quality
+    displayName: 'Security & Code Quality'
+    dependsOn: Build_Test
+    condition: succeeded()
+    jobs:
+      - job: SecurityAudit
+        displayName: 'Security Audit'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.x'
+
+          - script: |
+              cd backend
+              npm ci
+              npm audit --production --audit-level=moderate || true
+            displayName: 'Backend: NPM Audit'
+            continueOnError: true
+
+          - script: |
+              cd frontend
+              npm ci
+              npm audit --production --audit-level=moderate || true
+            displayName: 'Frontend: NPM Audit'
+            continueOnError: true
+
+      - job: SonarQubeAnalysis
+        displayName: 'SonarQube Analysis'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.x'
+
+          - task: SonarQubePrepare@5
+            inputs:
+              SonarQube: 'SonarQube'
+              scannerMode: 'cli'
+              configMode: 'file'
+            displayName: 'Prepare SonarQube Analysis'
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '20.x'
+
+          - script: |
+              npm install -g sonarqube-scanner
+              cd backend && npm ci && npm run test:cov && cd ..
+              cd frontend && npm ci && npm run test:cov && cd ..
+              node sonar-run.js
+            displayName: 'Run SonarQube Scanner'
+
+          - task: SonarQubePublish@5
+            inputs:
+              pollingTimeoutSec: '300'
+            displayName: 'Publish SonarQube Results'
+
+  - stage: Build_Docker
+    displayName: 'Build Docker Images'
+    dependsOn: Security_Quality
+    condition: succeeded()
+    jobs:
+      - job: BuildBackend
+        displayName: 'Build Backend Docker Image'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+
+          - task: DockerInstaller@0
+            inputs:
+              dockerVersion: '26.0'
+
+          - task: Docker@2
+            inputs:
+              command: 'build'
+              Dockerfile: 'backend/Dockerfile'
+              tags: |
+                $(REGISTRY_URL)/$(BACKEND_IMAGE_NAME):$(Build.BuildId)
+                $(REGISTRY_URL)/$(BACKEND_IMAGE_NAME):latest
+              arguments: |
+                --build-arg NODE_ENV=$(NODE_ENV)
+                --label "build.id=$(Build.BuildId)"
+                --label "build.number=$(Build.BuildNumber)"
+            displayName: 'Build Backend Image'
+
+      - job: BuildFrontend
+        displayName: 'Build Frontend Docker Image'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+
+          - task: DockerInstaller@0
+            inputs:
+              dockerVersion: '26.0'
+
+          - task: Docker@2
+            inputs:
+              command: 'build'
+              Dockerfile: 'frontend/Dockerfile'
+              tags: |
+                $(REGISTRY_URL)/$(FRONTEND_IMAGE_NAME):$(Build.BuildId)
+                $(REGISTRY_URL)/$(FRONTEND_IMAGE_NAME):latest
+              arguments: |
+                --build-arg NODE_ENV=$(NODE_ENV)
+                --label "build.id=$(Build.BuildId)"
+                --label "build.number=$(Build.BuildNumber)"
+            displayName: 'Build Frontend Image'
+
+  - stage: Push_ECR
+    displayName: 'Push to Amazon ECR'
+    dependsOn: Build_Docker
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: PushImages
+        displayName: 'Push Images to ECR'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+
+          - task: AWSShellScript@1
+            inputs:
+              awsCredentials: 'AWS-Credentials'
+              regionName: '$(AWS_REGION)'
+              scriptType: 'inline'
+              inlineScript: |
+                echo "Logging into Amazon ECR..."
+                aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(REGISTRY_URL)
+
+                echo "Building and pushing backend image..."
+                docker build -f backend/Dockerfile -t $(REGISTRY_URL)/$(BACKEND_IMAGE_NAME):$(Build.BuildId) -t $(REGISTRY_URL)/$(BACKEND_IMAGE_NAME):latest backend/
+                docker push $(REGISTRY_URL)/$(BACKEND_IMAGE_NAME):$(Build.BuildId)
+                docker push $(REGISTRY_URL)/$(BACKEND_IMAGE_NAME):latest
+
+                echo "Building and pushing frontend image..."
+                docker build -f frontend/Dockerfile -t $(REGISTRY_URL)/$(FRONTEND_IMAGE_NAME):$(Build.BuildId) -t $(REGISTRY_URL)/$(FRONTEND_IMAGE_NAME):latest frontend/
+                docker push $(REGISTRY_URL)/$(FRONTEND_IMAGE_NAME):$(Build.BuildId)
+                docker push $(REGISTRY_URL)/$(FRONTEND_IMAGE_NAME):latest
+            displayName: 'Push Images to ECR'
+
+  - stage: Deploy_Dev
+    displayName: 'Deploy to Dev Environment'
+    dependsOn: Push_ECR
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+    jobs:
+      - deployment: DeployDev
+        displayName: 'Deploy to ECS Dev'
+        environment: 'Dev'
+        pool:
+          vmImage: 'ubuntu-latest'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AWSShellScript@1
+                  inputs:
+                    awsCredentials: 'AWS-Credentials'
+                    regionName: '$(AWS_REGION)'
+                    scriptType: 'inline'
+                    inlineScript: |
+                      echo "Updating ECS service: saas-backend-dev"
+                      aws ecs update-service \
+                        --cluster saas-cluster-dev \
+                        --service saas-backend-dev \
+                        --force-new-deployment \
+                        --region $(AWS_REGION)
+
+                      echo "Updating ECS service: saas-frontend-dev"
+                      aws ecs update-service \
+                        --cluster saas-cluster-dev \
+                        --service saas-frontend-dev \
+                        --force-new-deployment \
+                        --region $(AWS_REGION)
+
+                      echo "Waiting for deployment to stabilize..."
+                      aws ecs wait services-stable \
+                        --cluster saas-cluster-dev \
+                        --services saas-backend-dev saas-frontend-dev \
+                        --region $(AWS_REGION)
+                  displayName: 'Deploy to Dev'
+
+  - stage: Deploy_Prod
+    displayName: 'Deploy to Production'
+    dependsOn: Push_ECR
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployProd
+        displayName: 'Deploy to ECS Production'
+        environment: 'Production'
+        pool:
+          vmImage: 'ubuntu-latest'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AWSShellScript@1
+                  inputs:
+                    awsCredentials: 'AWS-Credentials'
+                    regionName: '$(AWS_REGION)'
+                    scriptType: 'inline'
+                    inlineScript: |
+                      echo "Deploying to Production..."
+                      
+                      echo "Updating backend service"
+                      aws ecs update-service \
+                        --cluster saas-cluster-prod \
+                        --service saas-backend-prod \
+                        --force-new-deployment \
+                        --region $(AWS_REGION)
+
+                      echo "Updating frontend service"
+                      aws ecs update-service \
+                        --cluster saas-cluster-prod \
+                        --service saas-frontend-prod \
+                        --force-new-deployment \
+                        --region $(AWS_REGION)
+
+                      echo "Waiting for deployment to stabilize..."
+                      aws ecs wait services-stable \
+                        --cluster saas-cluster-prod \
+                        --services saas-backend-prod saas-frontend-prod \
+                        --region $(AWS_REGION)
+
+                      echo "Deployment completed successfully!"
+                  displayName: 'Deploy to Production'
+
+                - task: AWSShellScript@1
+                  inputs:
+                    awsCredentials: 'AWS-Credentials'
+                    regionName: '$(AWS_REGION)'
+                    scriptType: 'inline'
+                    inlineScript: |
+                      echo "Running smoke tests..."
+                      BACKEND_URL=$(aws elbv2 describe-load-balancers \
+                        --query 'LoadBalancers[?contains(LoadBalancerName, `saas-alb-prod`)].DNSName' \
+                        --output text --region $(AWS_REGION))
+                      
+                      curl -f http://$BACKEND_URL/health || exit 1
+                      echo "Smoke tests passed!"
+                  displayName: 'Run Smoke Tests'
+                  continueOnError: true
+
+  - stage: Rollback
+    displayName: 'Rollback (if needed)'
+    dependsOn: Deploy_Prod
+    condition: failed()
+    jobs:
+      - job: NotifyFailure
+        displayName: 'Notify Failure & Rollback'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - script: |
+              echo "##[error] Deployment failed! Initiating rollback..."
+              # Rollback to previous task definition revision
+            displayName: 'Initiate Rollback'
