@@ -1,0 +1,342 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ECS Services and ALB for SaaS Application'
+
+Parameters:
+  BaseStackName:
+    Type: String
+    Description: Name of the base infrastructure stack
+  
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+
+  DesiredCount:
+    Type: Number
+    Default: 2
+    Description: Number of ECS task replicas
+
+Resources:
+  # ALB Security Group
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ALB
+      VpcId:
+        Fn::ImportValue: !Sub '${BaseStackName}-VPC-ID'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-alb-sg-${Environment}'
+
+  # ECS Tasks Security Group
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ECS tasks
+      VpcId:
+        Fn::ImportValue: !Sub '${BaseStackName}-VPC-ID'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+          Description: Backend from ALB
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-ecs-sg-${Environment}'
+
+  # Application Load Balancer
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub 'saas-alb-${Environment}'
+      Type: application
+      Scheme: internet-facing
+      Subnets:
+        - Fn::ImportValue: !Sub '${BaseStackName}-Public-Subnet-1'
+        - Fn::ImportValue: !Sub '${BaseStackName}-Public-Subnet-2'
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-alb-${Environment}'
+
+  # Backend Target Group
+  BackendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub 'saas-backend-tg-${Environment}'
+      Port: 3000
+      Protocol: HTTP
+      VpcId:
+        Fn::ImportValue: !Sub '${BaseStackName}-VPC-ID'
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '30'
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-backend-tg-${Environment}'
+
+  # Frontend Target Group
+  FrontendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub 'saas-frontend-tg-${Environment}'
+      Port: 3000
+      Protocol: HTTP
+      VpcId:
+        Fn::ImportValue: !Sub '${BaseStackName}-VPC-ID'
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '30'
+      Tags:
+        - Key: Name
+          Value: !Sub 'saas-frontend-tg-${Environment}'
+
+  # ALB Listener - HTTP (Backend API)
+  BackendListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref BackendTargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  # ALB Listener Rule - Route API calls to backend
+  BackendListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref BackendTargetGroup
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /api/*
+            - /health
+      ListenerArn: !Ref BackendListener
+      Priority: 1
+
+  # ALB Listener Rule - Route UI to frontend
+  FrontendListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref FrontendTargetGroup
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - /*
+      ListenerArn: !Ref BackendListener
+      Priority: 100
+
+  # Backend ECS Task Definition
+  BackendTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub 'saas-backend-${Environment}'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: !If [IsProd, '512', '256']
+      Memory: !If [IsProd, '1024', '512']
+      ExecutionRoleArn:
+        Fn::ImportValue: !Sub '${BaseStackName}-Task-Execution-Role'
+      ContainerDefinitions:
+        - Name: backend
+          Image:
+            Fn::Sub:
+              - '${URI}:latest'
+              - URI: !ImportValue
+                  Fn::Sub: '${BaseStackName}-Backend-ECR-URI'
+          Essential: true
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: DATABASE_URL
+              Value: !Sub
+                - 'postgresql://${DBUser}:${DBPass}@${DBEndpoint}:5432/saas_${Environment}'
+                - DBUser: !Sub '{{resolve:secretsmanager:saas-db-${Environment}:SecretString:username}}'
+                  DBPass: !Sub '{{resolve:secretsmanager:saas-db-${Environment}:SecretString:password}}'
+                  DBEndpoint: !ImportValue
+                    Fn::Sub: '${BaseStackName}-DB-Endpoint'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !ImportValue
+                Fn::Sub: '${BaseStackName}-LogGroup'
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: backend
+
+  # Backend ECS Service
+  BackendService:
+    Type: AWS::ECS::Service
+    DependsOn: BackendListenerRule
+    Properties:
+      ServiceName: !Sub 'saas-backend-${Environment}'
+      Cluster:
+        Fn::ImportValue: !Sub '${BaseStackName}-ECS-Cluster'
+      TaskDefinition: !Ref BackendTaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - Fn::ImportValue: !Sub '${BaseStackName}-Private-Subnet-1'
+            - Fn::ImportValue: !Sub '${BaseStackName}-Private-Subnet-2'
+          SecurityGroups:
+            - !Ref ECSSecurityGroup
+          AssignPublicIp: DISABLED
+      LoadBalancers:
+        - ContainerName: backend
+          ContainerPort: 3000
+          TargetGroupArn: !Ref BackendTargetGroup
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+
+  # Frontend ECS Task Definition
+  FrontendTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub 'saas-frontend-${Environment}'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: !If [IsProd, '512', '256']
+      Memory: !If [IsProd, '1024', '512']
+      ExecutionRoleArn:
+        Fn::ImportValue: !Sub '${BaseStackName}-Task-Execution-Role'
+      ContainerDefinitions:
+        - Name: frontend
+          Image:
+            Fn::Sub:
+              - '${URI}:latest'
+              - URI: !ImportValue
+                  Fn::Sub: '${BaseStackName}-Frontend-ECR-URI'
+          Essential: true
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !ImportValue
+                Fn::Sub: '${BaseStackName}-LogGroup'
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: frontend
+
+  # Frontend ECS Service
+  FrontendService:
+    Type: AWS::ECS::Service
+    DependsOn: FrontendListenerRule
+    Properties:
+      ServiceName: !Sub 'saas-frontend-${Environment}'
+      Cluster:
+        Fn::ImportValue: !Sub '${BaseStackName}-ECS-Cluster'
+      TaskDefinition: !Ref FrontendTaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - Fn::ImportValue: !Sub '${BaseStackName}-Private-Subnet-1'
+            - Fn::ImportValue: !Sub '${BaseStackName}-Private-Subnet-2'
+          SecurityGroups:
+            - !Ref ECSSecurityGroup
+          AssignPublicIp: DISABLED
+      LoadBalancers:
+        - ContainerName: frontend
+          ContainerPort: 3000
+          TargetGroupArn: !Ref FrontendTargetGroup
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+
+  # Backend Auto Scaling Target
+  BackendScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: !If [IsProd, 10, 4]
+      MinCapacity: !If [IsProd, 2, 1]
+      ResourceId: !Sub 'service/${AWS::StackName}/saas-backend-${Environment}'
+      RoleARN: !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  # Backend Auto Scaling Policy
+  BackendScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub 'saas-backend-cpu-scaling-${Environment}'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref BackendScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 70.0
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleOutCooldown: 60
+        ScaleInCooldown: 300
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
+Outputs:
+  LoadBalancerDNS:
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Export:
+      Name: !Sub '${AWS::StackName}-ALB-DNS'
+
+  BackendServiceArn:
+    Value: !GetAtt BackendService.ServiceArn
+    Export:
+      Name: !Sub '${AWS::StackName}-Backend-Service-ARN'
+
+  FrontendServiceArn:
+    Value: !GetAtt FrontendService.ServiceArn
+    Export:
+      Name: !Sub '${AWS::StackName}-Frontend-Service-ARN'
