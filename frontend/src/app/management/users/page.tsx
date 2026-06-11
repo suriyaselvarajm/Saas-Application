@@ -53,6 +53,190 @@ const M365_LICENSES = [
   { id: "Enterprise Mobility + Security E5", name: "Enterprise Mobility + Security E5" }
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BULK ACTION CONFIGURATION — drives the generic BulkActionModal for all
+// 19 Bulk User Modification items. Each entry has: title, description, color
+// (Tailwind prefix), apiAction (sent to backend), fields[], and csvColumns[].
+// ─────────────────────────────────────────────────────────────────────────────
+interface BulkField {
+  key: string; label: string;
+  type?: "text" | "password" | "textarea" | "select" | "checkbox" | "number";
+  options?: string[]; placeholder?: string; required?: boolean; span?: boolean;
+}
+interface BulkActionCfg {
+  title: string; description: string; apiAction: string;
+  color: string; // Tailwind color name e.g. "rose", "indigo"
+  fields: BulkField[]; csvColumns: string[]; danger?: boolean;
+}
+const BULK_ACTION_CONFIG: Record<string, BulkActionCfg> = {
+  "Reset Password": {
+    title: "Reset Password", apiAction: "reset-password", color: "rose", danger: false,
+    description: "Reset passwords for selected Active Directory users.",
+    fields: [
+      { key: "newPassword", label: "New Password", type: "password", placeholder: "Min 8 characters" },
+      { key: "generatePassword", label: "Auto-generate strong password (ignores above)", type: "checkbox" },
+      { key: "userMustChangePassword", label: "User must change password at next logon", type: "checkbox" },
+    ],
+    csvColumns: ["email", "new_password"],
+  },
+  "Unlock Users": {
+    title: "Unlock Users", apiAction: "unlock", color: "emerald",
+    description: "Unlock locked-out user accounts in Active Directory.",
+    fields: [], csvColumns: ["email"],
+  },
+  "Profile Attributes": {
+    title: "Update Profile Attributes", apiAction: "profile-attributes", color: "indigo",
+    description: "Bulk update job/profile attributes for selected users.",
+    fields: [
+      { key: "jobTitle", label: "Job Title", placeholder: "e.g. Software Engineer" },
+      { key: "department", label: "Department", placeholder: "e.g. Engineering" },
+      { key: "office", label: "Office", placeholder: "e.g. New York HQ" },
+      { key: "company", label: "Company", placeholder: "e.g. Acme Corp" },
+      { key: "manager", label: "Manager DN", placeholder: "e.g. CN=Jane Doe,OU=Managers,DC=corp,DC=com" },
+      { key: "employeeId", label: "Employee ID", placeholder: "e.g. EMP-001" },
+      { key: "descriptionGeneral", label: "Description", type: "textarea", placeholder: "User description…", span: true },
+    ],
+    csvColumns: ["email", "job_title", "department", "office", "company", "employee_id"],
+  },
+  "Custom Attributes": {
+    title: "Custom Attributes (Extension Attributes)", apiAction: "custom-attributes", color: "violet",
+    description: "Set AD extensionAttribute1–5 for selected users.",
+    fields: [
+      { key: "extensionAttribute1", label: "Extension Attribute 1", placeholder: "e.g. ProjectCode" },
+      { key: "extensionAttribute2", label: "Extension Attribute 2", placeholder: "e.g. CostCenter" },
+      { key: "extensionAttribute3", label: "Extension Attribute 3", placeholder: "e.g. Region" },
+      { key: "extensionAttribute4", label: "Extension Attribute 4", placeholder: "e.g. BadgeID" },
+      { key: "extensionAttribute5", label: "Extension Attribute 5", placeholder: "e.g. EmployeeType" },
+    ],
+    csvColumns: ["email", "ext_attr1", "ext_attr2", "ext_attr3", "ext_attr4", "ext_attr5"],
+  },
+  "Manage User Photos": {
+    title: "Manage User Photos", apiAction: "manage-photos", color: "pink",
+    description: "Upload or remove profile photos for selected Microsoft 365 users.",
+    fields: [{ key: "photoAction", label: "Action", type: "select", options: ["Upload from URL", "Remove Photo"], required: true },
+             { key: "photoUrl", label: "Photo URL", placeholder: "https://example.com/photo.jpg" }],
+    csvColumns: ["email", "photo_url"],
+  },
+  "Group Attributes": {
+    title: "Group Membership", apiAction: "group-membership", color: "sky",
+    description: "Add or remove selected users from Active Directory security/distribution groups.",
+    fields: [
+      { key: "groupOperation", label: "Operation", type: "select", options: ["add", "remove", "replace"], required: true },
+      { key: "adGroupDns_raw", label: "Groups to ADD (comma-separated DNs)", type: "textarea", placeholder: "CN=Marketing,CN=Users,DC=corp,DC=com", span: true },
+      { key: "adGroupRemoveDns_raw", label: "Groups to REMOVE (comma-separated DNs)", type: "textarea", placeholder: "CN=OldTeam,CN=Users,DC=corp,DC=com", span: true },
+    ],
+    csvColumns: ["email", "group_dn", "operation"],
+  },
+  "Move Users": {
+    title: "Move Users to OU", apiAction: "move-ou", color: "amber",
+    description: "Move selected users to a different Organizational Unit in Active Directory.",
+    fields: [{ key: "targetOu", label: "Target OU (Distinguished Name)", placeholder: "OU=Engineering,OU=Employees,DC=corp,DC=com", required: true, span: true }],
+    csvColumns: ["email", "target_ou"],
+  },
+  "Move/Delete HomeFolders": {
+    title: "Move / Delete Home Folders", apiAction: "home-folders", color: "orange",
+    description: "Move user home folders to a new share path, or remove the homeDirectory attribute.",
+    fields: [
+      { key: "homeFolderOperation", label: "Operation", type: "select", options: ["move", "delete"], required: true },
+      { key: "homeDirectory", label: "New Home Folder Path (for move)", placeholder: "\\\\fileserver\\homes\\%username%" },
+    ],
+    csvColumns: ["email", "home_folder_path", "operation"],
+  },
+  "Logon Hours": {
+    title: "Logon Hours", apiAction: "logon-hours", color: "teal",
+    description: "Apply a logon hours profile to restrict when users can log on.",
+    fields: [{ key: "logonHoursProfile", label: "Logon Hours Profile", type: "select",
+               options: ["Business Hours Only (Mon–Fri 08:00–18:00)", "All Hours (Unrestricted)", "Night Shift (Mon–Fri 18:00–06:00)", "Weekdays Only", "Custom"], required: true }],
+    csvColumns: ["email", "logon_hours_profile"],
+  },
+  "Enable/Disable Users": {
+    title: "Enable / Disable User Accounts", apiAction: "enable-disable", color: "yellow",
+    description: "Bulk enable or disable Active Directory user accounts.",
+    fields: [{ key: "accountDisabled", label: "Account Action", type: "select", options: ["Enable Accounts", "Disable Accounts"], required: true }],
+    csvColumns: ["email", "action"],
+  },
+  "Delete Users": {
+    title: "Delete Users", apiAction: "delete-users", color: "red", danger: true,
+    description: "Permanently delete user accounts from Active Directory. This action cannot be undone.",
+    fields: [{ key: "confirmDelete", label: "Type DELETE to confirm this destructive action", placeholder: "DELETE", required: true }],
+    csvColumns: ["email"],
+  },
+  "Restore Deleted Users": {
+    title: "Restore Deleted Users", apiAction: "restore-users", color: "emerald",
+    description: "Restore recently deleted users from the Active Directory Recycle Bin.",
+    fields: [{ key: "targetOu", label: "Restore to OU (optional)", placeholder: "OU=Employees,DC=corp,DC=com" }],
+    csvColumns: ["email"],
+  },
+  "Enable/Disable/Delete Skype Users": {
+    title: "Enable / Disable / Delete Skype Users", apiAction: "skype-actions", color: "blue",
+    description: "Manage Skype for Business / Microsoft Teams user accounts.",
+    fields: [{ key: "skypeAction", label: "Action", type: "select", options: ["enable", "disable", "delete"], required: true }],
+    csvColumns: ["email", "skype_action"],
+  },
+  "Modify Skype policies": {
+    title: "Modify Skype / Teams Policies", apiAction: "skype-policies", color: "cyan",
+    description: "Assign Skype for Business or Microsoft Teams policies to selected users.",
+    fields: [
+      { key: "skypePolicy", label: "Policy Name", type: "select",
+        options: ["Tag:AllowAll", "Tag:BlockAll", "Global", "Tag:VoiceUsers", "Tag:ExternalUsers"], required: true },
+    ],
+    csvColumns: ["email", "policy_name"],
+  },
+  "Contact Attributes": {
+    title: "Update Contact Attributes", apiAction: "contact-attributes", color: "indigo",
+    description: "Bulk update contact information for selected users.",
+    fields: [
+      { key: "officePhone", label: "Office Phone", placeholder: "+1 555-0100" },
+      { key: "mobileNumber", label: "Mobile Number", placeholder: "+1 555-0199" },
+      { key: "faxNumber", label: "Fax Number", placeholder: "+1 555-0101" },
+      { key: "homePhone", label: "Home Phone", placeholder: "+1 555-0102" },
+      { key: "pager", label: "Pager", placeholder: "+1 555-0103" },
+      { key: "ipPhone", label: "IP Phone", placeholder: "1001" },
+      { key: "webPage", label: "Web Page", placeholder: "https://intranet.corp.com" },
+      { key: "notes", label: "Notes", type: "textarea", placeholder: "Additional notes…", span: true },
+    ],
+    csvColumns: ["email", "office_phone", "mobile", "home_phone"],
+  },
+  "Address/Organization Attributes": {
+    title: "Update Address / Organization Attributes", apiAction: "address-attributes", color: "teal",
+    description: "Bulk update address and organization fields for selected users.",
+    fields: [
+      { key: "streetAddress", label: "Street Address", placeholder: "123 Main Street", span: true },
+      { key: "city", label: "City", placeholder: "New York" },
+      { key: "stateProvince", label: "State / Province", placeholder: "NY" },
+      { key: "zipPostalCode", label: "Zip / Postal Code", placeholder: "10001" },
+      { key: "countryRegion", label: "Country", placeholder: "US" },
+      { key: "poBox", label: "PO Box", placeholder: "PO Box 123" },
+    ],
+    csvColumns: ["email", "city", "state", "country", "postal_code"],
+  },
+  "Naming Attributes": {
+    title: "Update Naming Attributes", apiAction: "naming-attributes", color: "purple",
+    description: "Update display names, initials, and other naming-related attributes.",
+    fields: [
+      { key: "firstName", label: "First Name", placeholder: "e.g. John" },
+      { key: "lastName", label: "Last Name", placeholder: "e.g. Doe" },
+      { key: "initials", label: "Initials", placeholder: "e.g. J.D." },
+      { key: "displayName", label: "Display Name", placeholder: "e.g. John Doe", span: true },
+    ],
+    csvColumns: ["email", "first_name", "last_name", "display_name"],
+  },
+  "User Workstations": {
+    title: "User Workstations", apiAction: "workstations", color: "slate",
+    description: "Restrict which workstations users can log on to (logon workstations / userWorkstations).",
+    fields: [{ key: "workstations", label: "Workstation Computer Names (comma-separated)", type: "textarea",
+               placeholder: "WORKSTATION01,WORKSTATION02", required: true, span: true }],
+    csvColumns: ["email", "workstations"],
+  },
+  "Inheritable Permissions": {
+    title: "Inheritable Permissions", apiAction: "permissions", color: "gray",
+    description: "Enable or block inheritable permissions on user objects in Active Directory.",
+    fields: [{ key: "inheritPermissions", label: "Permission Mode", type: "select",
+               options: ["Enable inheritance", "Block inheritance"], required: true }],
+    csvColumns: ["email", "permission_mode"],
+  },
+};
+
 const TEMPLATE_COMPUTERS: Record<string, (f: string, l: string, fInit: string, lInit: string, initials: string) => string> = {
   "firstname.lastname": (f, l) => `${f}.${l}`,
   "lastname.firstname": (f, l) => `${l}.${f}`,
@@ -490,6 +674,75 @@ export default function UserManagementPage() {
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [activeTemplateTab, setActiveTemplateTab] = useState("General");
+
+  // ── User Modification: Single ──────────────────────────────────────────────
+  const [isModifyModalOpen, setIsModifyModalOpen] = useState(false);
+  const [modifySearchQuery, setModifySearchQuery] = useState("");
+  const [modifySearchResults, setModifySearchResults] = useState<any[]>([]);
+  const [modifySearchLoading, setModifySearchLoading] = useState(false);
+  const [modifySelectedUser, setModifySelectedUser] = useState<any | null>(null);
+  const [modifyActiveTab, setModifyActiveTab] = useState("Profile");
+  const [modifyFormData, setModifyFormData] = useState<any>({
+    email: "", firstName: "", initials: "", lastName: "", displayName: "",
+    jobTitle: "", department: "", office: "", officePhone: "", faxNumber: "",
+    mobileNumber: "", streetAddress: "", city: "", stateProvince: "",
+    zipPostalCode: "", countryRegion: "", homePhone: "", pager: "", ipPhone: "",
+    notes: "", company: "", manager: "", poBox: "", webPage: "",
+    employeeId: "", descriptionGeneral: "", newPassword: "",
+    modifyInAd: true, modifyInM365: false, adSettingsId: "", m365SettingsId: "",
+    m365License: "Microsoft 365 E5", createWithoutLicense: false,
+    targetOu: "", adGroupDns: [] as string[],
+    accountDisabled: false, passwordNeverExpires: false, userMustChangePassword: false,
+    selectedTemplate: "",
+  });
+  const [modifyLogs, setModifyLogs] = useState<string[]>([]);
+  const [modifySuccessStatus, setModifySuccessStatus] = useState<boolean | null>(null);
+  const [isModifying, setIsModifying] = useState(false);
+  const [modifyShowTerminal, setModifyShowTerminal] = useState(false);
+
+  // ── User Modification: Bulk ────────────────────────────────────────────────
+  const [isBulkModifyModalOpen, setIsBulkModifyModalOpen] = useState(false);
+  const [bulkModifySearchQuery, setBulkModifySearchQuery] = useState("");
+  const [bulkModifySearchResults, setBulkModifySearchResults] = useState<any[]>([]);
+  const [bulkModifySearchLoading, setBulkModifySearchLoading] = useState(false);
+  const [selectedUsersForModify, setSelectedUsersForModify] = useState<any[]>([]);
+  const [bulkModifyConfig, setBulkModifyConfig] = useState({
+    modifyInAd: true, modifyInM365: false, adSettingsId: "", m365SettingsId: "",
+    jobTitle: "", department: "", office: "", mobileNumber: "",
+    m365License: "", newPassword: "", targetOu: "", adGroupDns: [] as string[],
+    accountDisabled: false, passwordNeverExpires: false, userMustChangePassword: false,
+    // Flags controlling which fields to apply
+    applyJobTitle: false, applyDepartment: false, applyOffice: false,
+    applyMobile: false, applyLicense: false, applyPassword: false,
+    applyOu: false, applyGroups: false, applyDisabled: false,
+  });
+  const [bulkModifyLogs, setBulkModifyLogs] = useState<string[]>([]);
+  const [bulkModifySuccessStatus, setBulkModifySuccessStatus] = useState<boolean | null>(null);
+  const [isBulkModifying, setIsBulkModifying] = useState(false);
+  const [bulkModifyShowTerminal, setBulkModifyShowTerminal] = useState(false);
+
+  // ── User Modification: Template-based ────────────────────────────────────
+  const [isModifyWithTemplateOpen, setIsModifyWithTemplateOpen] = useState(false);
+  const [modifyTemplateStep, setModifyTemplateStep] = useState<"pick-template" | "pick-users">("pick-template");
+  const [selectedModifyTemplate, setSelectedModifyTemplate] = useState<any | null>(null);
+  const [modifyTemplateUserSearch, setModifyTemplateUserSearch] = useState("");
+  const [modifyTemplateUserResults, setModifyTemplateUserResults] = useState<any[]>([]);
+  const [modifyTemplateSelectedUsers, setModifyTemplateSelectedUsers] = useState<any[]>([]);
+
+  // ── Generic Bulk Action Modal (all 19 Bulk User Modification items) ─────────
+  const [bulkActionOpen, setBulkActionOpen] = useState(false);
+  const [bulkActionKey, setBulkActionKey] = useState(""); // e.g. "Reset Password"
+  const [bulkActionUsers, setBulkActionUsers] = useState<any[]>([]); // selected users
+  const [bulkActionForm, setBulkActionForm] = useState<Record<string, any>>({}); // field values
+  const [bulkActionLogs, setBulkActionLogs] = useState<string[]>([]);
+  const [bulkActionStatus, setBulkActionStatus] = useState<boolean | null>(null);
+  const [isBulkActioning, setIsBulkActioning] = useState(false);
+  const [bulkActionShowTerminal, setBulkActionShowTerminal] = useState(false);
+  const [bulkActionSearch, setBulkActionSearch] = useState("");
+  const [bulkActionSearchResults, setBulkActionSearchResults] = useState<any[]>([]);
+  const [bulkActionSearchLoading, setBulkActionSearchLoading] = useState(false);
+  // Per-user result tracking for CSV export
+  const [bulkActionResults, setBulkActionResults] = useState<{email: string; name: string; status: "success"|"error"; message: string}[]>([]);
   
   const [customTemplates, setCustomTemplates] = useState<any[]>([
     {
@@ -925,7 +1178,7 @@ export default function UserManagementPage() {
       createInAd:           tplData.createInAd ?? prev.createInAd,
       createInM365:         tplData.createInM365 ?? prev.createInM365,
       targetOu:             tplData.targetOu ?? prev.targetOu,
-      adGroupDn:            tplData.adGroupDn ?? prev.adGroupDn,
+      adGroupDns:           tplData.adGroupDns ?? prev.adGroupDns,
       m365License:          tplData.m365License ?? prev.m365License,
       createWithoutLicense: tplData.createWithoutLicense ?? prev.createWithoutLicense,
       ...(customTpl ? {
@@ -1290,7 +1543,7 @@ export default function UserManagementPage() {
         m365License: globalBulkConfig.m365License,
         createWithoutLicense: globalBulkConfig.createWithoutLicense,
         targetOu: globalBulkConfig.targetOu,
-        adGroupDn: globalBulkConfig.adGroupDn
+        adGroupDns: globalBulkConfig.adGroupDns
       }));
 
       const token = localStorage.getItem("petrus_token");
@@ -1351,7 +1604,7 @@ export default function UserManagementPage() {
       newForm.createInAd = tplData.createInAd ?? newForm.createInAd;
       newForm.createInM365 = tplData.createInM365 ?? newForm.createInM365;
       newForm.targetOu = tplData.targetOu ?? newForm.targetOu;
-      newForm.adGroupDn = tplData.adGroupDn ?? newForm.adGroupDn;
+      newForm.adGroupDns = tplData.adGroupDns ?? newForm.adGroupDns;
       newForm.m365License = tplData.m365License ?? newForm.m365License;
       newForm.createWithoutLicense = tplData.createWithoutLicense ?? newForm.createWithoutLicense;
       newForm.officePhone = customTemplates[0].data?.telephoneNumber ?? newForm.officePhone;
@@ -1383,7 +1636,7 @@ export default function UserManagementPage() {
       m365License: "Microsoft 365 E5",
       createWithoutLicense: false,
       targetOu: "",
-      adGroupDn: ""
+      adGroupDns: []
     });
     
     setBulkUsersList([
@@ -1415,7 +1668,448 @@ export default function UserManagementPage() {
     setIsBulkModalOpen(true);
   };
 
+  // ── Modification Handlers ─────────────────────────────────────────────────
+
+  const searchUsersForModify = async (q: string, setter: (r: any[]) => void, loadSetter: (b: boolean) => void) => {
+    loadSetter(true);
+    try {
+      const token = localStorage.getItem("petrus_token");
+      const res = await fetch(`http://localhost:3001/users?q=${encodeURIComponent(q)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) setter(await res.json());
+      else setter([]);
+    } catch { setter([]); }
+    finally { loadSetter(false); }
+  };
+
+  const setupModifySingleUser = () => {
+    setModifyFormData({
+      email: "", firstName: "", initials: "", lastName: "", displayName: "",
+      jobTitle: "", department: "", office: "", officePhone: "", faxNumber: "",
+      mobileNumber: "", streetAddress: "", city: "", stateProvince: "",
+      zipPostalCode: "", countryRegion: "", homePhone: "", pager: "", ipPhone: "",
+      notes: "", company: "", manager: "", poBox: "", webPage: "",
+      employeeId: "", descriptionGeneral: "", newPassword: "",
+      modifyInAd: true, modifyInM365: false,
+      adSettingsId: adSettingsList[0]?.id || "",
+      m365SettingsId: m365SettingsList[0]?.id || "",
+      m365License: "Microsoft 365 E5", createWithoutLicense: false,
+      targetOu: "", adGroupDns: [] as string[],
+      accountDisabled: false, passwordNeverExpires: false, userMustChangePassword: false,
+      selectedTemplate: "",
+    });
+    setModifySelectedUser(null);
+    setModifySearchQuery("");
+    setModifySearchResults([]);
+    setModifyLogs([]);
+    setModifySuccessStatus(null);
+    setModifyShowTerminal(false);
+    setModifyActiveTab("Profile");
+    setIsModifyModalOpen(true);
+  };
+
+  const handleSelectUserForModify = (user: any) => {
+    setModifySelectedUser(user);
+    const [firstName, ...lastParts] = (user.name || "").split(" ");
+    setModifyFormData((prev: any) => ({
+      ...prev,
+      email: user.email || "",
+      firstName: firstName || "",
+      lastName: lastParts.join(" ") || "",
+      displayName: user.name || "",
+    }));
+    setModifyShowTerminal(false);
+    setModifyLogs([]);
+    setModifySuccessStatus(null);
+  };
+
+  const handleModifyUserSubmit = async (e: any) => {
+    e.preventDefault();
+    if (!modifyFormData.email) {
+      setJobModal({ isOpen: true, success: false, message: "Please search for and select a user to modify." });
+      return;
+    }
+    if (!modifyFormData.modifyInAd && !modifyFormData.modifyInM365) {
+      setJobModal({ isOpen: true, success: false, message: "Please select at least one target directory (Active Directory or Microsoft 365)." });
+      return;
+    }
+    setIsModifying(true);
+    setModifyLogs([]);
+    setModifySuccessStatus(null);
+    setModifyShowTerminal(true);
+    try {
+      const token = localStorage.getItem("petrus_token");
+      const payload = { ...modifyFormData };
+      const res = await fetch("http://localhost:3001/users/modify-single", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.logs) {
+        for (const log of data.logs) {
+          await new Promise(r => setTimeout(r, 180));
+          setModifyLogs(prev => [...prev, log]);
+        }
+      }
+      setModifySuccessStatus(res.ok && data.success);
+      if (!res.ok || !data.success) {
+        setModifyLogs(prev => [...prev, `[ERROR] ${data.message || "Modification failed."}`]);
+      }
+    } catch (err: any) {
+      setModifyLogs(prev => [...prev, `[ERROR] Connection failed: ${err.message}`]);
+      setModifySuccessStatus(false);
+    } finally {
+      setIsModifying(false);
+    }
+  };
+
+  const setupBulkModifyUsers = () => {
+    setSelectedUsersForModify([]);
+    setBulkModifySearchQuery("");
+    setBulkModifySearchResults([]);
+    setBulkModifyConfig({
+      modifyInAd: true, modifyInM365: false,
+      adSettingsId: adSettingsList[0]?.id || "",
+      m365SettingsId: m365SettingsList[0]?.id || "",
+      jobTitle: "", department: "", office: "", mobileNumber: "",
+      m365License: "", newPassword: "", targetOu: "", adGroupDns: [] as string[],
+      accountDisabled: false, passwordNeverExpires: false, userMustChangePassword: false,
+      applyJobTitle: false, applyDepartment: false, applyOffice: false,
+      applyMobile: false, applyLicense: false, applyPassword: false,
+      applyOu: false, applyGroups: false, applyDisabled: false,
+    });
+    setBulkModifyLogs([]);
+    setBulkModifySuccessStatus(null);
+    setBulkModifyShowTerminal(false);
+    setIsBulkModifyModalOpen(true);
+  };
+
+  const handleBulkModifySubmit = async (e: any) => {
+    e.preventDefault();
+    if (selectedUsersForModify.length === 0) {
+      setJobModal({ isOpen: true, success: false, message: "Please select at least one user to modify." });
+      return;
+    }
+    if (!bulkModifyConfig.modifyInAd && !bulkModifyConfig.modifyInM365) {
+      setJobModal({ isOpen: true, success: false, message: "Please select at least one target directory." });
+      return;
+    }
+    setIsBulkModifying(true);
+    setBulkModifyLogs([]);
+    setBulkModifySuccessStatus(null);
+    setBulkModifyShowTerminal(true);
+
+    const users = selectedUsersForModify.map(u => ({
+      email: u.email,
+      displayName: u.name,
+      modifyInAd: bulkModifyConfig.modifyInAd,
+      modifyInM365: bulkModifyConfig.modifyInM365,
+      adSettingsId: bulkModifyConfig.adSettingsId,
+      m365SettingsId: bulkModifyConfig.m365SettingsId,
+      ...(bulkModifyConfig.applyJobTitle && { jobTitle: bulkModifyConfig.jobTitle }),
+      ...(bulkModifyConfig.applyDepartment && { department: bulkModifyConfig.department }),
+      ...(bulkModifyConfig.applyOffice && { office: bulkModifyConfig.office }),
+      ...(bulkModifyConfig.applyMobile && { mobileNumber: bulkModifyConfig.mobileNumber }),
+      ...(bulkModifyConfig.applyLicense && { m365License: bulkModifyConfig.m365License }),
+      ...(bulkModifyConfig.applyPassword && { newPassword: bulkModifyConfig.newPassword }),
+      ...(bulkModifyConfig.applyOu && { targetOu: bulkModifyConfig.targetOu }),
+      ...(bulkModifyConfig.applyGroups && { adGroupDns: bulkModifyConfig.adGroupDns }),
+      ...(bulkModifyConfig.applyDisabled && { accountDisabled: bulkModifyConfig.accountDisabled }),
+    }));
+
+    try {
+      const token = localStorage.getItem("petrus_token");
+      const res = await fetch("http://localhost:3001/users/modify-bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ users }),
+      });
+      const data = await res.json();
+      if (data.logs) {
+        for (const log of data.logs) {
+          await new Promise(r => setTimeout(r, 160));
+          setBulkModifyLogs(prev => [...prev, log]);
+        }
+      }
+      setBulkModifySuccessStatus(res.ok && data.success);
+    } catch (err: any) {
+      setBulkModifyLogs(prev => [...prev, `[ERROR] ${err.message}`]);
+      setBulkModifySuccessStatus(false);
+    } finally {
+      setIsBulkModifying(false);
+    }
+  };
+
+  const setupModifyWithTemplate = () => {
+    setModifyTemplateStep("pick-template");
+    setSelectedModifyTemplate(null);
+    setModifyTemplateUserSearch("");
+    setModifyTemplateUserResults([]);
+    setModifyTemplateSelectedUsers([]);
+    setIsModifyWithTemplateOpen(true);
+  };
+
+  const handleModifyWithTemplateSubmit = async () => {
+    if (!selectedModifyTemplate || modifyTemplateSelectedUsers.length === 0) return;
+    const tplData = selectedModifyTemplate.data || {};
+    const users = modifyTemplateSelectedUsers.map((u: any) => ({
+      email: u.email,
+      displayName: u.name,
+      modifyInAd: tplData.createInAd ?? true,
+      modifyInM365: tplData.createInM365 ?? false,
+      adSettingsId: adSettingsList[0]?.id || "",
+      m365SettingsId: m365SettingsList[0]?.id || "",
+      jobTitle: tplData.jobTitle,
+      department: tplData.department,
+      office: tplData.office,
+      targetOu: tplData.targetOu,
+      adGroupDns: tplData.adGroupDns || [],
+      m365License: tplData.m365License,
+      selectedTemplate: selectedModifyTemplate.name,
+    }));
+    try {
+      const token = localStorage.getItem("petrus_token");
+      const res = await fetch("http://localhost:3001/users/modify-bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ users }),
+      });
+      const data = await res.json();
+      setIsModifyWithTemplateOpen(false);
+      setJobModal({ isOpen: true, success: res.ok && data.success, message: data.message || (res.ok ? "Template modification applied successfully." : "Template modification failed.") });
+    } catch (err: any) {
+      setIsModifyWithTemplateOpen(false);
+      setJobModal({ isOpen: true, success: false, message: `Connection failed: ${err.message}` });
+    }
+  };
+
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BULK ACTION MODAL HANDLERS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const openBulkAction = (item: string) => {
+    const cfg = BULK_ACTION_CONFIG[item];
+    if (!cfg) {
+      setJobModal({ isOpen: true, success: false, message: `${item} is not yet configured.` });
+      return;
+    }
+    setBulkActionKey(item);
+    setBulkActionUsers([]);
+    setBulkActionSearch("");
+    setBulkActionSearchResults([]);
+    setBulkActionForm({});
+    setBulkActionLogs([]);
+    setBulkActionStatus(null);
+    setBulkActionShowTerminal(false);
+    setBulkActionResults([]);
+    setBulkActionOpen(true);
+  };
+
+  const handleCsvImport = async (file: File) => {
+    const text = await file.text();
+    const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) return; // header only
+    const headers = lines[0].toLowerCase().split(",");
+    const emailIdx = headers.findIndex(h => h.includes("email"));
+    if (emailIdx === -1) {
+      setJobModal({ isOpen: true, success: false, message: "CSV must have an 'email' column as the first column." });
+      return;
+    }
+    const emails: string[] = [];
+    const extraData: Record<string, Record<string, string>> = {};
+    lines.slice(1).forEach(line => {
+      const cols = line.split(",");
+      const email = cols[emailIdx]?.trim().replace(/"/g, "");
+      if (email) {
+        emails.push(email);
+        extraData[email] = {};
+        headers.forEach((h, i) => { if (i !== emailIdx && cols[i]) extraData[email][h] = cols[i].trim().replace(/"/g, ""); });
+      }
+    });
+    // Search backend for each email to get user objects
+    try {
+      const token = localStorage.getItem("petrus_token");
+      const found: any[] = [];
+      for (const email of emails) {
+        const res = await fetch(`http://localhost:3001/users?q=${encodeURIComponent(email)}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const d = await res.json();
+          const user = (d.data || d).find?.((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+          if (user) {
+            // Pre-populate form fields from CSV columns (where keys match)
+            const cfg = BULK_ACTION_CONFIG[bulkActionKey];
+            if (cfg && extraData[email]) {
+              const csvEntry = extraData[email];
+              const merged: Record<string, string> = {};
+              cfg.csvColumns.slice(1).forEach(col => {
+                if (csvEntry[col]) merged[col.replace(/_([a-z])/g, (_, c) => c.toUpperCase())] = csvEntry[col];
+              });
+              found.push({ ...user, _csvExtra: merged });
+            } else {
+              found.push(user);
+            }
+          } else {
+            // Still add as a stub so it shows in selection
+            found.push({ email, name: email, _stub: true, _csvExtra: extraData[email] || {} });
+          }
+        }
+      }
+      if (found.length > 0) {
+        setBulkActionUsers(prev => {
+          const existing = new Set(prev.map((u: any) => u.email));
+          const newOnes = found.filter(f => !existing.has(f.email));
+          return [...prev, ...newOnes];
+        });
+        // Pre-fill form with first row's CSV data (for single-value fields)
+        if (found[0]?._csvExtra && Object.keys(found[0]._csvExtra).length > 0) {
+          setBulkActionForm(prev => ({ ...prev, ...found[0]._csvExtra }));
+        }
+        setJobModal({ isOpen: true, success: true, message: `CSV imported: ${found.length} user(s) added to selection.` });
+      } else {
+        setJobModal({ isOpen: true, success: false, message: `No matching users found for ${emails.length} email(s) in CSV.` });
+      }
+    } catch {
+      setJobModal({ isOpen: true, success: false, message: "Failed to look up CSV users — check your connection." });
+    }
+  };
+
+  const downloadCsvTemplate = () => {
+    const cfg = BULK_ACTION_CONFIG[bulkActionKey];
+    if (!cfg) return;
+    const header = cfg.csvColumns.join(",");
+    const example = cfg.csvColumns.map(c => c === "email" ? "john.doe@corp.com" : `<${c}>`).join(",");
+    const csv = `${header}\n${example}\n`;
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = `${bulkActionKey.toLowerCase().replace(/\s+/g, "_")}_template.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const exportResultsCsv = () => {
+    if (bulkActionResults.length === 0) return;
+    const header = "email,name,status,message";
+    const rows = bulkActionResults.map(r =>
+      `"${r.email}","${r.name}","${r.status}","${r.message.replace(/"/g, "'")}"`
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = `${bulkActionKey.toLowerCase().replace(/\s+/g, "_")}_results_${Date.now()}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  const handleBulkActionSubmit = async () => {
+    const cfg = BULK_ACTION_CONFIG[bulkActionKey];
+    if (!cfg || bulkActionUsers.length === 0) return;
+
+    // Danger action guard
+    if (cfg.danger && bulkActionForm.confirmDelete !== "DELETE") {
+      setJobModal({ isOpen: true, success: false, message: 'Type "DELETE" in the confirmation field to proceed.' });
+      return;
+    }
+
+    setIsBulkActioning(true);
+    setBulkActionShowTerminal(true);
+    setBulkActionStatus(null);
+    setBulkActionResults([]);
+    const logs: string[] = [];
+    const results: {email: string; name: string; status: "success"|"error"; message: string}[] = [];
+
+    logs.push(`[System] Starting bulk action: "${cfg.title}" for ${bulkActionUsers.length} user(s).`);
+    logs.push(`[System] API action route: ${cfg.apiAction}`);
+    setBulkActionLogs([...logs]);
+
+    const token = localStorage.getItem("petrus_token");
+
+    for (const user of bulkActionUsers) {
+      logs.push(`\n── Processing: ${user.email} ──────────────────`);
+      setBulkActionLogs([...logs]);
+
+      // Build per-user payload
+      const form = bulkActionForm;
+      const payload: any = {
+        email: user.email,
+        displayName: user.name || user.displayName,
+        action: cfg.apiAction,
+        modifyInAd: true,
+        modifyInM365: false,
+      };
+
+      // Map form keys to DTO fields
+      const accountActionField = form.accountDisabled as string | undefined;
+      if (accountActionField) payload.accountDisabled = accountActionField === "Disable Accounts";
+
+      // Flat field pass-through
+      const directFields = [
+        "newPassword","generatePassword","userMustChangePassword",
+        "jobTitle","department","office","company","manager","employeeId","descriptionGeneral",
+        "extensionAttribute1","extensionAttribute2","extensionAttribute3","extensionAttribute4","extensionAttribute5",
+        "streetAddress","city","stateProvince","zipPostalCode","countryRegion","poBox",
+        "officePhone","mobileNumber","faxNumber","homePhone","pager","ipPhone","webPage","notes",
+        "firstName","lastName","initials","displayName",
+        "targetOu","workstations","logonHoursProfile","homeDirectory","homeFolderOperation",
+        "skypeAction","skypePolicy","groupOperation","inheritPermissions",
+      ];
+      directFields.forEach(k => { if (form[k] !== undefined && form[k] !== "") payload[k] = form[k]; });
+
+      // Special: group DNs from raw textarea
+      if (form.adGroupDns_raw) payload.adGroupDns = form.adGroupDns_raw.split(",").map((s: string) => s.trim()).filter(Boolean);
+      if (form.adGroupRemoveDns_raw) payload.adGroupRemoveDns = form.adGroupRemoveDns_raw.split(",").map((s: string) => s.trim()).filter(Boolean);
+
+      // inheritPermissions from select
+      if (form.inheritPermissions === "Enable inheritance") payload.inheritPermissions = true;
+      else if (form.inheritPermissions === "Block inheritance") payload.inheritPermissions = false;
+
+      // Pre-populate with CSV extra if user has it
+      if (user._csvExtra) Object.assign(payload, user._csvExtra);
+
+      try {
+        const res = await fetch("http://localhost:3001/users/modify-bulk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ users: [payload] }),
+        });
+        const data = await res.json();
+        const success = res.ok && (data.success !== false);
+        const msg = data.message || (success ? "Completed successfully." : "Failed.");
+        if (success) {
+          logs.push(`[✓] ${user.email}: ${msg}`);
+          if (data.logs) data.logs.filter((l: string) => l.trim()).forEach((l: string) => logs.push(`  ${l}`));
+          results.push({ email: user.email, name: user.name || user.email, status: "success", message: msg });
+        } else {
+          logs.push(`[✗] ${user.email}: ${msg}`);
+          results.push({ email: user.email, name: user.name || user.email, status: "error", message: msg });
+        }
+      } catch (err: any) {
+        logs.push(`[✗] ${user.email}: Network error — ${err.message}`);
+        results.push({ email: user.email, name: user.name || user.email, status: "error", message: err.message });
+      }
+      setBulkActionLogs([...logs]);
+    }
+
+    const successCount = results.filter(r => r.status === "success").length;
+    const failCount = results.filter(r => r.status === "error").length;
+    logs.push(`\n[System] Bulk action complete. ✓ ${successCount} succeeded, ✗ ${failCount} failed.`);
+    setBulkActionLogs([...logs]);
+    setBulkActionResults(results);
+    setBulkActionStatus(failCount === 0);
+    setIsBulkActioning(false);
+  };
+
   const handleItemClick = (item: string) => {
+    // ── Bulk User Modification items (all 19 from BULK_ACTION_CONFIG) ─────────
+    if (BULK_ACTION_CONFIG[item]) {
+      openBulkAction(item);
+      return;
+    }
+
     if (item === "Create Single User") {
       setupSingleUserCreation();
       return;
@@ -1428,6 +2122,26 @@ export default function UserManagementPage() {
 
     if (item === "Create Bulk Users" || item === "Create Users") {
       setupBulkUserCreation();
+      return;
+    }
+
+    if (item === "Modify Single User") {
+      setupModifySingleUser();
+      return;
+    }
+
+    if (item === "Modify Bulk Users" || item === "Modify Users") {
+      setupBulkModifyUsers();
+      return;
+    }
+
+    if (item === "Modify Users Using Template") {
+      setupModifyWithTemplate();
+      return;
+    }
+
+    if (item === "User Modification Templates") {
+      setShowTemplatesWorkspace(true);
       return;
     }
 
@@ -1463,6 +2177,7 @@ export default function UserManagementPage() {
       setJobModal({isOpen: true, success: false, message: `${item} functionality is coming soon.`});
     }
   };
+
 
   const renderAttributeRow = (attr: any) => {
     const isEnabled = enabledAttributes.includes(attr.key);
@@ -2535,8 +3250,8 @@ export default function UserManagementPage() {
                           <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Target AD Security Group (CN / DN)</span>
                           <input 
                             type="text"
-                            value={globalBulkConfig.adGroupDn}
-                            onChange={e => setGlobalBulkConfig({ ...globalBulkConfig, adGroupDn: e.target.value })}
+                            value={globalBulkConfig.adGroupDns.join(", ")}
+                            onChange={e => setGlobalBulkConfig({ ...globalBulkConfig, adGroupDns: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
                             placeholder="e.g. CN=Domain Admins,CN=Users"
                             className="w-full text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3.5 py-2 text-slate-800 dark:text-white outline-none transition-all"
                           />
@@ -2761,8 +3476,773 @@ export default function UserManagementPage() {
           </div>
         </div>
       )}
+      {/* ════════════════════════════════════════════════════════════════════
+          GENERIC BULK ACTION MODAL — powers all 19 Bulk User Modification items
+          Shows: user picker (search + CSV import) | config form | terminal log
+      ════════════════════════════════════════════════════════════════════ */}
+      {bulkActionOpen && (() => {
+        const cfg = BULK_ACTION_CONFIG[bulkActionKey];
+        if (!cfg) return null;
+        const colorMap: Record<string, {bg: string; text: string; border: string; btn: string; badge: string}> = {
+          rose:   { bg:"bg-rose-500/10",   text:"text-rose-500",   border:"border-rose-500",   btn:"bg-rose-600 hover:bg-rose-500",   badge:"bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300" },
+          emerald:{ bg:"bg-emerald-500/10", text:"text-emerald-500", border:"border-emerald-500", btn:"bg-emerald-600 hover:bg-emerald-500", badge:"bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300" },
+          indigo: { bg:"bg-indigo-500/10",  text:"text-indigo-500",  border:"border-indigo-500",  btn:"bg-indigo-600 hover:bg-indigo-500",  badge:"bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300" },
+          violet: { bg:"bg-violet-500/10",  text:"text-violet-500",  border:"border-violet-500",  btn:"bg-violet-600 hover:bg-violet-500",  badge:"bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300" },
+          pink:   { bg:"bg-pink-500/10",    text:"text-pink-500",    border:"border-pink-500",    btn:"bg-pink-600 hover:bg-pink-500",    badge:"bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-300" },
+          sky:    { bg:"bg-sky-500/10",     text:"text-sky-500",     border:"border-sky-500",     btn:"bg-sky-600 hover:bg-sky-500",     badge:"bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-300" },
+          amber:  { bg:"bg-amber-500/10",   text:"text-amber-500",   border:"border-amber-500",   btn:"bg-amber-500 hover:bg-amber-400",   badge:"bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-300" },
+          orange: { bg:"bg-orange-500/10",  text:"text-orange-500",  border:"border-orange-500",  btn:"bg-orange-500 hover:bg-orange-400", badge:"bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300" },
+          teal:   { bg:"bg-teal-500/10",    text:"text-teal-500",    border:"border-teal-500",    btn:"bg-teal-600 hover:bg-teal-500",    badge:"bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-300" },
+          yellow: { bg:"bg-yellow-500/10",  text:"text-yellow-500",  border:"border-yellow-500",  btn:"bg-yellow-500 hover:bg-yellow-400", badge:"bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-300" },
+          red:    { bg:"bg-red-500/10",     text:"text-red-500",     border:"border-red-500",     btn:"bg-red-600 hover:bg-red-500",     badge:"bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300" },
+          blue:   { bg:"bg-blue-500/10",    text:"text-blue-500",    border:"border-blue-500",    btn:"bg-blue-600 hover:bg-blue-500",    badge:"bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300" },
+          cyan:   { bg:"bg-cyan-500/10",    text:"text-cyan-500",    border:"border-cyan-500",    btn:"bg-cyan-600 hover:bg-cyan-500",    badge:"bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-300" },
+          purple: { bg:"bg-purple-500/10",  text:"text-purple-500",  border:"border-purple-500",  btn:"bg-purple-600 hover:bg-purple-500", badge:"bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300" },
+          slate:  { bg:"bg-slate-500/10",   text:"text-slate-500",   border:"border-slate-500",   btn:"bg-slate-600 hover:bg-slate-500",   badge:"bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300" },
+          gray:   { bg:"bg-slate-500/10",   text:"text-slate-500",   border:"border-slate-400",   btn:"bg-slate-600 hover:bg-slate-500",   badge:"bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300" },
+        };
+        const cl = colorMap[cfg.color] || colorMap.indigo;
+        const inputCls = "w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3 py-2 text-slate-800 dark:text-white outline-none";
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[96vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+
+              {/* ── Header ─────────────────────────────────────────────────── */}
+              <div className="p-5 border-b border-slate-200/50 dark:border-white/5 flex justify-between items-center shrink-0">
+                <div>
+                  <h2 className={`text-base font-bold text-slate-900 dark:text-white flex items-center gap-2.5`}>
+                    <span className={`p-1.5 rounded-lg ${cl.bg}`}><Server className={`h-4 w-4 ${cl.text}`} /></span>
+                    {cfg.title}
+                    {cfg.danger && <span className="text-[10px] px-2 py-0.5 bg-red-500/10 text-red-500 rounded-full font-bold border border-red-500/20">DESTRUCTIVE</span>}
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{cfg.description}</p>
+                </div>
+                <button onClick={() => setBulkActionOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"><X className="h-5 w-5 text-slate-500" /></button>
+              </div>
+
+              {/* ── Body ───────────────────────────────────────────────────── */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+                {/* Terminal log */}
+                {bulkActionShowTerminal && (
+                  <div className="bg-slate-950 rounded-2xl border border-white/5 overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-white/5">
+                      <div className="flex items-center gap-2 text-xs text-slate-400"><Terminal className="h-3.5 w-3.5 text-emerald-400" /> Live Action Log — {cfg.title}</div>
+                      <div className="flex items-center gap-2">
+                        {bulkActionResults.length > 0 && (
+                          <button type="button" onClick={exportResultsCsv}
+                            className="text-[10px] px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 rounded-lg font-bold transition-colors flex items-center gap-1">
+                            <Download className="h-3 w-3" /> Export CSV
+                          </button>
+                        )}
+                        <div className="flex gap-1.5">{["bg-red-500","bg-yellow-500","bg-green-500"].map(c => <div key={c} className={`w-2.5 h-2.5 rounded-full ${c}`} />)}</div>
+                      </div>
+                    </div>
+                    <div className="p-4 font-mono text-[11px] space-y-0.5 max-h-52 overflow-y-auto">
+                      {bulkActionLogs.map((log, i) => (
+                        <div key={i} className={log.includes("[✗]")||log.includes("[ERROR]") ? "text-red-400" : log.includes("[✓]") ? "text-emerald-400" : log.includes("[SIMULATION]")||log.includes("[WARNING]") ? "text-amber-400" : log.includes("[AD]") ? "text-emerald-400" : log.includes("[M365]") ? "text-sky-400" : log.includes("[System]") ? "text-indigo-400" : "text-slate-300"}>{log}</div>
+                      ))}
+                      {isBulkActioning && <div className={`${cl.text} animate-pulse mt-1`}>● Processing…</div>}
+                      {bulkActionStatus === true && <div className="text-emerald-400 font-bold mt-2">✓ All operations completed successfully.</div>}
+                      {bulkActionStatus === false && <div className="text-amber-400 font-bold mt-2">⚠ Completed with some failures. See above for details.</div>}
+                    </div>
+                    {/* Per-user results table */}
+                    {bulkActionResults.length > 0 && (
+                      <div className="border-t border-white/5 max-h-40 overflow-y-auto">
+                        <table className="w-full text-[11px]">
+                          <thead><tr className="bg-slate-900/80 text-slate-400">
+                            <th className="px-3 py-1.5 text-left font-semibold">User</th>
+                            <th className="px-3 py-1.5 text-left font-semibold">Email</th>
+                            <th className="px-3 py-1.5 text-left font-semibold">Status</th>
+                            <th className="px-3 py-1.5 text-left font-semibold">Message</th>
+                          </tr></thead>
+                          <tbody className="divide-y divide-white/5">
+                            {bulkActionResults.map((r, i) => (
+                              <tr key={i} className="hover:bg-white/2">
+                                <td className="px-3 py-1.5 text-slate-300 font-medium">{r.name}</td>
+                                <td className="px-3 py-1.5 text-slate-400">{r.email}</td>
+                                <td className="px-3 py-1.5">
+                                  <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${r.status === "success" ? "bg-emerald-900/40 text-emerald-400" : "bg-red-900/40 text-red-400"}`}>
+                                    {r.status === "success" ? "✓ Success" : "✗ Failed"}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-1.5 text-slate-400 truncate max-w-[200px]">{r.message}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* ── Left: User Picker ─────────────────────────────── */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Select Users</h3>
+                      <div className="flex gap-2">
+                        {/* CSV Import button */}
+                        <label className={`text-[10px] px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-colors ${cl.badge} flex items-center gap-1`}>
+                          <Upload className="h-3 w-3" /> Import CSV
+                          <input type="file" accept=".csv" className="hidden" onChange={e => { if (e.target.files?.[0]) { handleCsvImport(e.target.files[0]); e.target.value = ""; } }} />
+                        </label>
+                        <button type="button" onClick={downloadCsvTemplate}
+                          className="text-[10px] px-2.5 py-1 rounded-lg font-bold transition-colors bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center gap-1">
+                          <Download className="h-3 w-3" /> Template
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Search */}
+                    <div className="flex gap-2">
+                      <input type="text" placeholder="Search by name or email…" value={bulkActionSearch}
+                        onChange={e => setBulkActionSearch(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") searchUsersForModify(bulkActionSearch, setBulkActionSearchResults, setBulkActionSearchLoading); }}
+                        className={inputCls} />
+                      <button type="button" onClick={() => searchUsersForModify(bulkActionSearch, setBulkActionSearchResults, setBulkActionSearchLoading)}
+                        className={`px-3 py-2 ${cl.btn} text-white rounded-xl text-xs font-bold transition-colors`}>
+                        {bulkActionSearchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Search"}
+                      </button>
+                    </div>
+
+                    {/* Search results */}
+                    {bulkActionSearchResults.length > 0 && (
+                      <div className="border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-white/5 max-h-48 overflow-y-auto">
+                        {bulkActionSearchResults.map(u => {
+                          const sel = bulkActionUsers.some((s: any) => s.email === u.email);
+                          return (
+                            <button key={u.email} type="button"
+                              onClick={() => setBulkActionUsers(prev => sel ? prev.filter((s: any) => s.email !== u.email) : [...prev, u])}
+                              className={`w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors ${sel ? "bg-slate-50 dark:bg-slate-800/60" : ""}`}>
+                              <div>
+                                <div className="text-xs font-semibold text-slate-800 dark:text-white">{u.name || "—"}</div>
+                                <div className="text-[10px] text-slate-500">{u.email}</div>
+                              </div>
+                              <input type="checkbox" readOnly checked={sel} className="rounded w-4 h-4 pointer-events-none" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Selected user chips */}
+                    {bulkActionUsers.length > 0 && (
+                      <div className="space-y-2">
+                        <span className="text-[11px] text-slate-500 font-semibold">{bulkActionUsers.length} user(s) selected:</span>
+                        <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                          {bulkActionUsers.map((u: any) => (
+                            <span key={u.email} className={`flex items-center gap-1 px-2.5 py-1 ${cl.badge} text-[11px] font-semibold rounded-full`}>
+                              {u.name || u.email}
+                              <button type="button" onClick={() => setBulkActionUsers(prev => prev.filter((s: any) => s.email !== u.email))} className="hover:opacity-60 transition-opacity"><X className="h-3 w-3" /></button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {bulkActionUsers.length === 0 && (
+                      <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-slate-200 dark:border-white/5 rounded-xl text-slate-400 text-xs space-y-1">
+                        <Upload className="h-5 w-5 mb-1 opacity-40" />
+                        <span>Search above or import a CSV to add users</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Right: Action Configuration Form ──────────────── */}
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Action Configuration</h3>
+
+                    {cfg.fields.length === 0 && (
+                      <div className={`p-4 rounded-xl border ${cl.bg.replace("/10", "/5")} border-${cfg.color}-200 dark:border-${cfg.color}-900/30`}>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                          This action has no additional configuration. Simply select the users above and click <strong>Apply</strong>.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className={`grid ${cfg.fields.some(f => f.span) ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"} gap-3`}>
+                      {cfg.fields.map(field => {
+                        const commonCls = inputCls + (field.required ? " border-l-2 border-l-indigo-500" : "");
+                        return (
+                          <div key={field.key} className={`space-y-1 ${field.span ? "sm:col-span-2" : ""}`}>
+                            <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                              {field.label}{field.required && <span className="text-red-400 ml-0.5">*</span>}
+                            </label>
+                            {(!field.type || field.type === "text") && (
+                              <input type="text" value={bulkActionForm[field.key] || ""} placeholder={field.placeholder}
+                                onChange={e => setBulkActionForm(p => ({...p, [field.key]: e.target.value}))}
+                                className={commonCls} />
+                            )}
+                            {field.type === "password" && (
+                              <input type="password" value={bulkActionForm[field.key] || ""} placeholder={field.placeholder}
+                                onChange={e => setBulkActionForm(p => ({...p, [field.key]: e.target.value}))}
+                                className={commonCls} />
+                            )}
+                            {field.type === "textarea" && (
+                              <textarea value={bulkActionForm[field.key] || ""} placeholder={field.placeholder} rows={3}
+                                onChange={e => setBulkActionForm(p => ({...p, [field.key]: e.target.value}))}
+                                className={commonCls + " resize-none"} />
+                            )}
+                            {field.type === "select" && (
+                              <select value={bulkActionForm[field.key] || ""} onChange={e => setBulkActionForm(p => ({...p, [field.key]: e.target.value}))}
+                                className={commonCls}>
+                                <option value="">— Select —</option>
+                                {field.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                              </select>
+                            )}
+                            {field.type === "checkbox" && (
+                              <label className="flex items-center gap-2.5 cursor-pointer mt-1">
+                                <input type="checkbox" checked={!!bulkActionForm[field.key]}
+                                  onChange={e => setBulkActionForm(p => ({...p, [field.key]: e.target.checked}))}
+                                  className="rounded w-4 h-4" />
+                                <span className="text-xs text-slate-700 dark:text-slate-300">{field.placeholder || "Enable"}</span>
+                              </label>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Directory target */}
+                    <div className="pt-3 border-t border-slate-200 dark:border-white/5 space-y-2">
+                      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Apply to Directory</label>
+                      <div className="flex gap-4">
+                        {[{key:"modifyInAd", label:"Active Directory"}, {key:"modifyInM365", label:"Microsoft 365"}].map(opt => (
+                          <label key={opt.key} className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={bulkActionForm[opt.key] !== false}
+                              onChange={e => setBulkActionForm(p => ({...p, [opt.key]: e.target.checked}))}
+                              className="rounded w-4 h-4" />
+                            <span className="text-xs text-slate-700 dark:text-slate-300">{opt.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Footer ─────────────────────────────────────────────────── */}
+              <div className="p-5 border-t border-slate-200/50 dark:border-white/5 flex items-center gap-3 justify-between shrink-0">
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  {bulkActionUsers.length > 0 ? <><span className="font-semibold text-slate-700 dark:text-slate-200">{bulkActionUsers.length}</span> user(s) selected</> : "No users selected"}
+                  {bulkActionResults.length > 0 && (
+                    <span className="ml-3">
+                      <span className="text-emerald-500 font-semibold">{bulkActionResults.filter(r => r.status==="success").length} ✓</span>
+                      <span className="text-red-400 font-semibold ml-2">{bulkActionResults.filter(r => r.status==="error").length} ✗</span>
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setBulkActionOpen(false)}
+                    className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-semibold text-sm">
+                    {bulkActionStatus !== null ? "Close" : "Cancel"}
+                  </button>
+                  {bulkActionStatus === null && (
+                    <button type="button" onClick={handleBulkActionSubmit}
+                      disabled={isBulkActioning || bulkActionUsers.length === 0}
+                      className={`px-6 py-2.5 ${cl.btn} text-white rounded-xl transition-all font-semibold text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}>
+                      {isBulkActioning && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {cfg.danger ? "⚠ " : ""}Apply to {bulkActionUsers.length} User{bulkActionUsers.length !== 1 ? "s" : ""}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ════════════════════════════════════════════════════
+          MODIFY SINGLE USER MODAL
+      ════════════════════════════════════════════════════ */}
+
+      {isModifyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-200/50 dark:border-white/5 flex justify-between items-center shrink-0">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="p-1.5 bg-amber-500/10 rounded-lg"><Server className="h-4 w-4 text-amber-500" /></span>
+                  Modify Single User
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Search for a user, update their attributes, then apply changes to AD or M365.</p>
+              </div>
+              <button onClick={() => setIsModifyModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"><X className="h-5 w-5 text-slate-500" /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Terminal */}
+              {modifyShowTerminal && (
+                <div className="bg-slate-950 rounded-2xl border border-white/5 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-white/5">
+                    <div className="flex items-center gap-2 text-xs text-slate-400"><Terminal className="h-3.5 w-3.5 text-emerald-400" /> Modification Log</div>
+                    <div className="flex gap-1.5">{["bg-red-500","bg-yellow-500","bg-green-500"].map(c => <div key={c} className={`w-2.5 h-2.5 rounded-full ${c}`} />)}</div>
+                  </div>
+                  <div className="p-4 font-mono text-[11px] space-y-1 max-h-44 overflow-y-auto">
+                    {modifyLogs.map((log, i) => (
+                      <div key={i} className={`${log.includes("[ERROR]") ? "text-red-400" : log.includes("[WARNING]") ? "text-yellow-400" : log.includes("[SIMULATION]") ? "text-amber-400" : log.includes("[AD]") ? "text-emerald-400" : log.includes("[M365]") ? "text-sky-400" : log.includes("[Database]") ? "text-purple-400" : "text-slate-300"}`}>{log}</div>
+                    ))}
+                    {isModifying && <div className="text-indigo-400 animate-pulse">● Processing...</div>}
+                    {modifySuccessStatus === true && <div className="text-emerald-400 font-bold mt-2">✓ Modification completed successfully.</div>}
+                    {modifySuccessStatus === false && <div className="text-red-400 font-bold mt-2">✗ Modification failed. See errors above.</div>}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 1 – User Search */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">1 — Search & Select User</h3>
+                <div className="flex gap-2">
+                  <input
+                    type="text" placeholder="Search by name or email…"
+                    value={modifySearchQuery}
+                    onChange={e => setModifySearchQuery(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") searchUsersForModify(modifySearchQuery, setModifySearchResults, setModifySearchLoading); }}
+                    className="flex-1 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-slate-800 dark:text-white outline-none"
+                  />
+                  <button type="button" onClick={() => searchUsersForModify(modifySearchQuery, setModifySearchResults, setModifySearchLoading)}
+                    className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5">
+                    {modifySearchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Search
+                  </button>
+                </div>
+                {modifySearchResults.length > 0 && (
+                  <div className="border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-white/5 max-h-48 overflow-y-auto">
+                    {modifySearchResults.map(u => (
+                      <button key={u.id || u.email} type="button" onClick={() => handleSelectUserForModify(u)}
+                        className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors ${modifySelectedUser?.email === u.email ? "bg-indigo-50 dark:bg-indigo-900/20" : ""}`}>
+                        <div>
+                          <div className="text-xs font-semibold text-slate-800 dark:text-white">{u.name || "—"}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">{u.email}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{u.systemRole}</span>
+                          {modifySelectedUser?.email === u.email && <Check className="h-4 w-4 text-indigo-500" />}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {modifySelectedUser && (
+                  <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/20 rounded-xl">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                    <div className="text-xs"><span className="font-semibold text-emerald-700 dark:text-emerald-300">{modifySelectedUser.name}</span><span className="text-emerald-600 dark:text-emerald-400 ml-1">({modifySelectedUser.email})</span> selected for modification.</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Step 2 – Target directory */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">2 — Target Directory</h3>
+                <div className="flex gap-4">
+                  {[{key: "modifyInAd", label: "Active Directory", icon: <Server className="h-4 w-4" />}, {key: "modifyInM365", label: "Microsoft 365", icon: <Cloud className="h-4 w-4" />}].map(opt => (
+                    <label key={opt.key} className={`flex-1 flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${(modifyFormData as any)[opt.key] ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20" : "border-slate-200 dark:border-white/5 hover:border-slate-300"}`}>
+                      <input type="checkbox" checked={(modifyFormData as any)[opt.key]} onChange={e => setModifyFormData((prev: any) => ({ ...prev, [opt.key]: e.target.checked }))} className="rounded text-indigo-600" />
+                      <span className={`${(modifyFormData as any)[opt.key] ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500"}`}>{opt.icon}</span>
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Step 3 – Attribute Tabs */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">3 — Update Attributes</h3>
+                <div className="flex gap-1 border-b border-slate-200 dark:border-white/5">
+                  {["Profile", "Contact", "Address", "Account", "M365"].map(tab => (
+                    <button key={tab} type="button" onClick={() => setModifyActiveTab(tab)}
+                      className={`px-4 py-2 text-[11px] font-semibold rounded-t-lg transition-colors ${modifyActiveTab === tab ? "bg-indigo-600 text-white" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}>
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {modifyActiveTab === "Profile" && (<>
+                    {[["First Name","firstName"],["Last Name","lastName"],["Initials","initials"],["Display Name","displayName"],["Job Title","jobTitle"],["Department","department"],["Office","office"],["Employee ID","employeeId"]].map(([lbl, key]) => (
+                      <div key={key} className="space-y-1">
+                        <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{lbl}</label>
+                        <input type="text" value={(modifyFormData as any)[key]} onChange={e => setModifyFormData((p: any) => ({...p, [key]: e.target.value}))}
+                          placeholder={`Enter ${lbl.toLowerCase()}…`}
+                          className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3 py-2 text-slate-800 dark:text-white outline-none" />
+                      </div>
+                    ))}
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Description</label>
+                      <textarea value={modifyFormData.descriptionGeneral} onChange={e => setModifyFormData((p: any) => ({...p, descriptionGeneral: e.target.value}))}
+                        rows={2} placeholder="Enter description…"
+                        className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3 py-2 text-slate-800 dark:text-white outline-none resize-none" />
+                    </div>
+                  </>)}
+
+                  {modifyActiveTab === "Contact" && (<>
+                    {[["Office Phone","officePhone"],["Fax Number","faxNumber"],["Mobile Number","mobileNumber"],["Home Phone","homePhone"],["Pager","pager"],["IP Phone","ipPhone"],["Web Page","webPage"],["Company","company"]].map(([lbl, key]) => (
+                      <div key={key} className="space-y-1">
+                        <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{lbl}</label>
+                        <input type="text" value={(modifyFormData as any)[key]} onChange={e => setModifyFormData((p: any) => ({...p, [key]: e.target.value}))}
+                          placeholder={`Enter ${lbl.toLowerCase()}…`}
+                          className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3 py-2 text-slate-800 dark:text-white outline-none" />
+                      </div>
+                    ))}
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Notes</label>
+                      <textarea value={modifyFormData.notes} onChange={e => setModifyFormData((p: any) => ({...p, notes: e.target.value}))}
+                        rows={2} className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3 py-2 text-slate-800 dark:text-white outline-none resize-none" />
+                    </div>
+                  </>)}
+
+                  {modifyActiveTab === "Address" && (<>
+                    {[["Street Address","streetAddress"],["City","city"],["State/Province","stateProvince"],["Zip/Postal Code","zipPostalCode"],["Country","countryRegion"],["PO Box","poBox"]].map(([lbl, key]) => (
+                      <div key={key} className="space-y-1">
+                        <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{lbl}</label>
+                        <input type="text" value={(modifyFormData as any)[key]} onChange={e => setModifyFormData((p: any) => ({...p, [key]: e.target.value}))}
+                          placeholder={`Enter ${lbl.toLowerCase()}…`}
+                          className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3 py-2 text-slate-800 dark:text-white outline-none" />
+                      </div>
+                    ))}
+                  </>)}
+
+                  {modifyActiveTab === "Account" && (<>
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Reset Password <span className="text-slate-400">(leave blank to keep current)</span></label>
+                      <input type="password" value={modifyFormData.newPassword} onChange={e => setModifyFormData((p: any) => ({...p, newPassword: e.target.value}))}
+                        placeholder="Enter new password…"
+                        className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3 py-2 text-slate-800 dark:text-white outline-none" />
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Target OU (DN)</label>
+                      <input type="text" value={modifyFormData.targetOu} onChange={e => setModifyFormData((p: any) => ({...p, targetOu: e.target.value}))}
+                        placeholder="e.g. OU=Engineering,OU=Employees"
+                        className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3 py-2 text-slate-800 dark:text-white outline-none" />
+                    </div>
+                    {[{key:"accountDisabled",label:"Account is Disabled"},{key:"passwordNeverExpires",label:"Password Never Expires"},{key:"userMustChangePassword",label:"User Must Change Password at Next Logon"}].map(opt => (
+                      <label key={opt.key} className="col-span-2 flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" checked={(modifyFormData as any)[opt.key]} onChange={e => setModifyFormData((p: any) => ({...p, [opt.key]: e.target.checked}))} className="rounded text-indigo-600 w-4 h-4" />
+                        <span className="text-xs text-slate-700 dark:text-slate-300">{opt.label}</span>
+                      </label>
+                    ))}
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">AD Security Groups (comma-separated DNs)</label>
+                      <input type="text" value={modifyFormData.adGroupDns.join(", ")} onChange={e => setModifyFormData((p: any) => ({...p, adGroupDns: e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean)}))}
+                        placeholder="e.g. CN=Domain Users,CN=Users"
+                        className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3 py-2 text-slate-800 dark:text-white outline-none" />
+                    </div>
+                  </>)}
+
+                  {modifyActiveTab === "M365" && (<>
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400">M365 License SKU</label>
+                      <select value={modifyFormData.m365License} onChange={e => setModifyFormData((p: any) => ({...p, m365License: e.target.value}))}
+                        className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3 py-2 text-slate-800 dark:text-white outline-none">
+                        {M365_LICENSES.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                      </select>
+                    </div>
+                    <label className="col-span-2 flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={modifyFormData.createWithoutLicense} onChange={e => setModifyFormData((p: any) => ({...p, createWithoutLicense: e.target.checked}))} className="rounded text-indigo-600 w-4 h-4" />
+                      <span className="text-xs text-slate-700 dark:text-slate-300">Remove license (assign manually later)</span>
+                    </label>
+                  </>)}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-slate-200/50 dark:border-white/5 flex gap-3 justify-end shrink-0">
+              <button type="button" onClick={() => { setModifyShowTerminal(false); setIsModifyModalOpen(false); }}
+                className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-semibold text-sm">
+                Cancel
+              </button>
+              <button type="button" onClick={handleModifyUserSubmit} disabled={isModifying || !modifySelectedUser}
+                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-white rounded-xl transition-all font-semibold text-sm shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                {isModifying && <Loader2 className="h-4 w-4 animate-spin" />}
+                Apply Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════
+          MODIFY BULK USERS MODAL
+      ════════════════════════════════════════════════════ */}
+      {isBulkModifyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[94vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-200/50 dark:border-white/5 flex justify-between items-center shrink-0">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="p-1.5 bg-violet-500/10 rounded-lg"><Server className="h-4 w-4 text-violet-500" /></span>
+                  Modify Bulk Users
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Search and select users, configure which attributes to update, then apply changes in batch.</p>
+              </div>
+              <button onClick={() => setIsBulkModifyModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"><X className="h-5 w-5 text-slate-500" /></button>
+            </div>
+
+            <form onSubmit={handleBulkModifySubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Terminal */}
+              {bulkModifyShowTerminal && (
+                <div className="bg-slate-950 rounded-2xl border border-white/5 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-white/5">
+                    <div className="flex items-center gap-2 text-xs text-slate-400"><Terminal className="h-3.5 w-3.5 text-violet-400" /> Bulk Modification Log</div>
+                    <div className="flex gap-1.5">{["bg-red-500","bg-yellow-500","bg-green-500"].map(c => <div key={c} className={`w-2.5 h-2.5 rounded-full ${c}`} />)}</div>
+                  </div>
+                  <div className="p-4 font-mono text-[11px] space-y-1 max-h-44 overflow-y-auto">
+                    {bulkModifyLogs.map((log, i) => (
+                      <div key={i} className={`${log.includes("[ERROR]") ? "text-red-400" : log.includes("[WARNING]") ? "text-yellow-400" : log.includes("[SIMULATION]") ? "text-amber-400" : log.includes("[AD]") ? "text-emerald-400" : log.includes("[M365]") ? "text-sky-400" : log.includes("[Database]") ? "text-purple-400" : "text-slate-300"}`}>{log}</div>
+                    ))}
+                    {isBulkModifying && <div className="text-violet-400 animate-pulse">● Processing batch…</div>}
+                    {bulkModifySuccessStatus === true && <div className="text-emerald-400 font-bold mt-2">✓ Bulk modification completed successfully.</div>}
+                    {bulkModifySuccessStatus === false && <div className="text-red-400 font-bold mt-2">✗ Some modifications failed. See errors above.</div>}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left – User Picker */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Select Users</h3>
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="Search by name or email…" value={bulkModifySearchQuery}
+                      onChange={e => setBulkModifySearchQuery(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") searchUsersForModify(bulkModifySearchQuery, setBulkModifySearchResults, setBulkModifySearchLoading); }}
+                      className="flex-1 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-white/5 focus:border-violet-500 rounded-xl px-3 py-2 text-slate-800 dark:text-white outline-none" />
+                    <button type="button" onClick={() => searchUsersForModify(bulkModifySearchQuery, setBulkModifySearchResults, setBulkModifySearchLoading)}
+                      className="px-3 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-bold transition-colors">
+                      {bulkModifySearchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Search"}
+                    </button>
+                  </div>
+
+                  {/* Results list */}
+                  {bulkModifySearchResults.length > 0 && (
+                    <div className="border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-white/5 max-h-52 overflow-y-auto">
+                      {bulkModifySearchResults.map(u => {
+                        const alreadySelected = selectedUsersForModify.some(s => s.email === u.email);
+                        return (
+                          <button key={u.email} type="button"
+                            onClick={() => setSelectedUsersForModify(prev => alreadySelected ? prev.filter(s => s.email !== u.email) : [...prev, u])}
+                            className={`w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors ${alreadySelected ? "bg-violet-50 dark:bg-violet-900/20" : ""}`}>
+                            <div>
+                              <div className="text-xs font-semibold text-slate-800 dark:text-white">{u.name || "—"}</div>
+                              <div className="text-[10px] text-slate-500">{u.email}</div>
+                            </div>
+                            <input type="checkbox" readOnly checked={alreadySelected} className="rounded text-violet-600 w-4 h-4 pointer-events-none" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Selected chips */}
+                  {selectedUsersForModify.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] text-slate-500 font-semibold">{selectedUsersForModify.length} user(s) selected:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedUsersForModify.map(u => (
+                          <span key={u.email} className="flex items-center gap-1 px-2.5 py-1 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-[11px] font-semibold rounded-full">
+                            {u.name || u.email}
+                            <button type="button" onClick={() => setSelectedUsersForModify(prev => prev.filter(s => s.email !== u.email))} className="hover:text-red-500 transition-colors"><X className="h-3 w-3" /></button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right – Change Config */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Changes to Apply</h3>
+                  <div className="space-y-3 border border-slate-200 dark:border-white/5 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-950/30">
+                    {/* Directory */}
+                    <div className="flex gap-4 pb-3 border-b border-slate-200 dark:border-white/5">
+                      {[{key:"modifyInAd",label:"Active Directory"},{key:"modifyInM365",label:"Microsoft 365"}].map(opt => (
+                        <label key={opt.key} className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={(bulkModifyConfig as any)[opt.key]} onChange={e => setBulkModifyConfig(p => ({...p, [opt.key]: e.target.checked}))} className="rounded text-violet-600" />
+                          <span className="text-xs text-slate-700 dark:text-slate-300">{opt.label}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    {/* Attribute toggles */}
+                    {[
+                      { flag: "applyJobTitle", field: "jobTitle", label: "Job Title", placeholder: "e.g. Systems Engineer" },
+                      { flag: "applyDepartment", field: "department", label: "Department", placeholder: "e.g. Engineering" },
+                      { flag: "applyOffice", field: "office", label: "Office Location", placeholder: "e.g. New York HQ" },
+                      { flag: "applyMobile", field: "mobileNumber", label: "Mobile Number", placeholder: "e.g. 555-0199" },
+                      { flag: "applyLicense", field: "m365License", label: "M365 License SKU", placeholder: "e.g. Microsoft 365 E5" },
+                      { flag: "applyPassword", field: "newPassword", label: "Reset Password", placeholder: "New password (min 8 chars)" },
+                      { flag: "applyOu", field: "targetOu", label: "Move to OU", placeholder: "e.g. OU=IT,OU=Employees" },
+                    ].map(({ flag, field, label, placeholder }) => (
+                      <div key={flag} className="space-y-1.5">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={(bulkModifyConfig as any)[flag]} onChange={e => setBulkModifyConfig(p => ({...p, [flag]: e.target.checked}))} className="rounded text-violet-600 w-3.5 h-3.5" />
+                          <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">{label}</span>
+                        </label>
+                        {(bulkModifyConfig as any)[flag] && (
+                          <input type={field === "newPassword" ? "password" : "text"}
+                            value={(bulkModifyConfig as any)[field]}
+                            onChange={e => setBulkModifyConfig(p => ({...p, [field]: e.target.value}))}
+                            placeholder={placeholder}
+                            className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-white/5 focus:border-violet-500 rounded-lg px-3 py-2 text-slate-800 dark:text-white outline-none" />
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Account flags */}
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={bulkModifyConfig.applyDisabled} onChange={e => setBulkModifyConfig(p => ({...p, applyDisabled: e.target.checked}))} className="rounded text-violet-600 w-3.5 h-3.5" />
+                        <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Toggle Account Status</span>
+                      </label>
+                      {bulkModifyConfig.applyDisabled && (
+                        <label className="flex items-center gap-2 ml-5 cursor-pointer">
+                          <input type="checkbox" checked={bulkModifyConfig.accountDisabled} onChange={e => setBulkModifyConfig(p => ({...p, accountDisabled: e.target.checked}))} className="rounded text-red-500 w-3.5 h-3.5" />
+                          <span className="text-[11px] text-slate-600 dark:text-slate-300">Disable accounts</span>
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Submission */}
+              <div className="pt-4 border-t border-slate-200/50 dark:border-white/5 flex gap-3 justify-end shrink-0">
+                <button type="button" onClick={() => setIsBulkModifyModalOpen(false)}
+                  className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-semibold text-sm">
+                  Cancel
+                </button>
+                <button type="submit" disabled={isBulkModifying || selectedUsersForModify.length === 0}
+                  className="px-6 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl transition-all font-semibold text-sm shadow-lg shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                  {isBulkModifying && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Apply to {selectedUsersForModify.length} User{selectedUsersForModify.length !== 1 ? "s" : ""}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════
+          MODIFY USERS USING TEMPLATE MODAL
+      ════════════════════════════════════════════════════ */}
+      {isModifyWithTemplateOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-200/50 dark:border-white/5 flex justify-between items-center shrink-0">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="p-1.5 bg-indigo-500/10 rounded-lg"><Sparkles className="h-4 w-4 text-indigo-500" /></span>
+                  Modify Users Using Template
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {modifyTemplateStep === "pick-template" ? "Step 1 of 2 — Choose a template to apply." : "Step 2 of 2 — Select users to modify."}
+                </p>
+              </div>
+              <button onClick={() => setIsModifyWithTemplateOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"><X className="h-5 w-5 text-slate-500" /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              {modifyTemplateStep === "pick-template" && (
+                <>
+                  <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Available Templates</h3>
+                  <div className="space-y-2">
+                    {customTemplates.length === 0 && (
+                      <div className="text-center py-8 text-sm text-slate-400 dark:text-slate-500">No templates found. Create one in <strong>User Templates → User Creation Templates</strong>.</div>
+                    )}
+                    {customTemplates.map(tpl => (
+                      <button key={tpl.id} type="button" onClick={() => setSelectedModifyTemplate(tpl)}
+                        className={`w-full flex items-start gap-4 p-4 rounded-xl border text-left transition-all ${selectedModifyTemplate?.id === tpl.id ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20" : "border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"}`}>
+                        <div className={`p-2 rounded-lg shrink-0 ${selectedModifyTemplate?.id === tpl.id ? "bg-indigo-500 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"}`}>
+                          <Sparkles className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-slate-800 dark:text-white">{tpl.name}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{tpl.description || "No description"}</div>
+                          <div className="flex gap-2 mt-2 flex-wrap">
+                            {tpl.data?.jobTitle && <span className="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-400">Job: {tpl.data.jobTitle}</span>}
+                            {tpl.data?.department && <span className="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-400">Dept: {tpl.data.department}</span>}
+                            {tpl.data?.office && <span className="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-400">Office: {tpl.data.office}</span>}
+                          </div>
+                        </div>
+                        {selectedModifyTemplate?.id === tpl.id && <Check className="h-5 w-5 text-indigo-500 shrink-0 mt-0.5" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {modifyTemplateStep === "pick-users" && (
+                <>
+                  <div className="px-4 py-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-500/20 rounded-xl text-xs text-indigo-700 dark:text-indigo-300">
+                    Applying template: <strong>{selectedModifyTemplate?.name}</strong>
+                  </div>
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="Search users by name or email…" value={modifyTemplateUserSearch}
+                      onChange={e => setModifyTemplateUserSearch(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") searchUsersForModify(modifyTemplateUserSearch, setModifyTemplateUserResults, () => {}); }}
+                      className="flex-1 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-white/5 focus:border-indigo-500 rounded-xl px-3 py-2 text-slate-800 dark:text-white outline-none" />
+                    <button type="button" onClick={() => searchUsersForModify(modifyTemplateUserSearch, setModifyTemplateUserResults, () => {})}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-colors">Search</button>
+                  </div>
+                  {modifyTemplateUserResults.length > 0 && (
+                    <div className="border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-white/5 max-h-52 overflow-y-auto">
+                      {modifyTemplateUserResults.map(u => {
+                        const sel = modifyTemplateSelectedUsers.some(s => s.email === u.email);
+                        return (
+                          <button key={u.email} type="button"
+                            onClick={() => setModifyTemplateSelectedUsers(prev => sel ? prev.filter(s => s.email !== u.email) : [...prev, u])}
+                            className={`w-full flex items-center justify-between px-3 py-2.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors ${sel ? "bg-indigo-50 dark:bg-indigo-900/20" : ""}`}>
+                            <div>
+                              <div className="text-xs font-semibold text-slate-800 dark:text-white">{u.name || "—"}</div>
+                              <div className="text-[10px] text-slate-500">{u.email}</div>
+                            </div>
+                            <input type="checkbox" readOnly checked={sel} className="rounded text-indigo-600 w-4 h-4 pointer-events-none" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {modifyTemplateSelectedUsers.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {modifyTemplateSelectedUsers.map(u => (
+                        <span key={u.email} className="flex items-center gap-1 px-2.5 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[11px] font-semibold rounded-full">
+                          {u.name || u.email}
+                          <button type="button" onClick={() => setModifyTemplateSelectedUsers(prev => prev.filter(s => s.email !== u.email))}><X className="h-3 w-3" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-slate-200/50 dark:border-white/5 flex gap-3 justify-between shrink-0">
+              <button type="button" onClick={() => { if (modifyTemplateStep === "pick-users") setModifyTemplateStep("pick-template"); else setIsModifyWithTemplateOpen(false); }}
+                className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-semibold text-sm">
+                {modifyTemplateStep === "pick-users" ? "← Back" : "Cancel"}
+              </button>
+              {modifyTemplateStep === "pick-template" ? (
+                <button type="button" disabled={!selectedModifyTemplate} onClick={() => setModifyTemplateStep("pick-users")}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                  Next: Select Users →
+                </button>
+              ) : (
+                <button type="button" disabled={modifyTemplateSelectedUsers.length === 0} onClick={handleModifyWithTemplateSubmit}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all font-semibold text-sm shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                  Apply Template to {modifyTemplateSelectedUsers.length} User{modifyTemplateSelectedUsers.length !== 1 ? "s" : ""}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* User Creation Templates Workspace Modal Overlay */}
+
       {showTemplatesWorkspace && (
         <div className="fixed inset-0 z-50 bg-slate-50 dark:bg-slate-950/95 overflow-y-auto flex flex-col font-outfit text-slate-800 dark:text-white animate-in fade-in duration-200">
           {/* Top Navbar */}

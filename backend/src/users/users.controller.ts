@@ -1,6 +1,7 @@
-import { Controller, Post, Get, Delete, Param, Query, Body, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Param, Query, Body, UseGuards, UseInterceptors } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateSingleUserDto } from './dto/create-single-user.dto';
+import { ModifyUserDto } from './dto/modify-user.dto';
 import { TenantId } from '../common/decorators/tenant-id.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -49,5 +50,45 @@ export class UsersController {
   async checkAvailability(@Query('email') email: string) {
     const available = await this.usersService.checkAvailability(email);
     return { available };
+  }
+
+  @Get()
+  async searchUsers(
+    @TenantId() tenantId: string,
+    @Query('q') query: string = '',
+  ) {
+    return this.usersService.searchUsers(tenantId, query);
+  }
+
+  @Patch('modify-single')
+  async modifySingleUser(
+    @TenantId() tenantId: string,
+    @Body() dto: ModifyUserDto,
+  ) {
+    return this.usersService.modifySingleUser(tenantId, dto);
+  }
+
+  @Post('modify-bulk')
+  async modifyBulkUsers(
+    @TenantId() tenantId: string,
+    @Body() body: { users: ModifyUserDto[] },
+  ) {
+    return this.usersService.modifyBulkUsers(tenantId, body.users);
+  }
+
+  @Post('reports')
+  async getUserReport(
+    @TenantId() tenantId: string,
+    @Body() body: { reportType: string; csvUsers?: string[] },
+  ) {
+    return this.usersService.getUserReport(tenantId, body.reportType, body.csvUsers);
+  }
+
+  @Post('reports/action')
+  async executeReportAction(
+    @TenantId() tenantId: string,
+    @Body() body: { email: string; action: string },
+  ) {
+    return this.usersService.executeReportAction(tenantId, body.email, body.action);
   }
 }

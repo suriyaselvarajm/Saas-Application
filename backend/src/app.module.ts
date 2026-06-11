@@ -10,6 +10,8 @@ import { SmtpModule } from './smtp/smtp.module';
 import { EmailTemplateModule } from './email-template/email-template.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { ComputersModule } from './computers/computers.module';
+import { GroupsModule } from './groups/groups.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { UsersModule } from './users/users.module';
     EmailTemplateModule,
     AuthModule,
     UsersModule,
+    ComputersModule,
+    GroupsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

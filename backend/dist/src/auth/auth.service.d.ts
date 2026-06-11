@@ -41,15 +41,6 @@ export declare class AuthService {
         user?: undefined;
     }>;
     changePassword(email: string, newPassword: string): Promise<{
-<<<<<<< HEAD:backend/dist/auth/auth.service.d.ts
-        name: string | null;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        email: string;
-        password: string | null;
-        mustChangePassword: boolean;
-=======
         id: string;
         email: string;
         password: string | null;
@@ -59,23 +50,11 @@ export declare class AuthService {
         roleId: string | null;
         createdAt: Date;
         updatedAt: Date;
->>>>>>> Dev:backend/dist/src/auth/auth.service.d.ts
         systemRole: import("@prisma/client").$Enums.SystemRole;
         mfaEnabled: boolean;
         mfaSecret: string | null;
-        roleId: string | null;
-        tenantId: string;
     }>;
     adminResetPassword(userId: string, newPassword: string): Promise<{
-<<<<<<< HEAD:backend/dist/auth/auth.service.d.ts
-        name: string | null;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        email: string;
-        password: string | null;
-        mustChangePassword: boolean;
-=======
         id: string;
         email: string;
         password: string | null;
@@ -85,12 +64,9 @@ export declare class AuthService {
         roleId: string | null;
         createdAt: Date;
         updatedAt: Date;
->>>>>>> Dev:backend/dist/src/auth/auth.service.d.ts
         systemRole: import("@prisma/client").$Enums.SystemRole;
         mfaEnabled: boolean;
         mfaSecret: string | null;
-        roleId: string | null;
-        tenantId: string;
     }>;
     completeMfaLogin(userId: string): Promise<{
         accessToken: string;

@@ -1,5 +1,6 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSingleUserDto } from './dto/create-single-user.dto';
+import { ModifyUserDto } from './dto/modify-user.dto';
 export declare class UsersService {
     private readonly prisma;
     constructor(prisma: PrismaService);
@@ -18,6 +19,7 @@ export declare class UsersService {
     private simulateAdCreation;
     private buildAdUserEntry;
     private addUserToAdGroup;
+    private removeUserFromAdGroup;
     private handleMicrosoft365Creation;
     private provisionSingleBulkUser;
     createBulkUsers(tenantId: string, users: CreateSingleUserDto[]): Promise<{
@@ -25,5 +27,28 @@ export declare class UsersService {
         createdCount: number;
         logs: string[];
     }>;
+    searchUsers(tenantId: string, query: string): Promise<any[]>;
+    modifySingleUser(tenantId: string, dto: ModifyUserDto): Promise<{
+        success: boolean;
+        logs: string[];
+        message: string;
+    }>;
+    private handleActiveDirectoryModification;
+    private simulateAdAction;
+    private generateStrongPassword;
+    private handleMicrosoft365Modification;
+    modifyBulkUsers(tenantId: string, users: ModifyUserDto[]): Promise<{
+        success: boolean;
+        successCount: number;
+        total: number;
+        logs: string[];
+    }>;
     validateUserSchema(dto: any): void;
+    private getSimulatedReportUsers;
+    getUserReport(tenantId: string, reportType: string, csvUsers?: string[]): Promise<any[]>;
+    executeReportAction(tenantId: string, email: string, action: string): Promise<{
+        success: boolean;
+        logs: string[];
+        message: string;
+    }>;
 }

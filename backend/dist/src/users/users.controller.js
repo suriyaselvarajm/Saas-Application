@@ -16,6 +16,7 @@ exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
 const users_service_1 = require("./users.service");
 const create_single_user_dto_1 = require("./dto/create-single-user.dto");
+const modify_user_dto_1 = require("./dto/modify-user.dto");
 const tenant_id_decorator_1 = require("../common/decorators/tenant-id.decorator");
 const roles_guard_1 = require("../auth/guards/roles.guard");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
@@ -44,6 +45,21 @@ let UsersController = class UsersController {
     async checkAvailability(email) {
         const available = await this.usersService.checkAvailability(email);
         return { available };
+    }
+    async searchUsers(tenantId, query = '') {
+        return this.usersService.searchUsers(tenantId, query);
+    }
+    async modifySingleUser(tenantId, dto) {
+        return this.usersService.modifySingleUser(tenantId, dto);
+    }
+    async modifyBulkUsers(tenantId, body) {
+        return this.usersService.modifyBulkUsers(tenantId, body.users);
+    }
+    async getUserReport(tenantId, body) {
+        return this.usersService.getUserReport(tenantId, body.reportType, body.csvUsers);
+    }
+    async executeReportAction(tenantId, body) {
+        return this.usersService.executeReportAction(tenantId, body.email, body.action);
     }
 };
 exports.UsersController = UsersController;
@@ -90,6 +106,46 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "checkAvailability", null);
+__decorate([
+    (0, common_1.Get)(),
+    __param(0, (0, tenant_id_decorator_1.TenantId)()),
+    __param(1, (0, common_1.Query)('q')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "searchUsers", null);
+__decorate([
+    (0, common_1.Patch)('modify-single'),
+    __param(0, (0, tenant_id_decorator_1.TenantId)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, modify_user_dto_1.ModifyUserDto]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "modifySingleUser", null);
+__decorate([
+    (0, common_1.Post)('modify-bulk'),
+    __param(0, (0, tenant_id_decorator_1.TenantId)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "modifyBulkUsers", null);
+__decorate([
+    (0, common_1.Post)('reports'),
+    __param(0, (0, tenant_id_decorator_1.TenantId)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "getUserReport", null);
+__decorate([
+    (0, common_1.Post)('reports/action'),
+    __param(0, (0, tenant_id_decorator_1.TenantId)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "executeReportAction", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),

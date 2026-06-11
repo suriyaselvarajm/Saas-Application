@@ -1,0 +1,16 @@
+[
+  {
+    "id": "cmp-tpl-1",
+    "name": "Standard Workstation Template",
+    "description": "Default template for standard domain-joined workstations.",
+    "category": "Workstation",
+    "createdBy": "Petrus Directory Authority\\admin",
+    "createdOn": "2026-05-20 12:00:00",
+    "lastModified": "2026-05-20 12:00:00",
+    "data": {
+      "location": "Head Office",
+      "targetOu": "OU=Workstations,DC=corp,DC=com",
+      "operatingSystem": "Windows 11 Pro"
+    }
+  }
+]

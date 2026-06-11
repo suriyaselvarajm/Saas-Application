@@ -52,15 +52,6 @@ export declare class AuthController {
         email: string;
         newPassword: string;
     }): Promise<{
-<<<<<<< HEAD:backend/dist/auth/auth.controller.d.ts
-        name: string | null;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        email: string;
-        password: string | null;
-        mustChangePassword: boolean;
-=======
         id: string;
         email: string;
         password: string | null;
@@ -70,26 +61,14 @@ export declare class AuthController {
         roleId: string | null;
         createdAt: Date;
         updatedAt: Date;
->>>>>>> Dev:backend/dist/src/auth/auth.controller.d.ts
         systemRole: import("@prisma/client").$Enums.SystemRole;
         mfaEnabled: boolean;
         mfaSecret: string | null;
-        roleId: string | null;
-        tenantId: string;
     }>;
     adminResetPassword(body: {
         userId: string;
         newPassword: string;
     }): Promise<{
-<<<<<<< HEAD:backend/dist/auth/auth.controller.d.ts
-        name: string | null;
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        email: string;
-        password: string | null;
-        mustChangePassword: boolean;
-=======
         id: string;
         email: string;
         password: string | null;
@@ -99,20 +78,23 @@ export declare class AuthController {
         roleId: string | null;
         createdAt: Date;
         updatedAt: Date;
->>>>>>> Dev:backend/dist/src/auth/auth.controller.d.ts
         systemRole: import("@prisma/client").$Enums.SystemRole;
         mfaEnabled: boolean;
         mfaSecret: string | null;
-        roleId: string | null;
-        tenantId: string;
     }>;
     setupMfa(body: {
         userId: string;
-    }): Promise<any>;
+    }): Promise<{
+        otpauthUrl: string;
+        qrCodeDataUrl: string;
+        secret: string;
+    }>;
     enableMfa(body: {
         userId: string;
         token: string;
-    }): Promise<any>;
+    }): Promise<{
+        success: boolean;
+    }>;
     verifyMfaLogin(body: {
         userId: string;
         token: string;
@@ -131,5 +113,7 @@ export declare class AuthController {
     disableMfa(body: {
         userId: string;
         token: string;
-    }): Promise<any>;
+    }): Promise<{
+        success: boolean;
+    }>;
 }

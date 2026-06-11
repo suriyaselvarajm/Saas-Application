@@ -19,6 +19,8 @@ const smtp_module_1 = require("./smtp/smtp.module");
 const email_template_module_1 = require("./email-template/email-template.module");
 const auth_module_1 = require("./auth/auth.module");
 const users_module_1 = require("./users/users.module");
+const computers_module_1 = require("./computers/computers.module");
+const groups_module_1 = require("./groups/groups.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -34,6 +36,8 @@ exports.AppModule = AppModule = __decorate([
             email_template_module_1.EmailTemplateModule,
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
+            computers_module_1.ComputersModule,
+            groups_module_1.GroupsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
